@@ -32,6 +32,8 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [ ] Implement session persistence (keep user logged in across app restarts)
 - [ ] Add error handling for auth failures (invalid email, weak password, etc.)
 - [ ] Set up Firebase security rules for user data access
+- [ ] Implement password reset flow (forgot password screen + sendPasswordResetEmail())
+- [ ] Implement user profile management screen (view/edit displayName, photoURL)
 - [ ] Test both registration flows (local and Google) on all platforms
 - [ ] Create authentication state provider (using Provider/Riverpod)
 
@@ -89,6 +91,7 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [ ] Create template creation screen UI
 - [ ] Build dynamic field builder for creating template fields
 - [ ] Implement field type selection (reveal, text_input, multiple_choice)
+- [ ] Implement "create template from existing card" workflow
 - [ ] Create template list view/browser
 - [ ] Implement template editing functionality
 - [ ] Implement template deletion with confirmation
@@ -103,8 +106,10 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [ ] Implement primary word field (foreign language + translation)
 - [ ] Build reveal-on-click field type UI and logic
 - [ ] Build text input field type UI with validation
+- [ ] Implement exact-match vs case-insensitive toggle for text input fields
 - [ ] Build multiple choice field type UI
 - [ ] Implement card update/edit screen
+- [ ] Decide and implement soft delete vs hard delete for cards
 - [ ] Implement card deletion with confirmation
 - [ ] Add card metadata display (createdAt, updatedAt, createdBy)
 - [ ] Implement field type icons/indicators
@@ -143,6 +148,7 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [ ] Add color coding functionality
 - [ ] Implement set search/filtering
 - [ ] Implement set sorting options
+- [ ] Implement pagination for sets list (avoid performance issues at scale)
 - [ ] Create Firestore queries for set retrieval
 - [ ] Implement batch operations for card management
 - [ ] Set up Firestore indexes
@@ -184,7 +190,7 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [ ] Build reveal-on-click field interaction
 - [ ] Build text input field UI with validation and feedback
 - [ ] Build multiple choice field UI with selection and feedback
-- [ ] Implement text input validation (case-insensitive, hints)
+- [ ] Implement text input validation (case-insensitive by default, respect per-field exact-match setting)
 - [ ] Implement feedback messaging (correct, incorrect, partial)
 - [ ] Implement "Try Again" button for fields
 
@@ -197,7 +203,7 @@ The implementation is divided into 7 phases, starting with foundational setup an
 
 #### State Management & Persistence
 - [ ] Implement card session state tracking
-- [ ] Implement auto-save to Firestore (after each action)
+- [ ] Implement auto-save to Firestore (after each action, debounced to reduce write volume)
 - [ ] Implement session pause functionality
 - [ ] Implement session resume logic
 - [ ] Implement session completion and statistics calculation
@@ -258,6 +264,7 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [ ] Implement merge logic (new vs. existing set)
 - [ ] Implement duplicate detection and handling
 - [ ] Implement Firestore batch operations for bulk imports
+- [ ] Implement bulk import (multiple files at once) with consolidated summary report
 - [ ] Create success/error summary report
 
 #### Supporting Features

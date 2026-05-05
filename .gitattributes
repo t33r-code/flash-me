@@ -1,0 +1,23 @@
+# Normalize line endings to LF in the repository; checkout as-is on all platforms.
+* text=auto eol=lf
+
+# Windows batch/script files must use CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files — no line ending conversion
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.otf binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
+*.apk binary
+*.ipa binary
+*.jar binary
+*.keystore binary
+*.jks binary

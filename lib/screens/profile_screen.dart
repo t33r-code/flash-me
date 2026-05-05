@@ -55,6 +55,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(authStateProvider, (_, next) {
+      if (next.asData?.value == null && context.mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    });
+
     final theme = Theme.of(context);
     final appUser = ref.watch(appUserProvider);
 

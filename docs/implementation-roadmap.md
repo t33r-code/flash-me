@@ -17,25 +17,25 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] Configure Firebase project in Firebase Console
 - [x] Set up Firebase configuration for all platforms (google-services.json, GoogleService-Info.plist, etc.)
 - [x] Install and configure `firebase_auth`, `google_sign_in`, `cloud_firestore`, `firebase_storage` packages
-- [ ] Set up project structure (lib folders, models, providers, screens, services)
-- [ ] Create authentication service layer (AuthService)
-- [ ] Implement local registration screen with email/password validation
-- [ ] Implement `createUserWithEmailAndPassword()` Firebase call
-- [ ] Implement optional email verification flow
-- [ ] Implement Google Sign-In button and flow
-- [ ] Handle first-time Google Sign-In user creation
+- [x] Set up project structure (lib folders, models, providers, screens, services)
+- [x] Create authentication service layer (AuthService)
+- [x] Implement local registration screen with email/password validation
+- [x] Implement `createUserWithEmailAndPassword()` Firebase call
+- [x] Implement optional email verification flow
+- [x] Implement Google Sign-In button and flow
+- [x] Handle first-time Google Sign-In user creation
 - [ ] Implement account linking logic for multiple auth providers
-- [ ] Set up Firestore collection schema for user profiles (`users/{userId}`)
-- [ ] Create Firestore user document on successful registration
-- [ ] Implement auto-login after registration
-- [ ] Implement logout functionality
-- [ ] Implement session persistence (keep user logged in across app restarts)
-- [ ] Add error handling for auth failures (invalid email, weak password, etc.)
+- [x] Set up Firestore collection schema for user profiles (`users/{userId}`)
+- [x] Create Firestore user document on successful registration
+- [x] Implement auto-login after registration
+- [x] Implement logout functionality
+- [x] Implement session persistence (keep user logged in across app restarts)
+- [x] Add error handling for auth failures (invalid email, weak password, etc.)
 - [ ] Set up Firebase security rules for user data access
-- [ ] Implement password reset flow (forgot password screen + sendPasswordResetEmail())
-- [ ] Implement user profile management screen (view/edit displayName, photoURL)
+- [x] Implement password reset flow (forgot password screen + sendPasswordResetEmail())
+- [x] Implement user profile management screen (view/edit displayName, photoURL)
 - [ ] Test both registration flows (local and Google) on all platforms
-- [ ] Create authentication state provider (using Provider/Riverpod)
+- [x] Create authentication state provider (using Provider/Riverpod)
 
 **Deliverable**: Working registration and login system on all platforms.
 

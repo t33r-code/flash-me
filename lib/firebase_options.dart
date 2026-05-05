@@ -3,18 +3,30 @@
 // Run: `flutterfire configure` to generate this file with your Firebase credentials
 
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
-    // TODO: Get your Firebase project credentials from Firebase Console
-    // and use flutterfire configure to generate this file automatically
-    
-    // For now, returning a placeholder that will cause an error
-    // This ensures developers know they need to configure Firebase
-    throw UnsupportedError(
-      'DefaultFirebaseOptions has not been configured for this platform. '
-      'Please run `flutterfire configure` to generate the required configuration.',
-    );
+    if (kIsWeb) return web;
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return android;
+      case TargetPlatform.iOS:
+        return ios;
+      case TargetPlatform.macOS:
+        return macos;
+      case TargetPlatform.windows:
+        return windows;
+      case TargetPlatform.linux:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for Linux.',
+        );
+      default:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions are not supported for this platform.',
+        );
+    }
   }
 
   static const FirebaseOptions web = FirebaseOptions(

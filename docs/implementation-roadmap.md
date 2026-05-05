@@ -31,7 +31,7 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] Implement logout functionality
 - [x] Implement session persistence (keep user logged in across app restarts)
 - [x] Add error handling for auth failures (invalid email, weak password, etc.)
-- [ ] Set up Firebase security rules for user data access
+- [x] Set up Firebase security rules for user data access
 - [x] Implement password reset flow (forgot password screen + sendPasswordResetEmail())
 - [x] Implement user profile management screen (view/edit displayName, photoURL)
 - [ ] Test both registration flows (local and Google) on all platforms

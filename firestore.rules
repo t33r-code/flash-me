@@ -20,6 +20,16 @@ service cloud.firestore {
       }
     }
 
+    // setCards join documents are private to the owning user.
+    // userId is stored on the document so we can verify ownership
+    // without reading the parent set or card document.
+    match /setCards/{linkId} {
+      allow read, update, delete: if isAuth() &&
+          resource.data.userId == request.auth.uid;
+      allow create: if isAuth() &&
+          request.resource.data.userId == request.auth.uid;
+    }
+
     // Cards are private to the user who created them.
     // read/update/delete check the stored createdBy field;
     // create checks the incoming request to prevent spoofing.

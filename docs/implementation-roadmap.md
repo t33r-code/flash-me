@@ -50,26 +50,29 @@ The implementation is divided into 7 phases, starting with foundational setup an
 **Priority**: Critical - Foundation for all feature development.
 
 ### Tasks
-- [ ] Create Dart data models for: User, Card, CardField, CardTemplate, CardSet, StudySession
-- [ ] Design and create Firestore collection structure:
-  - [ ] `users/{userId}` — user profiles
-  - [ ] `templates/{templateId}` — card templates
-  - [ ] `cards/{cardId}` — individual cards
-  - [ ] `sets/{setId}` — card sets
-  - [ ] `users/{userId}/studySessions/{sessionId}` — study sessions
-- [ ] Create JSON serialization/deserialization for all models (fromJson, toJson, fromFirestore, toFirestore)
-- [ ] Set up Firestore indexes:
-  - [ ] Query by userId + createdAt (templates, cards, sets)
-  - [ ] Query by setId (for retrieving cards in a set)
-  - [ ] Query by userId + status (for study sessions)
-- [ ] Create data service layer (TemplateService, CardService, CardSetService, StudySessionService)
-- [ ] Implement Firestore write operations (create, update, delete)
-- [ ] Implement Firestore read operations (get, list, query)
-- [ ] Implement batch operations for bulk card operations
-- [ ] Create validation logic for all models
-- [ ] Test data models with unit tests
-- [ ] Test Firestore operations with integration tests
-- [ ] Set up proper error handling and exception types
+- [x] Create Dart data models for: User, Card, CardField, CardTemplate, CardSet, StudySession
+- [x] Design and create Firestore collection structure:
+  - [x] `users/{userId}` — user profiles
+  - [x] `templates/{templateId}` — card templates
+  - [x] `cards/{cardId}` — individual cards
+  - [x] `sets/{setId}` — card sets
+  - [x] `setCards/{linkId}` — many-to-many join (replaces cardIds[] on sets)
+  - [x] `users/{userId}/studySessions/{sessionId}` — study sessions
+- [x] Create JSON serialization/deserialization for all models (fromJson, toJson, fromFirestore, toFirestore)
+- [x] Set up Firestore indexes:
+  - [x] Query by userId + createdAt (templates, cards, sets)
+  - [x] Query by setId + addedAt (setCards — for retrieving cards in a set)
+  - [x] Query by cardId + addedAt (setCards — for set membership lookup)
+  - [x] Query by setId + status + lastAccessTime (study sessions)
+- [x] Create data service layer (TemplateService, CardService, CardSetService, StudySessionService)
+- [x] Implement Firestore write operations (create, update, delete)
+- [x] Implement Firestore read operations (get, list, query)
+- [x] Implement batch operations for bulk card operations
+- [x] Set up proper error handling and exception types (AppException)
+- [x] Wire Riverpod providers for all services and streams
+- [ ] Create validation logic for all models (deferred to Phase 3 with UI)
+- [ ] Test data models with unit tests (deferred to Phase 7)
+- [ ] Test Firestore operations with integration tests (deferred to Phase 7)
 
 **Deliverable**: Complete data layer with working Firestore integration.
 

@@ -9,6 +9,8 @@ import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
 import 'utils/constants.dart';
 import 'utils/helpers.dart';
+// ignore: unused_import — ensures provider bindings are registered at startup
+import 'providers/storage_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,8 +33,9 @@ class MyApp extends ConsumerWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       debugShowCheckedModeBanner: false,
+      // authStateProvider now emits a uid String? — null means signed out.
       home: authState.when(
-        data: (user) => user != null ? const HomeScreen() : const AuthScreen(),
+        data: (uid) => uid != null ? const HomeScreen() : const AuthScreen(),
         loading: () => const Scaffold(
           body: Center(child: CircularProgressIndicator()),
         ),

@@ -27,7 +27,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
     try {
-      await ref.read(authServiceProvider).updateUserProfile(
+      await ref.read(authRepositoryProvider).updateUserProfile(
         displayName: _displayNameController.text.trim(),
       );
       if (mounted) {
@@ -50,7 +50,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _signOut() async {
-    await ref.read(authServiceProvider).signOut();
+    await ref.read(authRepositoryProvider).signOut();
   }
 
   @override

@@ -25,24 +25,48 @@ Implementation progress: `docs/implementation-roadmap.md`
 
 ```
 lib/
-├── main.dart                   # App entry point; initialises Firebase + GoogleSignIn; routes via authStateProvider
-├── firebase_options.dart       # Firebase config for all platforms (currentPlatform dispatcher)
+├── main.dart                        # App entry point; initialises Firebase + GoogleSignIn; routes via authStateProvider
+├── firebase_options.dart            # Firebase config for all platforms (currentPlatform dispatcher)
 ├── models/
-│   └── user.dart               # AppUser — Firestore ↔ Dart model (fromFirestore, toFirestore, copyWith)
+│   ├── user.dart                    # AppUser — Firestore ↔ Dart model
+│   ├── flash_card.dart              # FlashCard + fromFirestore/toFirestore/toJson
+│   ├── card_field.dart              # CardField + sealed CardFieldContent hierarchy (Reveal/TextInput/MultipleChoice)
+│   ├── card_template.dart           # CardTemplate (same CardField model; answer content nullable)
+│   ├── card_set.dart                # CardSet (no cardIds array — membership in setCards)
+│   ├── set_card.dart                # SetCard — many-to-many join document
+│   └── study_session.dart           # StudySession + CardSessionData + SessionStats
+├── repositories/                    # Provider-agnostic data contracts
+│   ├── auth_repository.dart         # abstract AuthRepository
+│   ├── card_repository.dart         # abstract CardRepository
+│   ├── card_set_repository.dart     # abstract CardSetRepository
+│   ├── template_repository.dart     # abstract TemplateRepository
+│   ├── study_session_repository.dart# abstract StudySessionRepository
+│   ├── storage_repository.dart      # abstract StorageRepository
+│   └── firebase/                    # Firebase implementations (swap here to change provider)
+│       ├── firebase_auth_repository.dart
+│       ├── firebase_card_repository.dart
+│       ├── firebase_card_set_repository.dart
+│       ├── firebase_template_repository.dart
+│       ├── firebase_study_session_repository.dart
+│       └── firebase_storage_repository.dart
 ├── providers/
-│   └── auth_provider.dart      # authServiceProvider, authStateProvider (StreamProvider<User?>),
-│                               # currentUserProvider, appUserProvider (StreamProvider<AppUser?>)
-├── services/
-│   └── auth_service.dart       # AuthService — all Firebase Auth operations
+│   ├── auth_provider.dart           # authRepositoryProvider, authStateProvider (Stream<String?> uid),
+│   │                                # appUserProvider (StreamProvider<AppUser?>)
+│   ├── card_provider.dart           # cardRepositoryProvider, userCardsProvider
+│   ├── card_set_provider.dart       # cardSetRepositoryProvider, userSetsProvider, cardsInSetProvider.family
+│   ├── template_provider.dart       # templateRepositoryProvider, userTemplatesProvider
+│   ├── study_session_provider.dart  # studySessionRepositoryProvider, sessionHistoryProvider.family
+│   └── storage_provider.dart        # storageRepositoryProvider
 ├── screens/
-│   ├── auth_screen.dart        # Login / register / forgot-password (ConsumerStatefulWidget)
-│   ├── home_screen.dart        # Post-login home; shows "My Sets" placeholder + profile nav
-│   └── profile_screen.dart     # View/edit display name; sign out
+│   ├── auth_screen.dart             # Login / register / forgot-password (ConsumerStatefulWidget)
+│   ├── home_screen.dart             # Post-login home; shows "My Sets" placeholder + profile nav
+│   └── profile_screen.dart          # View/edit display name; sign out
 ├── theme/
-│   └── app_theme.dart          # AppTheme.lightTheme / darkTheme (Material 3, indigo primary)
+│   └── app_theme.dart               # AppTheme.lightTheme / darkTheme (Material 3, indigo primary)
 └── utils/
-    ├── constants.dart          # AppConstants (collection names, field types, status enums, pagination)
-    └── helpers.dart            # AppLogger (static debug/info/error), AppValidators (email, password, name)
+    ├── constants.dart               # AppConstants (collection names, field types, status enums, pagination)
+    ├── exceptions.dart              # AppException — unified error type for all service errors
+    └── helpers.dart                 # AppLogger (static debug/info/error), AppValidators (email, password, name)
 ```
 
 ---
@@ -58,7 +82,13 @@ lib/
 
 ### Riverpod v3 — `valueOrNull` removed
 - Use `asyncValue.asData?.value` instead of `asyncValue.valueOrNull`
-- Action providers are not needed for simple auth calls — call `ref.read(authServiceProvider).method()` directly from UI handlers
+- Action providers are not needed for simple auth calls — call `ref.read(authRepositoryProvider).method()` directly from UI handlers
+
+### Repository pattern — provider-agnostic data layer
+- All Firebase/external calls are isolated in `repositories/firebase/`
+- The rest of the app depends only on the abstract interfaces in `repositories/`
+- To swap cloud providers: implement the abstract interface, update the `Provider(...)` binding in the matching provider file — no other code changes
+- `authStateProvider` emits `Stream<String?>` (uid or null) — no Firebase types leak outside the repository layer
 
 ### Firebase options
 - `firebase_options.dart` contains real API keys for all platforms — intentionally tracked in git (client-restricted keys; security enforced by Firestore rules)

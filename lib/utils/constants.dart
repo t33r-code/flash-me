@@ -8,6 +8,7 @@ class AppConstants {
   static const String usersCollection = 'users';
   static const String cardsCollection = 'cards';
   static const String setsCollection = 'sets';
+  static const String setCardsCollection = 'setCards'; // many-to-many join: set ↔ card
   static const String templatesCollection = 'templates';
   static const String studySessionsSubcollection = 'studySessions';
 

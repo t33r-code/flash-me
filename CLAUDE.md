@@ -100,16 +100,42 @@ users/{userId}/studySessions/{sessionId}
   totalCardsStudied, cardsKnown, cardsUnknown, sessionStats{}
 
 cards/{cardId}
-  setId, primaryWord, translation, fields[], templateId?, createdAt, updatedAt, createdBy
+  primaryWord, translation, fields[], templateId?, createdAt, updatedAt, createdBy
 
 sets/{setId}
-  userId, name, description, cardIds[], cardCount, createdAt, updatedAt, isPublic, tags[], color
+  userId, name, description, cardCount, createdAt, updatedAt, isPublic, tags[], color
+
+setCards/{linkId}                          ← many-to-many join; no cardIds[] array on sets
+  setId, cardId, userId, addedAt
 
 templates/{templateId}
-  createdBy, name, description, fields_schema[]
+  createdBy, name, description, fields[]   ← same CardField model; answer content is nullable
 ```
 
 Field types: `reveal` | `text_input` | `multiple_choice` (constants in `AppConstants`)
+
+---
+
+## Key data model decisions (Phase 2)
+
+### Card-set relationship — linking collection
+- Rejected: `cardIds[]` array on sets — hits Firestore 1 MB doc limit at scale and can't query "which sets contain card X" without a full scan
+- **Use `setCards/{linkId}`** join collection with `{setId, cardId, userId, addedAt}`
+- Query all cards in a set: `where('setId', isEqualTo: x)`
+- Query all sets for a card: `where('cardId', isEqualTo: x)`
+- `cardCount` on the set document is a denormalized counter — increment/decrement on link create/delete
+- Firestore indexes needed: composite on `(setId, addedAt)` and `(cardId, addedAt)`
+- Security rules: `setCards` document is writable only by the user who owns both the card and the set (`userId` field enforces this)
+
+### CardField content — sealed class hierarchy
+- `sealed class CardFieldContent` with subtypes: `RevealContent`, `TextInputContent`, `MultipleChoiceContent`
+- Adding a new field type = add a new subclass + update `fromJson`/`toJson`; existing code is unaffected
+- Templates reuse the **same `CardField` model** as cards; answer fields are nullable:
+  - `RevealContent.answer` — null in templates, required in cards
+  - `TextInputContent.correctAnswers` — null in templates, required in cards
+  - `TextInputContent.hint` — optional in both (pre-filled in template if desired)
+  - `MultipleChoiceContent.options` — **pre-filled in templates** (e.g. Gender options), required in cards
+  - `MultipleChoiceContent.correctIndex` — null in templates, required in cards
 
 ---
 
@@ -118,7 +144,7 @@ Field types: `reveal` | `text_input` | `multiple_choice` (constants in `AppConst
 | Phase | Status | Notes |
 |---|---|---|
 | 1 — Setup & Auth | ✅ Complete | Email/password + Google Sign-In wired; profile screen; Firestore rules deployed |
-| 2 — Data models | 🔲 Not started | |
+| 2 — Data models | ✅ Complete | All models, services, Riverpod providers; Firestore indexes + setCards rules deployed |
 | 3 — Cards & Templates | 🔲 Not started | |
 | 4 — Card Sets | 🔲 Not started | |
 | 5 — Study Mode | 🔲 Not started | Core value proposition |
@@ -129,8 +155,16 @@ Remaining Phase 1 items: account linking (deferred), Google Sign-In testing on r
 
 ---
 
+## Coding style
+
+- **Code comments**: Add concise inline comments at intermediate Flutter-dev level — explain *what* a function or layout section does and *why* where it isn't obvious. The user is a senior developer but Flutter experience is basic and out of date; comments should let them understand the code at a glance without having to look things up.
+- Do not write paragraph-length docstrings; one short line per function or layout block is the target.
+
+---
+
 ## Workflow conventions
 
+- **Branch per phase/subsection**: Every new phase or logical subsection of a phase gets its own branch. Create the branch before writing any code. PR and squash-merge before moving to the next phase or subsection.
 - **Branch naming**: `feature/<name>`, `chore/<name>`, `fix/<name>`
 - **Default branch**: `main`
 - **PRs**: squash-merge, delete branch after merge

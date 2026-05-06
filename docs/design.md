@@ -145,19 +145,19 @@ Users need full CRUD capabilities for individual flash cards within their card s
 #### Card Data Model (Firestore)
 ```
 cards/{cardId}
-  - setId: string (foreign key to card set)
   - primaryWord: string (word in foreign language)
   - translation: string (word in native language)
-  - fields: array of field objects
+  - fields: array of field objects       ← sealed class hierarchy in Dart (RevealContent, TextInputContent, MultipleChoiceContent)
     - fieldId: unique identifier
     - name: string (label)
     - type: enum (reveal, text_input, multiple_choice)
-    - content: object (varies by type)
+    - content: object (varies by type; answer fields are nullable so templates reuse this same model)
   - templateId: string (optional, reference to template used)
   - createdAt: timestamp
   - updatedAt: timestamp
   - createdBy: userId
 ```
+Set membership is tracked in `setCards` (see Card-Set Relationship below), not on the card document itself.
 
 #### Card Templates
 - Templates are reusable field configurations
@@ -255,20 +255,25 @@ sets/{setId}
   - userId: string (owner of the set)
   - name: string (required, e.g., "Spanish Verbs")
   - description: string (optional, e.g., "Regular and irregular verbs")
-  - cardIds: array<string> (references to cards in this set)
-  - cardCount: integer (denormalized for quick stats)
+  - cardCount: integer (denormalized counter; increment/decrement on setCards link create/delete)
   - createdAt: timestamp
   - updatedAt: timestamp
   - isPublic: boolean (optional, for future sharing features)
   - tags: array<string> (optional, for organization: ["verbs", "regular"])
   - color: string (optional, for UI differentiation)
+
+setCards/{linkId}                 ← many-to-many join collection
+  - setId: string
+  - cardId: string
+  - userId: string                ← owner; used in security rules
+  - addedAt: timestamp
 ```
 
 #### Card-Set Relationship
-- **One-to-Many**: One card set contains many cards
-- **Many-to-Many**: One card can belong to multiple sets
-- **Implementation**: Store `cardIds` array in set document (preferred for small-medium set sizes)
-- **Alternative**: Use subcollection `sets/{setId}/cards/{cardId}` if sets grow very large
+- **Many-to-Many**: One card can belong to multiple sets; one set contains many cards
+- **Implementation**: Dedicated `setCards` join collection (not `cardIds[]` array on sets)
+- **Rationale**: Firestore documents cap at 1 MB — an embedded array breaks at scale. The join collection also enables efficient bi-directional queries: all cards in a set (`where setId == x`) and all sets containing a card (`where cardId == x`).
+- **Indexes**: Composite index on `(setId, addedAt)` for set detail view; `(cardId, addedAt)` for card-membership queries
 
 #### Set Management Operations
 

@@ -1,15 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/providers/auth_provider.dart';
-import 'package:flash_me/services/card_service.dart';
+import 'package:flash_me/repositories/card_repository.dart';
+import 'package:flash_me/repositories/firebase/firebase_card_repository.dart';
 
-// Singleton CardService instance shared across the app.
-final cardServiceProvider = Provider((ref) => CardService());
+// Bind the abstract CardRepository to its Firebase implementation.
+final cardRepositoryProvider = Provider<CardRepository>(
+  (ref) => FirebaseCardRepository(),
+);
 
 // Streams all cards owned by the currently signed-in user, ordered newest first.
-// Re-evaluates automatically when the auth state changes.
 final userCardsProvider = StreamProvider<List<FlashCard>>((ref) {
-  final user = ref.watch(authStateProvider).asData?.value;
-  if (user == null) return Stream.value([]);
-  return ref.watch(cardServiceProvider).watchUserCards(user.uid);
+  final uid = ref.watch(authStateProvider).asData?.value;
+  if (uid == null) return Stream.value([]);
+  return ref.watch(cardRepositoryProvider).watchUserCards(uid);
 });

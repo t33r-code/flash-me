@@ -1,27 +1,24 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/user.dart';
-import 'package:flash_me/services/auth_service.dart';
-import 'package:flash_me/utils/constants.dart';
+import 'package:flash_me/repositories/auth_repository.dart';
+import 'package:flash_me/repositories/firebase/firebase_auth_repository.dart';
 
-final authServiceProvider = Provider((ref) => AuthService());
+// Bind the abstract AuthRepository to its Firebase implementation.
+// To swap providers, change FirebaseAuthRepository to a different class here.
+final authRepositoryProvider = Provider<AuthRepository>(
+  (ref) => FirebaseAuthRepository(),
+);
 
-final authStateProvider = StreamProvider<User?>((ref) {
-  return ref.watch(authServiceProvider).authStateChanges;
+// Emits the signed-in user's uid, or null when signed out.
+// Used throughout the app to gate authenticated content.
+final authStateProvider = StreamProvider<String?>((ref) {
+  return ref.watch(authRepositoryProvider).authStateChanges;
 });
 
-final currentUserProvider = Provider<User?>((ref) {
-  return ref.watch(authServiceProvider).currentUser;
-});
-
-/// Streams the Firestore AppUser document for the currently signed-in user.
+// Streams the full AppUser document (display name, photo, etc.) from
+// persistent storage. Null when signed out or document not yet loaded.
 final appUserProvider = StreamProvider<AppUser?>((ref) {
-  final user = ref.watch(authStateProvider).asData?.value;
-  if (user == null) return Stream.value(null);
-  return FirebaseFirestore.instance
-      .collection(AppConstants.usersCollection)
-      .doc(user.uid)
-      .snapshots()
-      .map((doc) => doc.exists ? AppUser.fromFirestore(doc) : null);
+  final uid = ref.watch(authStateProvider).asData?.value;
+  if (uid == null) return Stream.value(null);
+  return ref.watch(authRepositoryProvider).watchUser(uid);
 });

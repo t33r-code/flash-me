@@ -1,9 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/utils/constants.dart';
+import 'package:flash_me/utils/exceptions.dart';
 import 'package:flash_me/utils/helpers.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -41,7 +40,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     });
   }
 
-  String _friendlyAuthError(FirebaseAuthException e) {
+  // Map repository error codes (originally from Firebase) to user-friendly messages.
+  String _friendlyAuthError(AppException e) {
     switch (e.code) {
       case 'user-not-found':
       case 'wrong-password':
@@ -58,7 +58,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       case 'network-request-failed':
         return 'Network error. Check your connection.';
       default:
-        return e.message ?? 'An error occurred. Please try again.';
+        return e.message;
     }
   }
 
@@ -68,20 +68,20 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       _isLoading = true;
       _errorMessage = null;
     });
-    final authService = ref.read(authServiceProvider);
+    final auth = ref.read(authRepositoryProvider);
     try {
       if (_isSignIn) {
-        await authService.signInWithEmail(
+        await auth.signInWithEmail(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
       } else {
-        await authService.registerWithEmail(
+        await auth.registerWithEmail(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
       }
-    } on FirebaseAuthException catch (e) {
+    } on AppException catch (e) {
       setState(() => _errorMessage = _friendlyAuthError(e));
     } catch (e) {
       setState(() => _errorMessage = 'An unexpected error occurred.');
@@ -96,11 +96,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       _errorMessage = null;
     });
     try {
-      await ref.read(authServiceProvider).signInWithGoogle();
-    } on FirebaseAuthException catch (e) {
+      await ref.read(authRepositoryProvider).signInWithGoogle();
+    } on AppException catch (e) {
       setState(() => _errorMessage = _friendlyAuthError(e));
-    } on GoogleSignInException catch (e) {
-      setState(() => _errorMessage = 'Google sign-in failed: ${e.description}');
     } catch (e) {
       setState(() => _errorMessage = 'Google sign-in failed. Please try again.');
     } finally {
@@ -144,7 +142,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               if (!formKey.currentState!.validate()) return;
               Navigator.of(dialogContext).pop();
               try {
-                await ref.read(authServiceProvider).resetPassword(
+                await ref.read(authRepositoryProvider).resetPassword(
                   emailController.text.trim(),
                 );
                 if (mounted) {

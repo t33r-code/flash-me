@@ -1,18 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/study_session.dart';
 import 'package:flash_me/providers/auth_provider.dart';
-import 'package:flash_me/services/study_session_service.dart';
+import 'package:flash_me/repositories/study_session_repository.dart';
+import 'package:flash_me/repositories/firebase/firebase_study_session_repository.dart';
 
-// Singleton StudySessionService instance shared across the app.
-final studySessionServiceProvider = Provider((ref) => StudySessionService());
+// Bind the abstract StudySessionRepository to its Firebase implementation.
+final studySessionRepositoryProvider = Provider<StudySessionRepository>(
+  (ref) => FirebaseStudySessionRepository(),
+);
 
-// Streams the session history for a specific set (all sessions, newest first).
+// Streams the session history for a specific set, newest first.
 // Usage: ref.watch(sessionHistoryProvider('setId123'))
 final sessionHistoryProvider =
     StreamProvider.family<List<StudySession>, String>((ref, setId) {
-  final user = ref.watch(authStateProvider).asData?.value;
-  if (user == null) return Stream.value([]);
+  final uid = ref.watch(authStateProvider).asData?.value;
+  if (uid == null) return Stream.value([]);
   return ref
-      .watch(studySessionServiceProvider)
-      .watchSessionHistory(setId, user.uid);
+      .watch(studySessionRepositoryProvider)
+      .watchSessionHistory(setId, uid);
 });

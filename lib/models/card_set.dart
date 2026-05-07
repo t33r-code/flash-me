@@ -7,7 +7,7 @@ class CardSet {
   final String id; // Firestore document ID
   final String userId; // uid of the owning user
   final String name; // e.g. "Spanish Verbs"
-  final String? description;
+  final String? description; // markdown-formatted text; rendered with flutter_markdown
   final int cardCount; // denormalized: kept in sync by CardSetService
   final DateTime createdAt;
   final DateTime updatedAt;

@@ -261,6 +261,17 @@ sets/{setId}
   - isPublic: boolean (optional, for future sharing features)
   - tags: array<string> (optional, for organization: ["verbs", "regular"])
   - color: string (optional, for UI differentiation)
+```
+
+#### Set Description Format
+The `description` field stores **Markdown** text. It is intended as a short intro or summary written by the set author — covering what a student will learn, helpful hints, prerequisites, etc.
+
+- Stored as a plain markdown string in Firestore
+- Rendered using `flutter_markdown` in the set detail and study selection views
+- Edited using a `TextFormField` with a formatting toolbar (Bold, Italic, Bullet List, Heading buttons that insert markdown syntax at the cursor)
+- Users who know markdown can type it directly; the toolbar makes it accessible to those who don't
+
+```
 
 setCards/{linkId}                 ← many-to-many join collection
   - setId: string

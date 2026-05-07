@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:logger/logger.dart';
 import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/repositories/card_repository.dart';
@@ -9,6 +10,7 @@ import 'package:flash_me/utils/exceptions.dart';
 // Firestore implementation of CardRepository.
 class FirebaseCardRepository implements CardRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
   final Logger _logger = Logger();
 
   @override
@@ -85,10 +87,24 @@ class FirebaseCardRepository implements CardRepository {
     }
   }
 
-  // Hard-delete: removes the card + all setCards links + decrements cardCounts.
+  // Hard-delete: cleans up Storage media, removes all setCards links,
+  // decrements cardCounts, then deletes the Firestore card document.
   @override
   Future<void> deleteCard(String cardId) async {
     try {
+      // Fetch the card first so we can find any media files to clean up.
+      final doc = await _firestore
+          .collection(AppConstants.cardsCollection)
+          .doc(cardId)
+          .get();
+
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        await _deleteStorageFileIfPresent(data['primaryImageUrl'] as String?);
+        await _deleteStorageFileIfPresent(data['primaryAudioUrl'] as String?);
+      }
+
+      // Remove setCards links and decrement the cardCount on each parent set.
       final links = await _firestore
           .collection(AppConstants.setCardsCollection)
           .where('cardId', isEqualTo: cardId)
@@ -110,6 +126,18 @@ class FirebaseCardRepository implements CardRepository {
     } catch (e) {
       _logger.e('Failed to delete card $cardId: $e');
       throw AppException('Failed to delete card', code: 'delete-card-failed');
+    }
+  }
+
+  // Delete a Firebase Storage file by its download URL.
+  // Uses refFromURL so we don't need to store the path separately.
+  // Errors are swallowed — a missing file should not block card deletion.
+  Future<void> _deleteStorageFileIfPresent(String? url) async {
+    if (url == null) return;
+    try {
+      await _storage.refFromURL(url).delete();
+    } catch (e) {
+      _logger.w('Could not delete storage file $url: $e');
     }
   }
 }

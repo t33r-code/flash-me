@@ -14,6 +14,7 @@ class FlashCard {
   final bool primaryWordHidden;
   final List<CardField> fields; // additional fields (reveal, text input, multiple choice)
   final String? templateId; // optional: which template this card was created from
+  final List<String> tags; // user-defined labels for search and filtering in My Cards
   final DateTime createdAt;
   final DateTime updatedAt;
   final String createdBy; // uid of the owning user
@@ -27,6 +28,7 @@ class FlashCard {
     this.primaryWordHidden = false,
     required this.fields,
     this.templateId,
+    this.tags = const [],
     required this.createdAt,
     required this.updatedAt,
     required this.createdBy,
@@ -47,6 +49,7 @@ class FlashCard {
           .map((f) => CardField.fromJson(f as Map<String, dynamic>))
           .toList(),
       templateId: data['templateId'] as String?,
+      tags: List<String>.from(data['tags'] as List? ?? []),
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       updatedAt: (data['updatedAt'] as Timestamp).toDate(),
       createdBy: data['createdBy'] as String? ?? '',
@@ -62,6 +65,7 @@ class FlashCard {
         'primaryWordHidden': primaryWordHidden,
         'fields': fields.map((f) => f.toJson()).toList(),
         'templateId': templateId,
+        'tags': tags,
         'createdAt': Timestamp.fromDate(createdAt),
         'updatedAt': Timestamp.fromDate(updatedAt),
         'createdBy': createdBy,
@@ -79,6 +83,7 @@ class FlashCard {
         'primaryWordHidden': primaryWordHidden,
         'fields': fields.map((f) => f.toJson()).toList(),
         'templateId': templateId,
+        'tags': tags,
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
         'createdBy': createdBy,
@@ -93,6 +98,7 @@ class FlashCard {
     bool? primaryWordHidden,
     List<CardField>? fields,
     String? templateId,
+    List<String>? tags,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? createdBy,
@@ -106,6 +112,7 @@ class FlashCard {
         primaryWordHidden: primaryWordHidden ?? this.primaryWordHidden,
         fields: fields ?? this.fields,
         templateId: templateId ?? this.templateId,
+        tags: tags ?? this.tags,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
         createdBy: createdBy ?? this.createdBy,

@@ -55,12 +55,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(authStateProvider, (_, next) {
-      if (next.asData?.value == null && context.mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      }
-    });
-
+    // No pop-back listener needed here — main.dart watches authStateProvider
+    // and replaces MainScreen with AuthScreen on sign-out automatically.
     final theme = Theme.of(context);
     final appUser = ref.watch(appUserProvider);
 

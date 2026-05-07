@@ -6,7 +6,7 @@ import 'firebase_options.dart';
 import 'theme/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'screens/auth_screen.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_screen.dart';
 import 'utils/constants.dart';
 import 'utils/helpers.dart';
 // ignore: unused_import — ensures provider bindings are registered at startup
@@ -35,7 +35,7 @@ class MyApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       // authStateProvider now emits a uid String? — null means signed out.
       home: authState.when(
-        data: (uid) => uid != null ? const HomeScreen() : const AuthScreen(),
+        data: (uid) => uid != null ? const MainScreen() : const AuthScreen(),
         loading: () => const Scaffold(
           body: Center(child: CircularProgressIndicator()),
         ),

@@ -88,9 +88,23 @@ The implementation is divided into 7 phases, starting with foundational setup an
 
 ### Tasks
 
+#### Phase 3a — Navigation shell + My Cards screen (complete)
+- [x] Add `tags: List<String>` to FlashCard model (user-defined labels for search/filter)
+- [x] Replace HomeScreen routing with MainScreen (BottomNavigationBar shell)
+- [x] Bottom nav: Sets / Cards / Templates / Profile tabs (IndexedStack, mobile-first)
+- [x] My Cards screen: card list from userCardsProvider, empty state, search bar stub, tag filter stub
+- [x] Templates screen: placeholder (full UI in Phase 3c)
+- [x] Remove stale profile-button from HomeScreen AppBar (Profile is now a tab)
+- [x] Remove pop-back auth listener from ProfileScreen (main.dart handles it)
+
+#### Phase 3b — Card creation / edit / delete (next)
+- [ ] Card creation form: primaryWord, translation, add/remove additional fields
+- [ ] Support all three field types in the form (reveal, text_input, multiple_choice)
+- [ ] Card edit screen (same form, pre-populated)
+- [ ] Card deletion with confirmation dialog
+- [ ] Wire FAB on My Cards screen to card creation
+
 #### Card Templates
-- [ ] Create template data model and Firestore schema
-- [ ] Implement template CRUD operations (create, read, update, delete, list)
 - [ ] Create template creation screen UI
 - [ ] Build dynamic field builder for creating template fields
 - [ ] Implement field type selection (reveal, text_input, multiple_choice)
@@ -100,9 +114,7 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [ ] Implement template deletion with confirmation
 - [ ] Create template management screen
 
-#### Flash Cards
-- [ ] Design and implement Firestore schema for cards
-- [ ] Create Card data model with all field types
+#### Flash Cards (remaining)
 - [ ] Implement card creation screen
 - [ ] Build template selector dropdown
 - [ ] Create dynamic form builder that populates fields from template

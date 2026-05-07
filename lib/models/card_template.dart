@@ -13,6 +13,10 @@ class CardTemplate {
   final String? description;
   // Fields with the same structure as FlashCard.fields; answers are nullable.
   final List<CardField> fields;
+  // Whether the primary word should be hidden on first display when media is present.
+  // Templates carry this flag as a default for cards created from them.
+  // Unlike FlashCard, templates do NOT store media URLs — those are per-card.
+  final bool primaryWordHidden;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -22,6 +26,7 @@ class CardTemplate {
     required this.name,
     this.description,
     required this.fields,
+    this.primaryWordHidden = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -36,6 +41,7 @@ class CardTemplate {
       fields: (data['fields'] as List<dynamic>? ?? [])
           .map((f) => CardField.fromJson(f as Map<String, dynamic>))
           .toList(),
+      primaryWordHidden: data['primaryWordHidden'] as bool? ?? false,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       updatedAt: (data['updatedAt'] as Timestamp).toDate(),
     );
@@ -46,6 +52,7 @@ class CardTemplate {
         'name': name,
         'description': description,
         'fields': fields.map((f) => f.toJson()).toList(),
+        'primaryWordHidden': primaryWordHidden,
         'createdAt': Timestamp.fromDate(createdAt),
         'updatedAt': Timestamp.fromDate(updatedAt),
       };
@@ -56,6 +63,7 @@ class CardTemplate {
         'name': name,
         'description': description,
         'fields': fields.map((f) => f.toJson()).toList(),
+        'primaryWordHidden': primaryWordHidden,
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
       };
@@ -66,6 +74,7 @@ class CardTemplate {
     String? name,
     String? description,
     List<CardField>? fields,
+    bool? primaryWordHidden,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) =>
@@ -75,6 +84,7 @@ class CardTemplate {
         name: name ?? this.name,
         description: description ?? this.description,
         fields: fields ?? this.fields,
+        primaryWordHidden: primaryWordHidden ?? this.primaryWordHidden,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
       );

@@ -130,7 +130,11 @@ users/{userId}/studySessions/{sessionId}
   totalCardsStudied, cardsKnown, cardsUnknown, sessionStats{}
 
 cards/{cardId}
-  primaryWord, translation, fields[], templateId?, createdAt, updatedAt, createdBy
+  primaryWord, translation,
+  primaryImageUrl?,          ← Firebase Storage URL; deleted from Storage on card delete
+  primaryAudioUrl?,          ← Firebase Storage URL; deleted from Storage on card delete
+  primaryWordHidden,         ← hides text until "Show Word" tap; only meaningful with media
+  fields[], templateId?, createdAt, updatedAt, createdBy
 
 sets/{setId}
   userId, name, description, cardCount, createdAt, updatedAt, isPublic, tags[], color

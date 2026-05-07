@@ -113,8 +113,11 @@ Users need full CRUD capabilities for individual flash cards within their card s
 ### Design Details
 
 #### Card Structure
-- Each card has a **primary field** (always first): foreign language word (text only)
-- Clicking primary field reveals translation to native language (text only, not editable during study)
+- Each card has a **primary field** (always first): foreign language word → translation reveal
+  - **Text** (`primaryWord` / `translation`) is always present on every card
+  - **Image** (`primaryImageUrl`, optional): a clip-art style illustration stored in Firebase Storage
+  - **Audio** (`primaryAudioUrl`, optional): a short pronunciation clip stored in Firebase Storage
+  - **`primaryWordHidden`** flag (default `false`): when `true` and at least one media asset is present, the primary word text is hidden on first display and revealed via a "Show Word" button — useful for image/audio-first drilling
 - **Additional fields** (0 to many): user-defined fields for grammar, examples, context, etc.
   - Each field has: name (label), field type, content/data
 
@@ -145,8 +148,12 @@ Users need full CRUD capabilities for individual flash cards within their card s
 #### Card Data Model (Firestore)
 ```
 cards/{cardId}
-  - primaryWord: string (word in foreign language)
-  - translation: string (word in native language)
+  - primaryWord: string (word in foreign language; always present)
+  - translation: string (word in native language; always present)
+  - primaryImageUrl: string? (optional Firebase Storage download URL for a clip-art image)
+  - primaryAudioUrl: string? (optional Firebase Storage download URL for a pronunciation clip)
+  - primaryWordHidden: boolean (default false; hides primaryWord until "Show Word" is tapped,
+                                only meaningful when at least one media URL is set)
   - fields: array of field objects       ← sealed class hierarchy in Dart (RevealContent, TextInputContent, MultipleChoiceContent)
     - fieldId: unique identifier
     - name: string (label)
@@ -158,6 +165,8 @@ cards/{cardId}
   - createdBy: userId
 ```
 Set membership is tracked in `setCards` (see Card-Set Relationship below), not on the card document itself.
+
+**Media lifecycle:** When a card is deleted, `firebase_card_repository` fetches the card document first, deletes both Storage files (if present) via `refFromURL`, then removes all `setCards` links and the card document in a Firestore batch. Deletion errors on Storage files are logged as warnings and do not block the card deletion.
 
 #### Card Templates
 - Templates are reusable field configurations
@@ -450,87 +459,83 @@ Users can share and backup their card sets by importing and exporting them in st
 
 #### Export Functionality
 
-**Export Formats:**
+**Export Format: ZIP Archive**
 
-**1. JSON Format**
-- Preserves complete card structure including all field types and metadata
-- Most flexible for transferring between Flash Me instances
-- File structure:
+Each exported set is a self-contained ZIP file containing:
+- `cards.json` — card definitions with relative paths for any media assets
+- `media/` — folder containing any image/audio files referenced by the cards
+
+```
+spanish-verbs-export.zip
+├── cards.json
+└── media/
+    ├── hablar.mp3
+    └── hablar.png
+```
+
+`cards.json` structure:
 ```json
 {
   "version": "1.0",
   "exportDate": "2026-05-01T10:30:00Z",
-  "sets": [
-    {
-      "name": "Spanish Verbs",
-      "description": "Regular and irregular verbs",
-      "tags": ["verbs", "regular"],
-      "color": "#FF5733",
-      "cards": [
-        {
-          "primaryWord": "hablar",
-          "translation": "to speak",
-          "fields": [
-            {
-              "name": "Gender",
-              "type": "reveal",
-              "content": { "answer": "N/A" }
-            },
-            {
-              "name": "Conjugation (yo)",
-              "type": "text_input",
-              "content": { "correct_answers": ["hablo"], "hint": "Present tense" }
-            },
-            {
-              "name": "Type",
-              "type": "multiple_choice",
-              "content": {
-                "options": ["Regular", "Irregular", "Reflexive"],
-                "correct_index": 0,
-                "explanation": "This is a regular -ar verb"
-              }
+  "set": {
+    "name": "Spanish Verbs",
+    "description": "Regular and irregular verbs",
+    "tags": ["verbs", "regular"],
+    "color": "#FF5733",
+    "cards": [
+      {
+        "primaryWord": "hablar",
+        "translation": "to speak",
+        "primaryImageUrl": "media/hablar.png",
+        "primaryAudioUrl": "media/hablar.mp3",
+        "primaryWordHidden": false,
+        "fields": [
+          {
+            "name": "Conjugation (yo)",
+            "type": "text_input",
+            "content": { "correct_answers": ["hablo"], "hint": "Present tense" }
+          },
+          {
+            "name": "Type",
+            "type": "multiple_choice",
+            "content": {
+              "options": ["Regular", "Irregular", "Reflexive"],
+              "correct_index": 0
             }
-          ]
-        }
-      ]
-    }
-  ]
+          }
+        ]
+      }
+    ]
+  }
 }
 ```
 
-**2. CSV Format**
-- Simpler, compatible with spreadsheet applications (Excel, Google Sheets)
-- Limited to basic fields (no complex field types preserved)
-- Structure:
-  - Header row: Set Name, Set Description, Primary Word, Translation, Field1_Name, Field1_Type, Field1_Content, Field2_Name, ...
-  - Data rows: One card per row
-  - Multiple sets: Separate sections with set metadata
+**Rationale for ZIP format:** Firebase Storage download URLs are user-scoped and non-portable. Bundling media files inside the ZIP makes sets fully self-contained for sharing and backup — the recipient imports one file and gets cards plus all media.
+
+**CSV import (manual authoring):** Users who prefer building card sets in a spreadsheet can create a CSV with columns `primaryWord`, `translation`, `primaryImageUrl`, `primaryAudioUrl`, and zip it up with their media files. The importer accepts either `cards.json` or a `cards.csv` inside the ZIP.
 
 **Export Workflow:**
 1. User navigates to "My Sets"
-2. Selects set(s) to export (single or multiple)
-3. Chooses format: JSON or CSV
-4. System generates file
-5. File downloaded to device with name: `flash-me-export-[timestamp].[json/csv]`
+2. Selects a set to export
+3. System downloads media files from Firebase Storage, writes `cards.json` with relative `media/` paths
+4. Packages everything into a ZIP named `[set-name]-export.zip`
 
 **Export Considerations:**
-- Include all cards in set
-- Include all field types and content
+- Include all cards in set with all field types and content
 - Include set metadata (name, description, tags, color)
 - Include version number for future compatibility
-- Timestamp for reference
 
 #### Import Functionality
 
 **Import Formats Supported:**
-- JSON (from Flash Me export)
-- CSV (from Flash Me export or user-created file)
+- ZIP archive (from Flash Me export) — contains `cards.json` or `cards.csv` plus `media/` folder
 - Optional: Quizlet CSV format (future consideration)
 
 **Import Workflow:**
 1. User navigates to "Import Sets"
-2. Selects file from device (JSON or CSV)
-3. System validates file format and structure
+2. Selects a `.zip` file from device
+3. System extracts and validates the archive structure
 4. Preview dialog shows:
    - Number of sets to import
    - Number of cards in each set

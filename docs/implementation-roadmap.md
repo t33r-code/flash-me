@@ -97,12 +97,12 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] Remove stale profile-button from HomeScreen AppBar (Profile is now a tab)
 - [x] Remove pop-back auth listener from ProfileScreen (main.dart handles it)
 
-#### Phase 3b — Card creation / edit / delete (next)
-- [ ] Card creation form: primaryWord, translation, add/remove additional fields
-- [ ] Support all three field types in the form (reveal, text_input, multiple_choice)
-- [ ] Card edit screen (same form, pre-populated)
-- [ ] Card deletion with confirmation dialog
-- [ ] Wire FAB on My Cards screen to card creation
+#### Phase 3b — Card creation / edit / delete (complete)
+- [x] Card creation form: primaryWord, translation, tags, add/remove additional fields
+- [x] Support all three field types in the form (reveal, text_input, multiple_choice)
+- [x] Card edit screen (same CardFormScreen, pre-populated from existing card)
+- [x] Card deletion with confirmation dialog (AppBar delete icon, edit mode only)
+- [x] Wire My Cards FAB → create form; card list tap → edit form
 
 #### Card Templates
 - [ ] Create template creation screen UI

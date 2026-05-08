@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/providers/card_provider.dart';
+import 'package:flash_me/screens/cards/card_form_screen.dart';
 
 class MyCardsScreen extends ConsumerWidget {
   const MyCardsScreen({super.key});
@@ -61,8 +62,9 @@ class MyCardsScreen extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        // Navigate to card creation — wired up in Phase 3b.
-        onPressed: () {},
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const CardFormScreen()),
+        ),
         tooltip: 'Create card',
         child: const Icon(Icons.add),
       ),
@@ -115,8 +117,11 @@ class _CardTile extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
               )
             : null,
-        // Navigate to card edit screen — wired up in Phase 3b.
-        onTap: () {},
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CardFormScreen(card: card),
+          ),
+        ),
       ),
     );
   }

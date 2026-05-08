@@ -98,16 +98,20 @@ class FirebaseCardRepository implements CardRepository {
           .doc(cardId)
           .get();
 
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>;
-        await _deleteStorageFileIfPresent(data['primaryImageUrl'] as String?);
-        await _deleteStorageFileIfPresent(data['primaryAudioUrl'] as String?);
-      }
+      // If the card is already gone there is nothing to clean up.
+      if (!doc.exists) return;
 
-      // Remove setCards links and decrement the cardCount on each parent set.
+      final data = doc.data() as Map<String, dynamic>;
+      final createdBy = data['createdBy'] as String? ?? '';
+      await _deleteStorageFileIfPresent(data['primaryImageUrl'] as String?);
+      await _deleteStorageFileIfPresent(data['primaryAudioUrl'] as String?);
+
+      // Firestore's list rule on setCards requires a userId constraint —
+      // queries without it are rejected even when they would return 0 results.
       final links = await _firestore
           .collection(AppConstants.setCardsCollection)
           .where('cardId', isEqualTo: cardId)
+          .where('userId', isEqualTo: createdBy)
           .get();
 
       final batch = _firestore.batch();

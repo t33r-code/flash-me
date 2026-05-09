@@ -357,6 +357,13 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
                     .where((c) => cardIdsInSet.contains(c.id))
                     .toList();
 
+                // Guard against a false "all added" flash: Firestore's local
+                // cache can update the stream before addCardsToSet resolves
+                // and closes the sheet. Show a spinner in that window instead.
+                if (notInSet.isEmpty && _isAdding) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
                 if (notInSet.isEmpty) {
                   return const Center(
                     child: Padding(

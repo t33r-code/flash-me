@@ -1,27 +1,86 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_set.dart';
+import 'package:flash_me/providers/auth_provider.dart';
+import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/screens/sets/set_form_screen.dart';
 
 // ---------------------------------------------------------------------------
 // SetDetailScreen — shows a set's cards and management options.
 // Phase 4a: placeholder body; full card list added in Phase 4b.
 // ---------------------------------------------------------------------------
-class SetDetailScreen extends StatelessWidget {
+class SetDetailScreen extends ConsumerStatefulWidget {
   final CardSet cardSet;
   const SetDetailScreen({super.key, required this.cardSet});
+
+  @override
+  ConsumerState<SetDetailScreen> createState() => _SetDetailScreenState();
+}
+
+class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
+  bool _isDeleting = false;
+
+  Future<void> _confirmDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Set'),
+        content: Text(
+          'Delete "${widget.cardSet.name}"? '
+          'Cards are not deleted, only removed from this set.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+    setState(() => _isDeleting = true);
+    try {
+      final uid = ref.read(authStateProvider).asData?.value ?? '';
+      await ref
+          .read(cardSetRepositoryProvider)
+          .deleteSet(widget.cardSet.id, uid);
+      if (mounted) Navigator.of(context).pop();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Failed to delete set. Please try again.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(cardSet.name),
+        title: Text(widget.cardSet.name),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Delete set',
+            onPressed: _isDeleting ? null : _confirmDelete,
+          ),
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             tooltip: 'Edit set',
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => SetFormScreen(cardSet: cardSet),
+                builder: (_) => SetFormScreen(cardSet: widget.cardSet),
               ),
             ),
           ),
@@ -35,7 +94,7 @@ class SetDetailScreen extends StatelessWidget {
                 size: 80, color: Colors.grey),
             const SizedBox(height: 16),
             Text(
-              '${cardSet.cardCount} card${cardSet.cardCount == 1 ? '' : 's'}',
+              '${widget.cardSet.cardCount} card${widget.cardSet.cardCount == 1 ? '' : 's'}',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),

@@ -268,14 +268,16 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
             userId: widget.userId,
           );
       if (mounted) Navigator.of(context).pop();
+      // Do NOT reset _isAdding on success: the widget is still mounted
+      // during the exit animation and resetting it would briefly flip the
+      // picker back to the "all cards already in this set" state.
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to add cards.')),
         );
+        setState(() => _isAdding = false); // re-enable button for retry
       }
-    } finally {
-      if (mounted) setState(() => _isAdding = false);
     }
   }
 

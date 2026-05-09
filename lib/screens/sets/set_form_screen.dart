@@ -117,55 +117,6 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
     }
   }
 
-  Future<void> _confirmDelete() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Set'),
-        content: Text(
-          'Delete "${widget.cardSet!.name}"? '
-          'Cards are not deleted, only removed from this set.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true || !mounted) return;
-    setState(() => _isSaving = true);
-    try {
-      final uid = ref.read(authStateProvider).asData?.value ?? '';
-      await ref
-          .read(cardSetRepositoryProvider)
-          .deleteSet(widget.cardSet!.id, uid);
-      // Pop twice: close the form AND the detail screen behind it.
-      if (mounted) {
-        Navigator.of(context)
-          ..pop()
-          ..pop();
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Failed to delete set. Please try again.')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
-  }
-
   // Parse a '#RRGGBB' hex string to a Flutter Color.
   Color _hexColor(String hex) {
     final h = hex.replaceFirst('#', '');
@@ -220,14 +171,6 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? 'Edit Set' : 'New Set'),
-        actions: [
-          if (_isEditing)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              tooltip: 'Delete set',
-              onPressed: _isSaving ? null : _confirmDelete,
-            ),
-        ],
       ),
       body: Form(
         key: _formKey,

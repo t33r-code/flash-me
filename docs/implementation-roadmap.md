@@ -141,28 +141,25 @@ The implementation is divided into 7 phases, starting with foundational setup an
 **Priority**: High - Core organizational feature.
 
 ### Tasks
-- [ ] Design Firestore schema for card sets
-- [ ] Create CardSet data model
-- [ ] Implement set creation with name and description
-- [ ] Create "My Sets" dashboard/list view
-- [ ] Display set metadata (name, card count, last modified)
-- [ ] Implement set update functionality (name, description, tags, color)
-- [ ] Implement set deletion with confirmation
-- [ ] Implement add cards to set functionality
-- [ ] Implement remove cards from set functionality
-- [ ] Create set detail view showing all cards
-- [ ] Implement card browser for selecting cards to add
-- [ ] Add tags/categorization support
-- [ ] Add color coding functionality
-- [ ] Implement set search/filtering
-- [ ] Implement set sorting options
-- [ ] Implement pagination for sets list (avoid performance issues at scale)
-- [ ] Create Firestore queries for set retrieval
-- [ ] Implement batch operations for card management
-- [ ] Set up Firestore indexes
-- [ ] Add modification timestamp display
-- [ ] Test set CRUD on all platforms
-- [ ] Create set templates (preset sets for common languages - optional)
+
+#### Phase 4a — My Sets screen + set CRUD (complete)
+- [x] Fix Firestore list-rule violations in CardSetRepository (add userId constraint to all setCards queries)
+- [x] MySetsScreen: live list from userSetsProvider, empty state, colour accent bar, tags, relative date
+- [x] SetFormScreen: create/edit a set (name, description, colour picker, tags)
+- [x] Set deletion with confirmation (cleans up all setCards links)
+- [x] SetDetailScreen: placeholder showing card count; edit button → SetFormScreen
+- [x] Wire MySetsScreen into the main nav shell (replaces HomeScreen placeholder)
+
+#### Phase 4b — Set detail + card membership (next)
+- [ ] Full card list in SetDetailScreen (using cardsInSetProvider)
+- [ ] Add cards to set — modal card picker from user's card library
+- [ ] Remove card from set (swipe or button)
+
+#### Phase 4c — Search & filter (deferred)
+- [ ] Search sets by name
+- [ ] Filter sets by tag
+- [ ] Sort options (by name, last updated, card count)
+- [ ] Search / filter within set detail view
 
 **Deliverable**: Complete set management with card organization.
 

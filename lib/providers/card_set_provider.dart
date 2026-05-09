@@ -22,12 +22,16 @@ final userSetsProvider = StreamProvider<List<CardSet>>((ref) {
 // Usage: ref.watch(cardIdsInSetProvider('setId123'))
 final cardIdsInSetProvider =
     StreamProvider.family<List<String>, String>((ref, setId) {
-  return ref.watch(cardSetRepositoryProvider).watchCardIdsInSet(setId);
+  final uid = ref.watch(authStateProvider).asData?.value;
+  if (uid == null) return Stream.value([]);
+  return ref.watch(cardSetRepositoryProvider).watchCardIdsInSet(setId, uid);
 });
 
 // Streams the full FlashCard objects for all cards in a specific set.
 // Usage: ref.watch(cardsInSetProvider('setId123'))
 final cardsInSetProvider =
     StreamProvider.family<List<FlashCard>, String>((ref, setId) {
-  return ref.watch(cardSetRepositoryProvider).watchCardsInSet(setId);
+  final uid = ref.watch(authStateProvider).asData?.value;
+  if (uid == null) return Stream.value([]);
+  return ref.watch(cardSetRepositoryProvider).watchCardsInSet(setId, uid);
 });

@@ -5,6 +5,7 @@ import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_provider.dart';
 import 'package:flash_me/utils/constants.dart';
+import 'package:flash_me/screens/templates/template_form_screen.dart';
 
 // ---------------------------------------------------------------------------
 // _FieldState — mutable holder for one additional field while the form is open.
@@ -290,6 +291,33 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
     }
   }
 
+  // Null out answer fields from the current card's fields so the template
+  // stores structure and config (options, hints) but not answers.
+  void _saveAsTemplate() {
+    final templateFields = _fields.map((f) {
+      final field = f.toCardField();
+      final content = switch (field.content) {
+        RevealContent _ => const RevealContent(answer: null),
+        TextInputContent c => TextInputContent(
+            correctAnswers: null,
+            hint: c.hint,
+            exactMatch: c.exactMatch,
+          ),
+        MultipleChoiceContent c => MultipleChoiceContent(
+            options: c.options,
+            correctIndex: null,
+          ),
+      };
+      return field.copyWith(content: content);
+    }).toList();
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TemplateFormScreen(initialFields: templateFields),
+      ),
+    );
+  }
+
   Future<void> _confirmDelete() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -524,6 +552,21 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
               tooltip: 'Delete card',
               onPressed: _isSaving ? null : _confirmDelete,
             ),
+          PopupMenuButton<String>(
+            onSelected: (v) {
+              if (v == 'save_as_template') _saveAsTemplate();
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'save_as_template',
+                child: ListTile(
+                  leading: Icon(Icons.copy_all_outlined),
+                  title: Text('Save as Template'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       body: Form(

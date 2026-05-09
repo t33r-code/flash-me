@@ -104,15 +104,16 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] Card deletion with confirmation dialog (AppBar delete icon, edit mode only)
 - [x] Wire My Cards FAB → create form; card list tap → edit form
 
-#### Card Templates
-- [ ] Create template creation screen UI
-- [ ] Build dynamic field builder for creating template fields
-- [ ] Implement field type selection (reveal, text_input, multiple_choice)
-- [ ] Implement "create template from existing card" workflow
-- [ ] Create template list view/browser
-- [ ] Implement template editing functionality
-- [ ] Implement template deletion with confirmation
-- [ ] Create template management screen
+#### Phase 3c — Templates (complete)
+- [x] TemplateFormScreen: create/edit template (name, description, primaryWordHidden flag)
+- [x] Dynamic field builder — same three field types as cards but answer-free
+  - Reveal: structure only (answer filled per card)
+  - Text input: hint + exact-match toggle (no correct answers)
+  - Multiple choice: pre-fillable options list (no correct index)
+- [x] TemplatesScreen: live list from userTemplatesProvider, empty state, FAB → create from scratch
+- [x] Template edit and delete (with confirmation dialog)
+- [x] "Save as Template" overflow menu on CardFormScreen — nulls out answers,
+      pre-populates TemplateFormScreen with the card's field structure
 
 #### Flash Cards (remaining)
 - [ ] Implement card creation screen

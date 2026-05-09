@@ -65,8 +65,12 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     }
   }
 
-  // Remove a single card from the set (called after swipe dismiss).
-  Future<void> _removeCard(String cardId) async {
+  // Awaits the Firestore delete and returns true/false for confirmDismiss.
+  // Using confirmDismiss (rather than onDismissed) ensures the stream has
+  // already updated before Dismissible completes its animation, avoiding
+  // a race where both the stream and Dismissible try to remove the same
+  // widget simultaneously, which causes a brief ErrorWidget flash.
+  Future<bool> _removeCard(String cardId) async {
     final uid = ref.read(authStateProvider).asData?.value ?? '';
     try {
       await ref.read(cardSetRepositoryProvider).removeCardFromSet(
@@ -74,12 +78,14 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
             cardId: cardId,
             userId: uid,
           );
+      return true;
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to remove card.')),
         );
       }
+      return false; // cancels the dismiss animation so the card stays visible
     }
   }
 
@@ -151,7 +157,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                             Theme.of(context).colorScheme.onErrorContainer,
                       ),
                     ),
-                    onDismissed: (_) => _removeCard(card.id),
+                    confirmDismiss: (_) => _removeCard(card.id),
                     child: _CardInSetTile(card: card),
                   );
                 },

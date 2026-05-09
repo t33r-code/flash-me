@@ -1,11 +1,60 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_field.dart';
+import 'package:flash_me/models/card_template.dart';
 import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_provider.dart';
+import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/screens/templates/template_form_screen.dart';
+
+// ---------------------------------------------------------------------------
+// _TemplatePickerSheet — bottom sheet listing the user's templates.
+// Returns the selected CardTemplate via Navigator.pop.
+// ---------------------------------------------------------------------------
+class _TemplatePickerSheet extends StatelessWidget {
+  final List<CardTemplate> templates;
+  const _TemplatePickerSheet({required this.templates});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Text('Choose a template',
+              style: Theme.of(context).textTheme.titleMedium),
+        ),
+        const Divider(height: 1),
+        Flexible(
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: templates.length,
+            itemBuilder: (ctx, i) {
+              final t = templates[i];
+              final fieldCount = t.fields.length;
+              return ListTile(
+                leading: const Icon(Icons.copy_all_outlined),
+                title: Text(t.name),
+                subtitle: Text(
+                  t.description ??
+                      '$fieldCount field${fieldCount == 1 ? '' : 's'}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                onTap: () => Navigator.of(ctx).pop(t),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+}
 
 // ---------------------------------------------------------------------------
 // _FieldState — mutable holder for one additional field while the form is open.
@@ -187,6 +236,65 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
 
   void _addField() {
     setState(() => _fields.add(_FieldState.empty()));
+  }
+
+  // Disposes existing fields, then populates from the template's field structure.
+  // Answers are left blank; config (options, hints, exactMatch) is carried over.
+  void _applyTemplate(CardTemplate template) {
+    setState(() {
+      for (final f in _fields) {
+        f.dispose();
+      }
+      _fields.clear();
+      _fields.addAll(template.fields.map(_FieldState.fromCardField));
+    });
+  }
+
+  // Shows a bottom sheet listing the user's templates.
+  // Asks for confirmation if fields are already present before replacing.
+  Future<void> _showTemplatePicker() async {
+    final templates = ref.read(userTemplatesProvider).asData?.value ?? [];
+    if (templates.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'No templates yet. Create one from the Templates tab.'),
+        ),
+      );
+      return;
+    }
+
+    final selected = await showModalBottomSheet<CardTemplate>(
+      context: context,
+      builder: (_) => _TemplatePickerSheet(templates: templates),
+    );
+    if (selected == null || !mounted) return;
+
+    if (_fields.isNotEmpty) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Replace fields?'),
+          content: Text(
+            'Apply "${selected.name}"? '
+            'Your current fields will be replaced.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Replace'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+
+    _applyTemplate(selected);
   }
 
   void _removeField(int index) {
@@ -640,8 +748,19 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
 
               // --- Additional fields ---
               const SizedBox(height: 24),
-              Text('Additional Fields',
-                  style: Theme.of(context).textTheme.titleMedium),
+              // "Use Template" button sits alongside the section header.
+              Row(
+                children: [
+                  Text('Additional Fields',
+                      style: Theme.of(context).textTheme.titleMedium),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: _showTemplatePicker,
+                    icon: const Icon(Icons.copy_all_outlined, size: 18),
+                    label: const Text('Use Template'),
+                  ),
+                ],
+              ),
               const SizedBox(height: 12),
               ..._fields.asMap().entries.map((e) => _buildFieldCard(e.key)),
               OutlinedButton.icon(

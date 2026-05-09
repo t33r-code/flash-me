@@ -115,25 +115,17 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] "Save as Template" overflow menu on CardFormScreen — nulls out answers,
       pre-populates TemplateFormScreen with the card's field structure
 
-#### Flash Cards (remaining)
-- [ ] Implement card creation screen
-- [ ] Build template selector dropdown
-- [ ] Create dynamic form builder that populates fields from template
-- [ ] Implement primary word field (foreign language + translation)
-- [ ] Build reveal-on-click field type UI and logic
-- [ ] Build text input field type UI with validation
-- [ ] Implement exact-match vs case-insensitive toggle for text input fields
-- [ ] Build multiple choice field type UI
-- [ ] Implement card update/edit screen
-- [ ] Decide and implement soft delete vs hard delete for cards
-- [ ] Implement card deletion with confirmation
+#### Phase 3d — Card from template (complete)
+- [x] "Use Template" button in Additional Fields section of CardFormScreen
+- [x] Bottom sheet template picker listing user's templates
+- [x] Applying a template pre-populates fields (config carried over, answers blank)
+- [x] Confirmation dialog when replacing existing fields
+
+#### Flash Cards (remaining / deferred)
 - [ ] Add card metadata display (createdAt, updatedAt, createdBy)
 - [ ] Implement field type icons/indicators
-- [ ] Create Firestore queries for efficient card retrieval
 - [ ] Add field randomization for multiple choice (optional)
-- [ ] Test all field types in creation and editing
 - [ ] Create default/example templates
-- [ ] Create card browser/list view
 - [ ] Implement bulk card creation from CSV (optional, Phase 6)
 
 **Deliverable**: Full CRUD for templates and cards, with working field types.

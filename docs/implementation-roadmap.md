@@ -150,10 +150,12 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] SetDetailScreen: placeholder showing card count; edit button → SetFormScreen
 - [x] Wire MySetsScreen into the main nav shell (replaces HomeScreen placeholder)
 
-#### Phase 4b — Set detail + card membership (next)
-- [ ] Full card list in SetDetailScreen (using cardsInSetProvider)
-- [ ] Add cards to set — modal card picker from user's card library
-- [ ] Remove card from set (swipe or button)
+#### Phase 4b — Set detail + card membership (complete)
+- [x] Full card list in SetDetailScreen (live via cardsInSetProvider)
+- [x] Add cards to set — DraggableScrollableSheet picker with multi-select checkboxes; already-in-set cards shown greyed at the bottom
+- [x] Remove card from set — swipe-left Dismissible on each card row
+- [x] setByIdProvider — keeps AppBar title in sync after editing set metadata
+- [x] Update Firestore indexes: setCards composite indexes now include userId (required by ordered queries with the security rule constraint)
 
 #### Phase 4c — Search & filter (deferred)
 - [ ] Search sets by name

@@ -18,6 +18,17 @@ final userSetsProvider = StreamProvider<List<CardSet>>((ref) {
   return ref.watch(cardSetRepositoryProvider).watchUserSets(uid);
 });
 
+// Derives a single live CardSet from the user's set list by ID.
+// Returns null if the set has been deleted or hasn't loaded yet.
+final setByIdProvider = Provider.family<CardSet?, String>((ref, setId) {
+  final sets = ref.watch(userSetsProvider).asData?.value ?? [];
+  try {
+    return sets.firstWhere((s) => s.id == setId);
+  } catch (_) {
+    return null;
+  }
+});
+
 // Streams card IDs in a specific set (lightweight — no card document data).
 // Usage: ref.watch(cardIdsInSetProvider('setId123'))
 final cardIdsInSetProvider =

@@ -29,6 +29,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "setId", "order": "ASCENDING" },
+        { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "addedAt", "order": "ASCENDING" }
       ]
     },
@@ -37,6 +38,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "cardId", "order": "ASCENDING" },
+        { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "addedAt", "order": "ASCENDING" }
       ]
     },

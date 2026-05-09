@@ -6,8 +6,10 @@ This document outlines the design for all major features of the Flash Me applica
 - [Authorization and Basic User Accounts](#authorization-and-basic-user-accounts)
 - [Create/Update/Delete Flash Cards](#createupdatedelete-flash-cards)
 - [Groupings of Flash Cards (Card Sets)](#groupings-of-flash-cards-card-sets)
+- [Tag System](#tag-system)
 - [Import and Export Flash Card Sets](#import-and-export-flash-card-sets)
 - [Use Flash Card Sets (CORE USE CASE)](#use-flash-card-sets-core-use-case)
+- [Marketplace & Lessons — Long-Term Vision](#marketplace--lessons--long-term-vision)
 
 ---
 
@@ -267,7 +269,8 @@ sets/{setId}
   - cardCount: integer (denormalized counter; increment/decrement on setCards link create/delete)
   - createdAt: timestamp
   - updatedAt: timestamp
-  - isPublic: boolean (optional, for future sharing features)
+  - isPublic: boolean (default false; marks set as discoverable in the marketplace)
+  - cloneable: boolean (default false; isPublic must be true; creator must explicitly opt in)
   - tags: array<string> (optional, for organization: ["verbs", "regular"])
   - color: string (optional, for UI differentiation)
 ```
@@ -437,6 +440,211 @@ setCards/{linkId}                 ← many-to-many join collection
 - **Phase 2 (Future)**: Add public/private toggle, community discovery database
 - **Phase 3 (Future)**: Add subscription functionality
 - **Phase 4 (Future)**: Add cloning functionality
+
+---
+
+## Tag System
+
+### Overview
+
+Tags serve two distinct purposes that must be satisfied by a single architecture:
+
+1. **Personal organisation** — users label their cards and sets for filtering and quick retrieval within their own library (e.g., find all sets tagged "beginner" or all cards tagged "irregular-verbs").
+2. **Marketplace discovery** — when the content marketplace launches, tags become the primary cross-user discovery mechanism. A user searching for language content should find every set tagged "spanish-verbs" regardless of who created it.
+
+These two requirements preclude a per-user tag namespace. If every user maintains their own isolated tag list, tags fragment across the user base ("spanish-verbs", "Spanish Verbs", "SpanishVerbs", "verbos-español") and marketplace tag search returns only a fraction of the relevant content. The correct architecture is a **single global tag pool with normalization**, designed now so that no migration is needed when the marketplace feature is built.
+
+### Design Decision: Global Normalized Tags
+
+Tags are stored in a top-level `tags` Firestore collection, shared across all users. The document ID is the **normalized form** of the tag name. Normalization rules:
+
+1. Lowercase
+2. Trim leading and trailing whitespace
+3. Collapse runs of whitespace to a single hyphen
+
+Examples:
+| User input | Normalized (document ID) | Stored displayName |
+|---|---|---|
+| `Spanish Verbs` | `spanish-verbs` | `Spanish Verbs` |
+| `spanish verbs` | `spanish-verbs` | `Spanish Verbs` ← first user's casing wins |
+| `spanish-verbs` | `spanish-verbs` | ← no-op, document already exists |
+| `SPANISH  VERBS` | `spanish-verbs` | ← no-op |
+
+Because the document ID equals the normalized tag, `setDoc(..., merge: true)` on the same document ID is naturally idempotent — creating a duplicate is impossible by construction.
+
+The `displayName` field is set only on document **creation** (first user to coin the tag). Subsequent writes only increment `usageCount`.
+
+### Firestore Data Model
+
+```
+tags/{normalizedName}
+  normalizedName: string   ← duplicated from document ID for prefix-query support
+  displayName:   string    ← original casing from first user to coin the tag
+  usageCount:    int       ← sum of all references across all cards, sets, and future content types
+  createdAt:     timestamp
+  createdBy:     userId    ← who first coined this tag
+```
+
+Cards and sets store the **normalized** form in their `tags` array:
+
+```
+cards/{cardId}
+  tags: ["spanish-verbs", "irregular", "ar-verbs"]   ← normalized names only
+
+sets/{setId}
+  tags: ["beginner", "spanish-verbs"]                ← normalized names only
+```
+
+This means all tag-based queries (`where('tags', arrayContains: 'spanish-verbs')`) work identically whether filtering a single user's cards or searching the global marketplace.
+
+### Tag Lifecycle
+
+#### Adding a tag
+
+When a user adds a tag to any content object (card or set):
+
+1. Normalize the input string.
+2. Call `tags/{normalizedName}` with `setDoc(..., merge: true)`:
+   - If the document does not exist: create it with `displayName`, `usageCount: 1`, `createdAt`, `createdBy`.
+   - If it exists: increment `usageCount` by 1 only (do not overwrite `displayName`).
+3. Add the normalized tag to the content object's `tags` array.
+
+Both writes should be batched or run as a transaction to stay consistent.
+
+#### Removing a tag
+
+When a user removes a tag from a content object:
+
+1. Remove the normalized tag from the content object's `tags` array.
+2. Decrement `usageCount` on `tags/{normalizedName}` by 1.
+
+The tag document is **not deleted** when `usageCount` reaches zero. Orphaned tags (those no longer used anywhere) are harmless — they appear as low-ranked suggestions but will never surface above popular tags because suggestions are sorted by `usageCount` descending.
+
+#### Editing content (tags changed)
+
+When a user saves an edit and the `tags` array has changed:
+
+1. Compute `added = newTags − oldTags` and `removed = oldTags − newTags`.
+2. For each tag in `added`: run the "adding a tag" flow above.
+3. For each tag in `removed`: run the "removing a tag" flow above.
+4. Save the content document with the new `tags` array.
+
+This logic lives in the form save methods and must be applied consistently across `CardFormScreen`, `SetFormScreen`, and any future content types.
+
+### Autocomplete Behaviour
+
+The tag input widget queries the global `tags` collection as the user types:
+
+```dart
+_firestore
+  .collection('tags')
+  .where('normalizedName', isGreaterThanOrEqualTo: normalizedInput)
+  .where('normalizedName', isLessThanOrEqualTo: normalizedInput + '')
+  .orderBy('normalizedName')
+  .limit(10)
+```
+
+Suggestions are presented as the `displayName` values of the returned documents. Selecting a suggestion inserts the `normalizedName` into the `tags` array (not the display name, to maintain storage consistency).
+
+If the user presses Enter on a string that matches no suggestion, a new tag is created (the "adding a tag" flow above).
+
+A **minimum suggestion threshold** of `usageCount >= 2` is applied client-side when filtering the suggestion list. This suppresses one-off typos from polluting other users' autocomplete results while still showing low-count tags to the user who created them (they will see their own tags even if they fall below the threshold).
+
+### Security Rules
+
+```javascript
+match /tags/{tagId} {
+  // Anyone authenticated can read tags (required for autocomplete and marketplace search).
+  allow read: if isAuth();
+
+  // Any authenticated user can create a new tag.
+  allow create: if isAuth()
+      && request.resource.data.createdBy == request.auth.uid
+      && request.resource.data.usageCount == 1;
+
+  // usageCount increments and decrements only; displayName and createdBy are immutable.
+  allow update: if isAuth()
+      && request.resource.data.displayName == resource.data.displayName
+      && request.resource.data.createdBy  == resource.data.createdBy
+      && request.resource.data.normalizedName == resource.data.normalizedName;
+
+  // Tags are never hard-deleted by clients.
+  allow delete: if false;
+}
+```
+
+### Firestore Indexes Required
+
+| Collection | Fields | Purpose |
+|---|---|---|
+| `tags` | `normalizedName ASC` | Prefix autocomplete queries |
+| `tags` | `usageCount DESC` | Popularity-sorted suggestions (future) |
+| `cards` | `createdBy ASC, tags ARRAY` | Filter user's cards by tag |
+| `sets` | `userId ASC, tags ARRAY` | Filter user's sets by tag |
+
+Composite array-contains indexes are created automatically by Firestore for `arrayContains` queries; the explicit index entries above are for multi-field combinations used in the filter UI.
+
+### Bloat Analysis and Mitigations
+
+With a global tag pool, the realistic bloat concerns and their mitigations are:
+
+| Concern | Assessment | Mitigation |
+|---|---|---|
+| Duplicate tags with different casing ("Spanish Verbs" vs "spanish verbs") | Eliminated | Normalization — all variants resolve to the same document ID |
+| Typos ("spannish-verbs") | Low impact | Suggestions sorted by `usageCount`; typos have count=1 and sink below popular tags; `usageCount >= 2` threshold hides them from other users |
+| Language fragmentation ("verbos", "slovesa", "Verben") | Not a problem | Legitimately distinct tags in a multilingual app; good for marketplace discovery |
+| Orphaned tags (content deleted, usageCount drifts toward 0) | Harmless | Low-count tags don't surface in autocomplete; no active cleanup needed at MVP scale |
+| Spam or malicious tags | Low at MVP scale | Security rules prevent deletion; usageCount controls ranking; active moderation deferred to marketplace launch |
+| Scale (millions of users, millions of tags) | Not a near-term concern | Firestore document count does not affect read performance; tag documents are tiny; compound queries on `tags` array scale with index size, not tag count |
+
+Active tag pruning (deleting orphans) is explicitly deferred. If it becomes necessary post-marketplace-launch, it can be implemented as a Cloud Function triggered on document writes, or as a scheduled cleanup job.
+
+### UI Components
+
+#### TagInputField (shared widget)
+
+A reusable `TagInputField` widget replaces the current ad-hoc chip-input pattern on `CardFormScreen` and `SetFormScreen`. It encapsulates:
+
+- A `TextField` that queries the global `tags` collection on each keystroke (debounced ~300ms)
+- A dropdown overlay showing up to 10 matching `displayName` suggestions
+- "Press Enter to create new tag" prompt when input matches no suggestion
+- Chip display of already-added tags with `×` delete affordance
+- Comma-paste support (splitting pasted text on `,` into multiple tags)
+
+#### Display
+
+Tags are stored as normalized strings but always displayed using their `displayName` from the `tags` collection. The `TagChip` widget resolves display names on render. In lists and detail screens where performance matters, the display name can be derived from a locally cached tag map rather than per-chip Firestore reads.
+
+### Import / Export Considerations
+
+The ZIP export format stores tags in their normalized form in `cards.json`:
+
+```json
+"tags": ["spanish-verbs", "irregular", "ar-verbs"]
+```
+
+On import, each tag is run through the "adding a tag" flow above — either creating a new global tag document or incrementing an existing one. This means importing a set from another user propagates their tags into the global pool, which is the desired behaviour for marketplace content sharing.
+
+### Implementation Plan (deferred to Phase 4d, after Phase 5)
+
+See [implementation roadmap](implementation-roadmap.md) for sequencing rationale.
+
+- [ ] Create `tags` Firestore collection and deploy security rules
+- [ ] Add Firestore indexes for prefix queries and array-contains filters
+- [ ] Implement `TagRepository` with: `upsertTag`, `decrementTag`, `searchTags` (prefix query)
+- [ ] Add `tagRepositoryProvider` to the provider layer
+- [ ] Implement normalization utility function (`AppHelpers.normalizeTag`)
+- [ ] Build shared `TagInputField` widget with debounced autocomplete
+- [ ] Wire `TagInputField` into `CardFormScreen` (replace current chip-input)
+- [ ] Wire `TagInputField` into `SetFormScreen` (replace current chip-input)
+- [ ] Update card save/edit to compute tag diffs and call upsert/decrement accordingly
+- [ ] Update set save/edit similarly
+- [ ] Update card delete to decrement all tags on the deleted card
+- [ ] Update set delete to decrement all tags on the deleted set
+- [ ] Update import flow to run upsert for every imported tag
+- [ ] Deploy updated Firestore rules and indexes
+- [ ] Wire tag filter into My Cards screen (Phase 4c)
+- [ ] Wire tag filter into My Sets screen (Phase 4c)
 
 ---
 
@@ -910,5 +1118,106 @@ users/{userId}/studySessions/{sessionId}
 - [ ] Test offline study with sync on reconnect
 - [ ] Performance testing with large card sets (1000+ cards)
 - [ ] Accessibility testing (screen readers, text size)
+
+---
+
+## Marketplace & Lessons — Long-Term Vision
+
+> **Status: Pre-design only.** This section documents long-term intent to inform architectural decisions made today. No implementation tasks are assigned yet. Detailed design will be written when development reaches this phase.
+
+### Purpose
+
+The marketplace allows users to publish their content — sets and lessons — for other users to discover, study, and build upon. It transforms Flash Me from a personal study tool into a collaborative learning platform.
+
+This section exists in the design document now because several early architectural decisions are shaped by it:
+- The [global tag system](#tag-system) was designed for marketplace discoverability, not just personal organisation.
+- The `isPublic` flag on `CardSet` is a reserved field for this feature.
+- The `setCards` join-collection approach (rather than embedded arrays) supports future content sharing patterns cleanly.
+
+### Concepts
+
+#### Published Sets
+
+A set is currently always private. In the marketplace, a set owner may **publish** it, making it discoverable and usable by others. Key properties:
+
+- Published sets are **read-only** for non-owners (content cannot be edited, but can be studied or cloned).
+- The owner can unpublish a set at any time; published content already cloned by others is unaffected.
+- Published sets appear in the marketplace search index.
+- Metadata tracked per published set: view count, subscriber count, clone count, rating/reviews (TBD).
+
+#### Lessons
+
+A **Lesson** is a structured, ordered grouping of sets — analogous to a course chapter or a curriculum unit. Where a set is a flat collection of cards, a lesson imposes a learning sequence on multiple sets and may include:
+
+- An ordered list of sets (e.g., "Week 1: Greetings → Week 2: Numbers → Week 3: Verbs")
+- A title, description, and cover image
+- Prerequisite tags or difficulty level
+- Author attribution
+
+Lessons are a new content type and will require their own Firestore collection (`lessons/{lessonId}`), data model, UI screens, and study flow. They are out of scope for all current phases.
+
+#### Content Discovery
+
+Users find marketplace content through:
+1. **Tag-based browsing** — filter by one or more global tags (e.g., "spanish-verbs" + "beginner"). Works natively via Firestore `arrayContains` queries.
+2. **Name/description search** — free-text search across set and lesson names and descriptions. Firestore does not support full-text search natively; this will require an external search service (Algolia, Typesense, or the Firebase Search Extension). This is the primary reason to evaluate a search service early, even though it is not needed for personal-library search at MVP scale.
+3. **Popularity / trending** — sets sorted by subscriber count, clone count, or recency. Standard Firestore orderBy queries on denormalized counters.
+
+#### Content Lifecycle
+
+```
+Draft (private) → Published (discoverable) → [Unpublished → private again]
+```
+
+Content moderation (flagging, takedowns) will be required at marketplace scale and should be designed as part of the marketplace phase, not retrofitted.
+
+#### Subscriptions and Cloning
+
+Two consumption patterns:
+
+| Pattern | Description | Ownership | Default |
+|---|---|---|---|
+| **Subscribe** | User's library shows the original set; receives updates when owner edits | Owner retains authorship | Enabled for all public content |
+| **Clone** | User gets an independent copy; free to edit; diverges from original | User becomes owner of clone | **Opt-in by creator only** |
+
+**Subscription** is the default for all published content — any user can subscribe to any public set or lesson without the creator needing to take any action.
+
+**Cloning** is an explicit permission granted by the creator at publish time (or toggled afterwards). A creator who allows cloning is accepting that their content may be modified and redistributed independently. Creators who want their content consumed but not forked — e.g., for quality control or pedagogical integrity — can publish without enabling cloning.
+
+The UI should make this distinction clear on the publish settings screen: a simple toggle such as "Allow others to clone this set" defaulting to off.
+
+Clone provenance (`clonedFromSetId`, `clonedFromUserId`) should be recorded on cloned content for attribution, regardless of whether the provenance is surfaced in the initial UI.
+
+### Architectural Implications for Current Development
+
+| Decision | Reason |
+|---|---|
+| Global normalized tags (not per-user) | Tag convergence across users is required for marketplace search to work |
+| `isPublic: bool` on `CardSet` | Reserved field; set to `false` for all current content |
+| `cloneable: bool` on `CardSet` | Reserved field; set to `false` by default — creator must explicitly opt in. Separate from `isPublic` because a set can be public (subscribable) without being cloneable. |
+| `setCards` join collection (not embedded array) | Supports future "subscriber's view" patterns where a subscribed set's card list is derived from the owner's join collection |
+| Markdown description on sets | Rich descriptions are more valuable for marketplace listings than plain text |
+| `createdBy` on cards and templates | Attribution field; needed for marketplace provenance display |
+
+### Full-Text Search Consideration
+
+At marketplace scale, users need to search set and lesson names and descriptions by free text. Options to evaluate before the marketplace phase:
+
+- **Algolia via Firebase Extension** — most mature, generous free tier, excellent Flutter SDK
+- **Typesense** — open-source, self-hostable, lower cost at scale
+- **Meilisearch** — similar to Typesense, very fast
+- **Vertex AI Search (Google)** — native Firebase integration, AI-enhanced relevance
+
+The choice should be made as a dedicated spike task at the start of the marketplace phase. The data model does not need to change; the search service indexes a projection of the Firestore data via a Cloud Function trigger.
+
+### Implementation Phasing (future)
+
+| Sub-phase | Scope |
+|---|---|
+| Marketplace Alpha | Publish/unpublish sets; basic tag + popularity browsing; subscribe and clone |
+| Marketplace Beta | Ratings, reviews, moderation tools, content reporting |
+| Lessons | Lesson data model, creation UI, lesson-level study flow |
+| Creator Tools | Analytics for publishers (views, subscribers, clone counts) |
+| Monetization | If pursued: premium content, creator revenue share (requires separate design) |
 
 ---

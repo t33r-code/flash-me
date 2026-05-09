@@ -157,11 +157,35 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] setByIdProvider — keeps AppBar title in sync after editing set metadata
 - [x] Update Firestore indexes: setCards composite indexes now include userId (required by ordered queries with the security rule constraint)
 
-#### Phase 4c — Search & filter (deferred)
+#### Phase 4c — Search & filter (deferred, depends on Phase 4d)
 - [ ] Search sets by name
-- [ ] Filter sets by tag
+- [ ] Filter sets by tag (requires global tag system from Phase 4d)
 - [ ] Sort options (by name, last updated, card count)
 - [ ] Search / filter within set detail view
+- [ ] Search / filter on My Cards screen (search bar is already stubbed)
+
+#### Phase 4d — Global Tag System (deferred to after Phase 5)
+
+**Rationale for deferral:** Tag infrastructure is a prerequisite for Phase 4c (tag-based filtering) and for the long-term marketplace feature, but does not block Phase 5 (Study Mode). Implementing it after Phase 5 allows Study Mode — the core value proposition — to ship sooner while the tag system is built correctly without time pressure.
+
+**Design summary:** Tags are stored in a global Firestore collection (`tags/{normalizedName}`) shared across all users. The document ID is the normalized form of the tag (lowercase, trimmed, spaces collapsed to hyphens). A `usageCount` field is maintained as tags are added/removed across all content types. The autocomplete widget queries this collection with a prefix filter. Full design in [docs/design.md — Tag System](design.md#tag-system).
+
+- [ ] Create `tags` Firestore collection; deploy security rules (read: any authed user; create/update: authed user with constraints; delete: never)
+- [ ] Add Firestore indexes for prefix queries (`normalizedName ASC`) and array-contains tag filters on `cards` and `sets`
+- [ ] Implement `normalizeTag(String input) → String` utility in `AppHelpers`
+- [ ] Implement `TagRepository` abstract interface with: `upsertTag`, `decrementTag`, `searchTags(prefix)`
+- [ ] Implement `FirebaseTagRepository`
+- [ ] Add `tagRepositoryProvider` and `tagSearchProvider.family` to provider layer
+- [ ] Build shared `TagInputField` widget: debounced autocomplete, chip display, comma-paste, Enter-to-create
+- [ ] Replace current chip-input on `CardFormScreen` with `TagInputField`
+- [ ] Replace current chip-input on `SetFormScreen` with `TagInputField`
+- [ ] Update card save/edit to diff old vs new tags and call upsert/decrement accordingly
+- [ ] Update set save/edit to diff old vs new tags similarly
+- [ ] Update card delete to decrement all tags on the deleted card
+- [ ] Update set delete to decrement all tags on the deleted set
+- [ ] Update import flow (Phase 6) to run upsert for every imported tag
+- [ ] Deploy updated Firestore rules and indexes
+- [ ] Wire tag filter into Phase 4c (My Cards and My Sets screens)
 
 **Deliverable**: Complete set management with card organization.
 
@@ -345,11 +369,36 @@ The implementation is divided into 7 phases, starting with foundational setup an
 
 These features are important but can be deferred to post-launch:
 
+### Marketplace & Lessons
+
+> **See [docs/design.md — Marketplace & Lessons](design.md#marketplace--lessons--long-term-vision) for full pre-design notes.**
+
+The long-term vision for Flash Me is a content marketplace where users can publish sets and lessons for others to discover, study, and build upon. Key planned capabilities:
+
+- **Published Sets** — owners mark sets as public; non-owners can browse, subscribe, or clone
+- **Lessons** — a new content type: an ordered grouping of sets forming a structured learning curriculum (analogous to a course chapter). Requires its own data model, creation UI, and study flow.
+- **Marketplace Discovery** — browse by tag (global tag system), search by name/description (requires external full-text search service: Algolia, Typesense, or Firebase Search Extension), sort by popularity/recency
+- **Subscriptions** — user's library includes subscribed sets; receives updates when owner edits
+- **Cloning** — user gets an independent editable copy; clone provenance recorded for attribution
+- **Creator Tools** — view counts, subscriber counts, clone counts for publishers
+- **Content Moderation** — flagging, takedowns, abuse prevention (required before public launch)
+
+**Architectural decisions already made in support of this:**
+- Global normalized tag system (Phase 4d) — tags converge across users for marketplace search
+- `isPublic` field reserved on `CardSet`
+- `createdBy` on all content types for attribution
+- `setCards` join collection supports future subscription patterns
+
+**Implementation phasing (future):**
+1. Marketplace Alpha — publish/unpublish; tag + popularity browsing; subscribe + clone
+2. Marketplace Beta — ratings, reviews, moderation
+3. Lessons — data model, creation UI, lesson-level study flow
+4. Creator Analytics & optional monetization design
+
 ### Sharing & Community
-- [ ] Public sets database
-- [ ] Set subscriptions
-- [ ] Set cloning
-- [ ] User profiles and profiles management
+- [ ] Set subscriptions (see Marketplace above)
+- [ ] Set cloning (see Marketplace above)
+- [ ] User profiles and profile management
 - [ ] Social features (ratings, reviews, followers)
 
 ### Advanced Study Features
@@ -389,6 +438,10 @@ These features are important but can be deferred to post-launch:
 | Phase 6: Import/Export | 1 week | Data portability |
 | Phase 7: Polish & Test | 1 week | Quality |
 | **Total** | **10 weeks** | **MVP Ready** |
+| — | — | — |
+| Phase 4d: Global Tag System | 1 week | Search foundation (post-MVP) |
+| Phase 4c: Search & Filter | 1 week | Discovery (post-MVP, needs 4d) |
+| Marketplace Alpha | TBD | Content sharing (long-term) |
 
 ---
 
@@ -411,12 +464,16 @@ These features are important but can be deferred to post-launch:
 - ✅ Cross-platform support
 
 **Nice to Have (Lower Priority):**
-- ⭐ Public sets sharing
-- ⭐ Set subscriptions
-- ⭐ Set cloning
+- ⭐ Global tag system + search/filter (Phase 4c/4d)
 - ⭐ Spaced repetition
 - ⭐ Advanced analytics
 - ⭐ Localization
+
+**Long-Term (Marketplace):**
+- 🌐 Published sets & marketplace discovery
+- 🌐 Lessons (structured set groupings)
+- 🌐 Set subscriptions & cloning
+- 🌐 Creator tools & content moderation
 
 ---
 

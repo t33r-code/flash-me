@@ -269,7 +269,8 @@ sets/{setId}
   - cardCount: integer (denormalized counter; increment/decrement on setCards link create/delete)
   - createdAt: timestamp
   - updatedAt: timestamp
-  - isPublic: boolean (optional, for future sharing features)
+  - isPublic: boolean (default false; marks set as discoverable in the marketplace)
+  - cloneable: boolean (default false; isPublic must be true; creator must explicitly opt in)
   - tags: array<string> (optional, for organization: ["verbs", "regular"])
   - color: string (optional, for UI differentiation)
 ```
@@ -1174,12 +1175,18 @@ Content moderation (flagging, takedowns) will be required at marketplace scale a
 
 Two consumption patterns:
 
-| Pattern | Description | Ownership |
-|---|---|---|
-| **Subscribe** | User's library shows the original set; receives updates when owner edits | Owner retains authorship |
-| **Clone** | User gets an independent copy; free to edit; diverges from original | User becomes owner of clone |
+| Pattern | Description | Ownership | Default |
+|---|---|---|---|
+| **Subscribe** | User's library shows the original set; receives updates when owner edits | Owner retains authorship | Enabled for all public content |
+| **Clone** | User gets an independent copy; free to edit; diverges from original | User becomes owner of clone | **Opt-in by creator only** |
 
-Both patterns should be supported. Clone provenance (`clonedFromSetId`, `clonedFromUserId`) should be recorded for attribution even if not surfaced in the initial UI.
+**Subscription** is the default for all published content — any user can subscribe to any public set or lesson without the creator needing to take any action.
+
+**Cloning** is an explicit permission granted by the creator at publish time (or toggled afterwards). A creator who allows cloning is accepting that their content may be modified and redistributed independently. Creators who want their content consumed but not forked — e.g., for quality control or pedagogical integrity — can publish without enabling cloning.
+
+The UI should make this distinction clear on the publish settings screen: a simple toggle such as "Allow others to clone this set" defaulting to off.
+
+Clone provenance (`clonedFromSetId`, `clonedFromUserId`) should be recorded on cloned content for attribution, regardless of whether the provenance is surfaced in the initial UI.
 
 ### Architectural Implications for Current Development
 
@@ -1187,6 +1194,7 @@ Both patterns should be supported. Clone provenance (`clonedFromSetId`, `clonedF
 |---|---|
 | Global normalized tags (not per-user) | Tag convergence across users is required for marketplace search to work |
 | `isPublic: bool` on `CardSet` | Reserved field; set to `false` for all current content |
+| `cloneable: bool` on `CardSet` | Reserved field; set to `false` by default — creator must explicitly opt in. Separate from `isPublic` because a set can be public (subscribable) without being cloneable. |
 | `setCards` join collection (not embedded array) | Supports future "subscriber's view" patterns where a subscribed set's card list is derived from the owner's join collection |
 | Markdown description on sets | Rich descriptions are more valuable for marketplace listings than plain text |
 | `createdBy` on cards and templates | Attribution field; needed for marketplace provenance display |

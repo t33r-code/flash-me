@@ -74,12 +74,14 @@ class FirebaseCardSetRepository implements CardSetRepository {
   }
 
   // Hard-delete: removes all setCards links then the set document.
+  // userId constraint is required by the Firestore list rule on setCards.
   @override
-  Future<void> deleteSet(String setId) async {
+  Future<void> deleteSet(String setId, String userId) async {
     try {
       final links = await _firestore
           .collection(AppConstants.setCardsCollection)
           .where('setId', isEqualTo: setId)
+          .where('userId', isEqualTo: userId)
           .get();
 
       final batch = _firestore.batch();
@@ -134,12 +136,14 @@ class FirebaseCardSetRepository implements CardSetRepository {
   Future<void> removeCardFromSet({
     required String setId,
     required String cardId,
+    required String userId,
   }) async {
     try {
       final links = await _firestore
           .collection(AppConstants.setCardsCollection)
           .where('setId', isEqualTo: setId)
           .where('cardId', isEqualTo: cardId)
+          .where('userId', isEqualTo: userId)
           .limit(1)
           .get();
 
@@ -201,10 +205,11 @@ class FirebaseCardSetRepository implements CardSetRepository {
   }
 
   @override
-  Stream<List<String>> watchCardIdsInSet(String setId) {
+  Stream<List<String>> watchCardIdsInSet(String setId, String userId) {
     return _firestore
         .collection(AppConstants.setCardsCollection)
         .where('setId', isEqualTo: setId)
+        .where('userId', isEqualTo: userId)
         .orderBy('addedAt')
         .snapshots()
         .map((s) =>
@@ -213,10 +218,11 @@ class FirebaseCardSetRepository implements CardSetRepository {
 
   // Stream full card objects; re-fetches cards whenever the setCards list changes.
   @override
-  Stream<List<FlashCard>> watchCardsInSet(String setId) {
+  Stream<List<FlashCard>> watchCardsInSet(String setId, String userId) {
     return _firestore
         .collection(AppConstants.setCardsCollection)
         .where('setId', isEqualTo: setId)
+        .where('userId', isEqualTo: userId)
         .orderBy('addedAt')
         .snapshots()
         .asyncMap((snapshot) async {

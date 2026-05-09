@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flash_me/screens/home_screen.dart';
+import 'package:flash_me/screens/sets/my_sets_screen.dart';
 import 'package:flash_me/screens/cards/my_cards_screen.dart';
 import 'package:flash_me/screens/templates/templates_screen.dart';
 import 'package:flash_me/screens/profile_screen.dart';
@@ -18,7 +18,7 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
   static const List<Widget> _tabs = [
-    HomeScreen(),
+    MySetsScreen(),
     MyCardsScreen(),
     TemplatesScreen(),
     ProfileScreen(),

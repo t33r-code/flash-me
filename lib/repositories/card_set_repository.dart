@@ -11,7 +11,8 @@ abstract class CardSetRepository {
   Future<void> updateSet(CardSet cardSet);
 
   // Hard-delete a set and all its membership links.
-  Future<void> deleteSet(String setId);
+  // userId is required so the setCards query satisfies Firestore list rules.
+  Future<void> deleteSet(String setId, String userId);
 
   // --- Card membership -------------------------------------------------------
 
@@ -23,9 +24,11 @@ abstract class CardSetRepository {
   });
 
   // Remove one card from a set; decrements the set's cardCount.
+  // userId is required so the setCards query satisfies Firestore list rules.
   Future<void> removeCardFromSet({
     required String setId,
     required String cardId,
+    required String userId,
   });
 
   // Bulk-add multiple cards; batched internally to stay within write limits.
@@ -36,8 +39,10 @@ abstract class CardSetRepository {
   });
 
   // Stream the ordered card IDs in a set (lightweight — no card data).
-  Stream<List<String>> watchCardIdsInSet(String setId);
+  // userId is required so the setCards query satisfies Firestore list rules.
+  Stream<List<String>> watchCardIdsInSet(String setId, String userId);
 
   // Stream the full FlashCard objects for all cards in a set.
-  Stream<List<FlashCard>> watchCardsInSet(String setId);
+  // userId is required so the setCards query satisfies Firestore list rules.
+  Stream<List<FlashCard>> watchCardsInSet(String setId, String userId);
 }

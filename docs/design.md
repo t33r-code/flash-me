@@ -1221,3 +1221,17 @@ The choice should be made as a dedicated spike task at the start of the marketpl
 | Monetization | If pursued: premium content, creator revenue share (requires separate design) |
 
 ---
+
+## Post-MVP Considerations
+
+### Desktop Bulk Card Creation Interface
+
+> **Status: Post-MVP concept only.** No implementation tasks assigned.
+
+Teachers and content creators who need to produce large numbers of cards (e.g. a full vocabulary unit) are poorly served by the per-card mobile creation flow. A desktop-optimised bulk creation interface would address this directly.
+
+**Concept:** A wide-layout screen (desktop/web only — Flutter's adaptive layout can gate it by platform or window width) presenting a spreadsheet-style editor where each row is a card. Columns correspond to the fields of a chosen template, so the structure is fixed per session and each row is directly editable. Changes are batched and written to Firestore on save rather than on every keystroke.
+
+**Why desktop-only:** Wide column layouts are impractical on mobile. The target user (a teacher preparing material at a desk) naturally works on a laptop or desktop. Keeping the mobile UI focused on single-card creation and the desktop UI focused on bulk creation avoids compromising either experience.
+
+**Relationship to import/export:** The bulk creation interface and JSON import serve similar user needs. JSON import is the right solution for users who already have data in another system or want to use external tools (including AI) to generate card content at scale. The spreadsheet-style interface is better for users who want to create content directly in the app without leaving it. Both are worth implementing; the import/export infrastructure (Phase 6) should be designed so the bulk creation interface can reuse the same Firestore batch write path.

@@ -345,24 +345,42 @@ class _RevealFieldCardState extends State<_RevealFieldCard> {
             children: [
               _FieldLabel(name: widget.field.name),
               const SizedBox(height: 8),
-              if (_revealed)
-                Text(
-                  widget.content.answer ?? '',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                )
-              else
-                Row(children: [
-                  Icon(Icons.visibility_outlined,
-                      size: 18, color: scheme.onSurfaceVariant),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Tap to reveal',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: scheme.onSurfaceVariant),
+              // Both states are always laid out so the card height is
+              // determined by the answer text before the tap, eliminating
+              // the height jump on reveal.  Only one state is painted at
+              // a time via maintainSize visibility toggling.
+              Stack(
+                children: [
+                  Visibility(
+                    visible: _revealed,
+                    maintainSize: true,
+                    maintainAnimation: true,
+                    maintainState: true,
+                    child: Text(
+                      widget.content.answer ?? '',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
                   ),
-                ]),
+                  Visibility(
+                    visible: !_revealed,
+                    maintainSize: true,
+                    maintainAnimation: true,
+                    maintainState: true,
+                    child: Row(children: [
+                      Icon(Icons.visibility_outlined,
+                          size: 18, color: scheme.onSurfaceVariant),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Tap to reveal',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(color: scheme.onSurfaceVariant),
+                      ),
+                    ]),
+                  ),
+                ],
+              ),
             ],
           ),
         ),

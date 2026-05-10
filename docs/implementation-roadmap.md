@@ -201,14 +201,14 @@ The implementation is divided into 7 phases, starting with foundational setup an
 
 ### Tasks
 
-#### Phase 5a — Session infrastructure + session selection UI
-- [ ] Confirm StudySession + CardSessionData data models and Firestore schema (already in Phase 2)
-- [ ] Implement study session repository (FirebaseStudySessionRepository)
-- [ ] Wire studySessionRepositoryProvider and sessionHistoryProvider
-- [ ] Study set selection UI: tap a set → prompt "Resume" vs "Start New Session" when an active session exists
-- [ ] Session configuration screen: shuffle toggle, (future: card filters)
-- [ ] Session initialization: build card sequence (ordered or shuffled), write session document to Firestore
-- [ ] Card shuffling option (Fisher-Yates on the card sequence)
+#### Phase 5a — Session infrastructure + session selection UI (complete)
+- [x] Confirm StudySession + CardSessionData data models and Firestore schema (already in Phase 2)
+- [x] Implement study session repository (FirebaseStudySessionRepository)
+- [x] Wire studySessionRepositoryProvider and sessionHistoryProvider
+- [x] Study set selection UI: tap a set → prompt "Resume" vs "Start New Session" when an active session exists
+- [x] Session configuration screen: shuffle toggle, (future: card filters)
+- [x] Session initialization: build card sequence (ordered or shuffled), write session document to Firestore
+- [x] Card shuffling option (Fisher-Yates on the card sequence)
 
 #### Phase 5b — Card display & field interaction
 - [ ] Build study session screen scaffold (AppBar with progress + exit, card area, control row)

@@ -6,6 +6,7 @@ import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/screens/sets/set_form_screen.dart';
+import 'package:flash_me/screens/study/study_setup_screen.dart';
 
 // ---------------------------------------------------------------------------
 // SetDetailScreen — live card list for a set with add/remove membership.
@@ -89,6 +90,15 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     }
   }
 
+  // Navigates to the study setup screen for this set.
+  void _study() {
+    final currentSet =
+        ref.read(setByIdProvider(widget.cardSet.id)) ?? widget.cardSet;
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => StudySetupScreen(cardSet: currentSet),
+    ));
+  }
+
   // Opens the card picker bottom sheet.
   Future<void> _showCardPicker() async {
     final uid = ref.read(authStateProvider).asData?.value ?? '';
@@ -163,10 +173,38 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                 },
               ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showCardPicker,
-        tooltip: 'Add cards',
-        child: const Icon(Icons.add),
+      // When the set has cards: extended Study FAB (primary) + small Add FAB.
+      // When the set is empty: just the Add FAB so the user can populate it.
+      floatingActionButton: cardsAsync.maybeWhen(
+        data: (cards) => cards.isEmpty
+            ? FloatingActionButton(
+                onPressed: _showCardPicker,
+                tooltip: 'Add cards',
+                child: const Icon(Icons.add),
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FloatingActionButton.small(
+                    heroTag: 'addCards',
+                    onPressed: _showCardPicker,
+                    tooltip: 'Add cards',
+                    child: const Icon(Icons.add),
+                  ),
+                  const SizedBox(height: 8),
+                  FloatingActionButton.extended(
+                    heroTag: 'study',
+                    onPressed: _study,
+                    icon: const Icon(Icons.play_arrow),
+                    label: const Text('Study'),
+                  ),
+                ],
+              ),
+        orElse: () => FloatingActionButton(
+          onPressed: _showCardPicker,
+          tooltip: 'Add cards',
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }

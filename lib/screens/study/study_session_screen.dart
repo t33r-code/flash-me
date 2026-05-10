@@ -8,6 +8,7 @@ import 'package:flash_me/models/study_session.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/study_session_provider.dart';
+import 'package:flash_me/screens/study/study_session_summary_screen.dart';
 
 // ---------------------------------------------------------------------------
 // StudySessionScreen — displays one card at a time from a StudySession.
@@ -191,39 +192,16 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     } catch (_) {}
 
     if (mounted) {
-      // Update local state to reflect final counts for the dialog.
-      setState(() => _session = completed);
-      await _showCompletionDialog(stats);
-      if (mounted) Navigator.of(context).pop();
-    }
-  }
-
-  Future<void> _showCompletionDialog(SessionStats stats) => showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Session Complete'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('$_total cards reviewed'),
-              const SizedBox(height: 4),
-              Text('${_session.cardsKnown} marked Known'),
-              if (_session.cardsUnknown > 0) ...[
-                const SizedBox(height: 4),
-                Text("${_session.cardsUnknown} marked Don’t Know"),
-              ],
-            ],
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => StudySessionSummaryScreen(
+            session: completed,
+            cardSet: widget.cardSet,
           ),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Done'),
-            ),
-          ],
         ),
       );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

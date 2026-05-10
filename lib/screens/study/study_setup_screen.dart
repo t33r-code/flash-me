@@ -91,6 +91,7 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
               cardsKnown: 0,
               cardsUnknown: 0,
               sessionStats: const SessionStats(),
+              shuffled: _shuffle,
             ),
             uid,
           );

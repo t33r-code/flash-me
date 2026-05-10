@@ -144,6 +144,9 @@ class StudySession {
   final int cardsKnown;
   final int cardsUnknown;
   final SessionStats sessionStats;
+  // Whether the card sequence was shuffled when this session was created.
+  // Used by the summary screen to re-apply the same setting on Study Again.
+  final bool shuffled;
 
   const StudySession({
     required this.id,
@@ -158,6 +161,7 @@ class StudySession {
     required this.cardsKnown,
     required this.cardsUnknown,
     required this.sessionStats,
+    this.shuffled = false,
   });
 
   factory StudySession.fromFirestore(DocumentSnapshot doc) {
@@ -186,6 +190,7 @@ class StudySession {
           ? SessionStats.fromJson(
               data['sessionStats'] as Map<String, dynamic>)
           : const SessionStats(),
+      shuffled: data['shuffled'] as bool? ?? false,
     );
   }
 
@@ -203,6 +208,7 @@ class StudySession {
         'cardsKnown': cardsKnown,
         'cardsUnknown': cardsUnknown,
         'sessionStats': sessionStats.toJson(),
+        'shuffled': shuffled,
       };
 
   StudySession copyWith({
@@ -218,6 +224,7 @@ class StudySession {
     int? cardsKnown,
     int? cardsUnknown,
     SessionStats? sessionStats,
+    bool? shuffled,
   }) =>
       StudySession(
         id: id ?? this.id,
@@ -232,5 +239,6 @@ class StudySession {
         cardsKnown: cardsKnown ?? this.cardsKnown,
         cardsUnknown: cardsUnknown ?? this.cardsUnknown,
         sessionStats: sessionStats ?? this.sessionStats,
+        shuffled: shuffled ?? this.shuffled,
       );
 }

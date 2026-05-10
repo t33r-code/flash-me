@@ -201,66 +201,47 @@ The implementation is divided into 7 phases, starting with foundational setup an
 
 ### Tasks
 
-#### Study Session Infrastructure
-- [ ] Design and implement Firestore schema for study sessions
-- [ ] Create StudySession data model
-- [ ] Create CardSessionData model for tracking card progress
-- [ ] Implement study session service
-- [ ] Implement session state management (Provider/Riverpod)
+#### Phase 5a — Session infrastructure + session selection UI (complete)
+- [x] Confirm StudySession + CardSessionData data models and Firestore schema (already in Phase 2)
+- [x] Implement study session repository (FirebaseStudySessionRepository)
+- [x] Wire studySessionRepositoryProvider and sessionHistoryProvider
+- [x] Study set selection UI: tap a set → prompt "Resume" vs "Start New Session" when an active session exists
+- [x] Session configuration screen: shuffle toggle, (future: card filters)
+- [x] Session initialization: build card sequence (ordered or shuffled), write session document to Firestore
+- [x] Card shuffling option (Fisher-Yates on the card sequence)
 
-#### Study Session Flow
-- [ ] Implement study set selection UI
-- [ ] Implement "Resume" vs "Start New Session" logic
-- [ ] Create study session configuration screen (shuffle, filters)
-- [ ] Implement session initialization
-- [ ] Implement card shuffling option
+#### Phase 5b — Card display & field interaction
+- [ ] Build study session screen scaffold (AppBar with progress + exit, card area, control row)
+- [ ] Primary field: show `primaryWord` (and image/audio if present); tap to reveal `translation`
+- [ ] Respect `primaryWordHidden` flag — hide word until "Show Word" is tapped when set
+- [ ] Reveal-on-click fields: prompt label + tap-to-reveal answer
+- [ ] Text input fields: text field + submit; case-insensitive validation; respect `exactMatch` flag; correct/incorrect feedback
+- [ ] Multiple choice fields: option buttons; highlight correct/incorrect on selection
+- [ ] "Try Again" button to re-attempt a field after a wrong answer
+- [ ] Feedback messaging (correct, incorrect, partial) with visual distinction
 
-#### Card Display & Interaction
-- [ ] Build study session screen UI
-- [ ] Implement primary field display with click-to-reveal translation
-- [ ] Build reveal-on-click field interaction
-- [ ] Build text input field UI with validation and feedback
-- [ ] Build multiple choice field UI with selection and feedback
-- [ ] Implement text input validation (case-insensitive by default, respect per-field exact-match setting)
-- [ ] Implement feedback messaging (correct, incorrect, partial)
-- [ ] Implement "Try Again" button for fields
+#### Phase 5c — Session controls, navigation & persistence
+- [ ] Navigation controls: Previous / Next buttons; Know / Don't Know marking
+- [ ] Progress indicator: "Card X of Y" label + linear progress bar
+- [ ] Card marking: known/unknown toggles with visual indicator per card
+- [ ] Boundary checks: disable Previous on first card, Next on last card
+- [ ] Card session state tracking: record per-card attempts, result, and timestamp
+- [ ] Auto-save to Firestore after each navigation action (debounced ~1 s to reduce write volume)
+- [ ] Session pause: write current state and navigate back; session stays in "active" status
+- [ ] Session resume: restore card sequence, current index, and all per-card state from Firestore
+- [ ] Session completion: mark status "completed", calculate and write SessionStats (total, known, unknown, duration)
 
-#### Session Controls & Navigation
-- [ ] Build navigation controls (Previous, Next, Know, Don't Know)
-- [ ] Implement navigation logic (boundary checks)
-- [ ] Build progress indicator (Card X of Y, progress bar)
-- [ ] Implement card marking (known/unknown toggles)
-- [ ] Add visual indicators for marked cards
+#### Phase 5d — Session summary & history
+- [ ] Session summary screen: shown on completion; display stats (cards studied, known %, time, date)
+- [ ] "Study Again" and "Done" actions on summary screen
+- [ ] Session history list: per-set list of past sessions from sessionHistoryProvider
+- [ ] Session history entry: date, duration, known/unknown counts, completion status
 
-#### State Management & Persistence
-- [ ] Implement card session state tracking
-- [ ] Implement auto-save to Firestore (after each action, debounced to reduce write volume)
-- [ ] Implement session pause functionality
-- [ ] Implement session resume logic
-- [ ] Implement session completion and statistics calculation
-
-#### Session Statistics & History
-- [ ] Build session summary screen
-- [ ] Calculate session statistics (time spent, cards studied, accuracy)
-- [ ] Implement session history storage
-- [ ] Create session history UI/list view
-- [ ] Display historical session data
-
-#### Advanced Features
-- [ ] Implement offline support with local caching
-- [ ] Add haptic feedback (vibration) for answer feedback
-- [ ] Implement text size adjustment (accessibility)
-- [ ] Implement high contrast mode
-- [ ] Add keyboard shortcuts (arrow keys, Enter)
-- [ ] Implement card preloading for smooth performance
-
-#### Testing
-- [ ] Test all field types during study
-- [ ] Test navigation and state persistence
-- [ ] Test resume functionality
-- [ ] Test offline study with sync
-- [ ] Performance test with large sets (1000+ cards)
-- [ ] Accessibility testing
+#### Advanced features (deferred)
+- [ ] Offline support with local caching
+- [ ] Haptic feedback for answer results
+- [ ] Keyboard shortcuts (arrow keys, Enter) for desktop
+- [ ] Card preloading for smooth performance
 
 **Deliverable**: Fully functional study mode with session tracking and statistics.
 

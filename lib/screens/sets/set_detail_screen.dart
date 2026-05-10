@@ -6,6 +6,7 @@ import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/screens/sets/set_form_screen.dart';
+import 'package:flash_me/screens/study/study_session_history_screen.dart';
 import 'package:flash_me/screens/study/study_setup_screen.dart';
 
 // ---------------------------------------------------------------------------
@@ -123,6 +124,16 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       appBar: AppBar(
         title: Text(liveSet.name),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: 'Session history',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) =>
+                    StudySessionHistoryScreen(cardSet: liveSet),
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
             tooltip: 'Delete set',

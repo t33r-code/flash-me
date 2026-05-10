@@ -231,11 +231,11 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] Session resume: restore card sequence, current index, and all per-card state from Firestore
 - [x] Session completion: mark status "completed", calculate and write SessionStats (total, known, unknown, duration)
 
-#### Phase 5d — Session summary & history
-- [ ] Session summary screen: shown on completion; display stats (cards studied, known %, time, date)
-- [ ] "Study Again" and "Done" actions on summary screen
-- [ ] Session history list: per-set list of past sessions from sessionHistoryProvider
-- [ ] Session history entry: date, duration, known/unknown counts, completion status
+#### Phase 5d — Session summary & history (complete)
+- [x] Session summary screen: shown on completion; display stats (cards studied, known %, time, date)
+- [x] "Study Again" and "Done" actions on summary screen
+- [x] Session history list: per-set list of past sessions from sessionHistoryProvider
+- [x] Session history entry: date, duration, known/unknown counts, completion status
 
 #### Advanced features (deferred)
 - [ ] Offline support with local caching

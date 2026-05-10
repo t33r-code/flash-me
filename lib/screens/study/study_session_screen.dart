@@ -30,6 +30,8 @@ class StudySessionScreen extends ConsumerStatefulWidget {
 
 class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   late int _currentIndex;
+  // false = show word-only centred view; true = slide to top and show fields
+  bool _revealed = false;
 
   @override
   void initState() {
@@ -43,11 +45,15 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   int get _total => widget.session.cardSequence.length;
 
   void _previous() {
-    if (_currentIndex > 0) setState(() => _currentIndex--);
+    if (_currentIndex > 0) {
+      setState(() { _currentIndex--; _revealed = false; });
+    }
   }
 
   void _next() {
-    if (_currentIndex < _total - 1) setState(() => _currentIndex++);
+    if (_currentIndex < _total - 1) {
+      setState(() { _currentIndex++; _revealed = false; });
+    }
   }
 
   @override
@@ -71,7 +77,9 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
             value: (_currentIndex + 1) / _total,
           ),
 
-          // Card content — scrollable so tall cards don't clip.
+          // Card content — two-phase:
+          //   • Before reveal: word card centred on screen (_WordCard)
+          //   • After tap: card slides to top, fields appear below
           Expanded(
             child: cardsAsync.when(
               loading: () =>
@@ -84,18 +92,38 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
                 if (card == null) {
                   return const Center(child: Text('Card not found.'));
                 }
-                // ValueKey forces all field widgets to be recreated on
-                // navigation, resetting their local interaction state.
-                return SingleChildScrollView(
-                  key: ValueKey(_currentIndex),
-                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                  child: Column(
-                    children: [
-                      _PrimaryFieldCard(card: card),
-                      for (final field in card.fields) _buildField(field),
-                      const SizedBox(height: 16),
-                    ],
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      // Incoming content rises in from slightly below.
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.04),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(
+                          parent: animation, curve: Curves.easeOut)),
+                      child: child,
+                    ),
                   ),
+                  child: _revealed
+                      ? SingleChildScrollView(
+                          key: ValueKey('${_currentIndex}-revealed'),
+                          padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                          child: Column(
+                            children: [
+                              _PrimaryFieldCard(card: card),
+                              for (final field in card.fields)
+                                _buildField(field),
+                              const SizedBox(height: 16),
+                            ],
+                          ),
+                        )
+                      : _WordCard(
+                          key: ValueKey('${_currentIndex}-word'),
+                          card: card,
+                          onReveal: () => setState(() => _revealed = true),
+                        ),
                 );
               },
             ),
@@ -123,26 +151,26 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// _PrimaryFieldCard — shows the primary word and hides the translation until
-// the user taps the card.  When primaryWordHidden is set, the word itself is
-// also hidden and requires a separate tap to show.
+// _WordCard — pre-reveal view.  Fills the available space with just the
+// primary word (centred).  Calling onReveal transitions to the full field
+// list.  Handles primaryWordHidden: shows "Show Word" before the word.
 // ---------------------------------------------------------------------------
-class _PrimaryFieldCard extends StatefulWidget {
+class _WordCard extends StatefulWidget {
   final FlashCard card;
-  const _PrimaryFieldCard({required this.card});
+  final VoidCallback onReveal;
+  const _WordCard(
+      {super.key, required this.card, required this.onReveal});
 
   @override
-  State<_PrimaryFieldCard> createState() => _PrimaryFieldCardState();
+  State<_WordCard> createState() => _WordCardState();
 }
 
-class _PrimaryFieldCardState extends State<_PrimaryFieldCard> {
+class _WordCardState extends State<_WordCard> {
   late bool _wordVisible;
-  bool _translationVisible = false;
 
   @override
   void initState() {
     super.initState();
-    // If the word is not hidden, show it immediately.
     _wordVisible = !widget.card.primaryWordHidden;
   }
 
@@ -151,90 +179,135 @@ class _PrimaryFieldCardState extends State<_PrimaryFieldCard> {
     final card = widget.card;
     final scheme = Theme.of(context).colorScheme;
 
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Card(
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: _wordVisible ? widget.onReveal : null,
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (card.primaryImageUrl != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        card.primaryImageUrl!,
+                        height: 180,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => const SizedBox(
+                          height: 80,
+                          child: Center(
+                            child: Icon(Icons.broken_image_outlined,
+                                size: 40, color: Colors.grey),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  if (!_wordVisible) ...[
+                    Icon(Icons.help_outline,
+                        size: 56, color: scheme.onSurfaceVariant),
+                    const SizedBox(height: 20),
+                    FilledButton.icon(
+                      onPressed: () =>
+                          setState(() => _wordVisible = true),
+                      icon: const Icon(Icons.visibility_outlined),
+                      label: const Text('Show Word'),
+                    ),
+                  ] else ...[
+                    Text(
+                      card.primaryWord,
+                      style: Theme.of(context).textTheme.headlineLarge,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.touch_app_outlined,
+                            size: 18, color: scheme.onSurfaceVariant),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Tap to reveal',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(color: scheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _PrimaryFieldCard — compact card at the top of the revealed list.
+// Translation is always visible here since this widget only appears
+// after the user has tapped to reveal.
+// ---------------------------------------------------------------------------
+class _PrimaryFieldCard extends StatelessWidget {
+  final FlashCard card;
+  const _PrimaryFieldCard({required this.card});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Card(
       margin: const EdgeInsets.all(8),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        // Tapping the card reveals the translation once the word is visible.
-        onTap: _wordVisible && !_translationVisible
-            ? () => setState(() => _translationVisible = true)
-            : null,
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Optional image shown above the primary word.
-              if (card.primaryImageUrl != null) ...[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    card.primaryImageUrl!,
-                    height: 160,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => const SizedBox(
-                      height: 80,
-                      child: Center(
-                        child: Icon(Icons.broken_image_outlined,
-                            size: 40, color: Colors.grey),
-                      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (card.primaryImageUrl != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  card.primaryImageUrl!,
+                  height: 140,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => const SizedBox(
+                    height: 60,
+                    child: Center(
+                      child: Icon(Icons.broken_image_outlined,
+                          size: 32, color: Colors.grey),
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-              ],
-
-              if (!_wordVisible) ...[
-                // Hidden-word state: prompt the user to reveal it.
-                Icon(Icons.help_outline,
-                    size: 48, color: scheme.onSurfaceVariant),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: () => setState(() => _wordVisible = true),
-                  icon: const Icon(Icons.visibility_outlined),
-                  label: const Text('Show Word'),
-                ),
-              ] else ...[
-                // Word is visible.
-                Text(
-                  card.primaryWord,
-                  style: Theme.of(context).textTheme.headlineMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                const Divider(),
-                const SizedBox(height: 8),
-
-                // Translation — hidden until card is tapped.
-                if (_translationVisible)
-                  Text(
-                    card.translation,
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineSmall
-                        ?.copyWith(color: scheme.primary),
-                    textAlign: TextAlign.center,
-                  )
-                else
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.touch_app_outlined,
-                          size: 18, color: scheme.onSurfaceVariant),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Tap to reveal translation',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(color: scheme.onSurfaceVariant),
-                      ),
-                    ],
-                  ),
-              ],
+              ),
+              const SizedBox(height: 12),
             ],
-          ),
+            Text(
+              card.primaryWord,
+              style: Theme.of(context).textTheme.titleLarge,
+              textAlign: TextAlign.center,
+            ),
+            const Divider(height: 24),
+            Text(
+              card.translation,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(color: scheme.primary),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );
@@ -268,7 +341,7 @@ class _RevealFieldCardState extends State<_RevealFieldCard> {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _FieldLabel(name: widget.field.name),
               const SizedBox(height: 8),
@@ -329,9 +402,10 @@ class _TextInputFieldCardState extends State<_TextInputFieldCard> {
     final input = _controller.text.trim();
     if (input.isEmpty) return;
     final answers = widget.content.correctAnswers ?? [];
-    final correct = answers.any((a) => widget.content.exactMatch
-        ? a == input
-        : a.toLowerCase() == input.toLowerCase());
+    // Always case-insensitive; exactMatch (case-sensitive) to be wired
+    // up in a future iteration when the option is added to the UI.
+    final correct =
+        answers.any((a) => a.toLowerCase() == input.toLowerCase());
     setState(() => _result = correct);
   }
 

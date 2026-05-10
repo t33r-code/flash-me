@@ -1,16 +1,22 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/study_session.dart';
-import 'package:flash_me/screens/study/study_setup_screen.dart';
+import 'package:flash_me/providers/auth_provider.dart';
+import 'package:flash_me/providers/card_set_provider.dart';
+import 'package:flash_me/providers/study_session_provider.dart';
+import 'package:flash_me/screens/study/study_session_screen.dart';
+import 'package:flash_me/utils/constants.dart';
 
 // ---------------------------------------------------------------------------
 // StudySessionSummaryScreen — shown immediately after session completion.
 //
-// Displays stats from the completed session (cards studied, known %, time).
-// "Study Again" replaces this screen with a fresh StudySetupScreen.
+// Displays stats (cards studied, known %, time).  "Study Again" creates a
+// new session directly, re-applying the same shuffle setting as the last one.
 // "Done" pops back to SetDetailScreen.
 // ---------------------------------------------------------------------------
-class StudySessionSummaryScreen extends StatelessWidget {
+class StudySessionSummaryScreen extends ConsumerStatefulWidget {
   final StudySession session;
   final CardSet cardSet;
 
@@ -19,6 +25,17 @@ class StudySessionSummaryScreen extends StatelessWidget {
     required this.session,
     required this.cardSet,
   });
+
+  @override
+  ConsumerState<StudySessionSummaryScreen> createState() =>
+      _StudySessionSummaryScreenState();
+}
+
+class _StudySessionSummaryScreenState
+    extends ConsumerState<StudySessionSummaryScreen> {
+  bool _starting = false;
+
+  String get _uid => ref.read(authStateProvider).asData?.value ?? '';
 
   // Format milliseconds as "Xm Ys" or just "Ys" for short sessions.
   String _formatDuration(int ms) {
@@ -29,14 +46,81 @@ class StudySessionSummaryScreen extends StatelessWidget {
     return '${minutes}m ${seconds}s';
   }
 
+  // Creates a new session directly, re-using the shuffle setting from the
+  // completed session so the user doesn't need to go back to the setup screen.
+  Future<void> _studyAgain() async {
+    if (_starting) return;
+    setState(() => _starting = true);
+
+    try {
+      final cardIds =
+          ref.read(cardIdsInSetProvider(widget.cardSet.id)).asData?.value ?? [];
+      if (cardIds.isEmpty) return;
+
+      final sequence = List<String>.from(cardIds);
+      if (widget.session.shuffled) {
+        final rng = Random();
+        for (var i = sequence.length - 1; i > 0; i--) {
+          final j = rng.nextInt(i + 1);
+          final tmp = sequence[i];
+          sequence[i] = sequence[j];
+          sequence[j] = tmp;
+        }
+      }
+
+      final progress = {for (final id in sequence) id: const CardSessionData()};
+      final now = DateTime.now();
+      final newSession =
+          await ref.read(studySessionRepositoryProvider).createSession(
+                StudySession(
+                  id: '',
+                  setId: widget.cardSet.id,
+                  startTime: now,
+                  lastAccessTime: now,
+                  status: AppConstants.sessionStatusInProgress,
+                  cardProgress: progress,
+                  cardSequence: sequence,
+                  currentCardIndex: 0,
+                  totalCardsStudied: 0,
+                  cardsKnown: 0,
+                  cardsUnknown: 0,
+                  sessionStats: const SessionStats(),
+                  shuffled: widget.session.shuffled,
+                ),
+                _uid,
+              );
+
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => StudySessionScreen(
+              session: newSession,
+              cardSet: widget.cardSet,
+            ),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Failed to start session. Please try again.')),
+        );
+        setState(() => _starting = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final studied = session.totalCardsStudied;
-    final known = session.cardsKnown;
-    final unknown = session.cardsUnknown;
+    final studied = widget.session.totalCardsStudied;
+    final known = widget.session.cardsKnown;
+    final unknown = widget.session.cardsUnknown;
     final knownPct = studied > 0 ? (known / studied * 100).round() : 0;
-    final duration = _formatDuration(session.sessionStats.totalTimeSpent);
+    final unknownPct = studied > 0 ? (unknown / studied * 100).round() : 0;
+    final duration =
+        _formatDuration(widget.session.sessionStats.totalTimeSpent);
 
     return Scaffold(
       appBar: AppBar(
@@ -60,7 +144,7 @@ class StudySessionSummaryScreen extends StatelessWidget {
             Icon(Icons.check_circle_outline, size: 80, color: scheme.primary),
             const SizedBox(height: 12),
             Text(
-              cardSet.name,
+              widget.cardSet.name,
               style: Theme.of(context).textTheme.headlineSmall,
               textAlign: TextAlign.center,
             ),
@@ -89,7 +173,7 @@ class StudySessionSummaryScreen extends StatelessWidget {
                       icon: Icons.thumb_down_outlined,
                       iconColor: scheme.error,
                       label: "Don't Know",
-                      value: '$unknown',
+                      value: '$unknown  ($unknownPct%)',
                     ),
                     const Divider(height: 24),
                     _StatRow(
@@ -106,17 +190,20 @@ class StudySessionSummaryScreen extends StatelessWidget {
 
             // ── Actions ──────────────────────────────────────────────────
             FilledButton.icon(
-              onPressed: () => Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (_) => StudySetupScreen(cardSet: cardSet),
-                ),
-              ),
-              icon: const Icon(Icons.replay),
+              onPressed: _starting ? null : _studyAgain,
+              icon: _starting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.replay),
               label: const Text('Study Again'),
             ),
             const SizedBox(height: 12),
             OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: _starting ? null : () => Navigator.of(context).pop(),
               child: const Text('Done'),
             ),
           ],

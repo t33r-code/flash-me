@@ -210,15 +210,15 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] Session initialization: build card sequence (ordered or shuffled), write session document to Firestore
 - [x] Card shuffling option (Fisher-Yates on the card sequence)
 
-#### Phase 5b — Card display & field interaction
-- [ ] Build study session screen scaffold (AppBar with progress + exit, card area, control row)
-- [ ] Primary field: show `primaryWord` (and image/audio if present); tap to reveal `translation`
-- [ ] Respect `primaryWordHidden` flag — hide word until "Show Word" is tapped when set
-- [ ] Reveal-on-click fields: prompt label + tap-to-reveal answer
-- [ ] Text input fields: text field + submit; case-insensitive validation; respect `exactMatch` flag; correct/incorrect feedback
-- [ ] Multiple choice fields: option buttons; highlight correct/incorrect on selection
-- [ ] "Try Again" button to re-attempt a field after a wrong answer
-- [ ] Feedback messaging (correct, incorrect, partial) with visual distinction
+#### Phase 5b — Card display & field interaction (complete)
+- [x] Build study session screen scaffold (AppBar with progress + exit, card area, control row)
+- [x] Primary field: show `primaryWord` (and image/audio if present); tap to reveal `translation`
+- [x] Respect `primaryWordHidden` flag — hide word until "Show Word" is tapped when set
+- [x] Reveal-on-click fields: prompt label + tap-to-reveal answer
+- [x] Text input fields: text field + submit; case-insensitive validation; respect `exactMatch` flag; correct/incorrect feedback
+- [x] Multiple choice fields: option buttons; highlight correct/incorrect on selection
+- [x] "Try Again" button to re-attempt a field after a wrong answer
+- [x] Feedback messaging (correct, incorrect, partial) with visual distinction
 
 #### Phase 5c — Session controls, navigation & persistence
 - [ ] Navigation controls: Previous / Next buttons; Know / Don't Know marking

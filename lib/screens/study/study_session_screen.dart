@@ -1,21 +1,22 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_field.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/models/study_session.dart';
+import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
+import 'package:flash_me/providers/study_session_provider.dart';
 
 // ---------------------------------------------------------------------------
 // StudySessionScreen — displays one card at a time from a StudySession.
 //
 // Card data is loaded via cardsInSetProvider (already streamed by the set
-// detail screen, so no extra Firestore reads on first open).  All per-card
-// interaction state (reveals, answers) is held in local widget state and
-// reset automatically when the user navigates to a new card.
+// detail screen, so no extra Firestore reads on first open).
 //
-// Navigation (Previous / Next) and persistence (auto-save, Know / Don't Know,
-// session completion) are added in Phase 5c.
+// Phase 5c: Know/Don't Know marking, per-card state tracking, debounced
+// auto-save (~1 s after each action), End (pause), and session completion.
 // ---------------------------------------------------------------------------
 class StudySessionScreen extends ConsumerStatefulWidget {
   final StudySession session;
@@ -32,29 +33,197 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   late int _currentIndex;
   // false = show word-only centred view; true = slide to top and show fields
   bool _revealed = false;
+  // Mutable local copy; updated on every user action and persisted via auto-save.
+  late StudySession _session;
+  // Debounce timer — restarted on each action, fires after 1 s to write Firestore.
+  Timer? _saveDebounce;
+  // Prevents double-tapping End or Finish while a save is in flight.
+  bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    // Restore position for resumed sessions.
     _currentIndex = widget.session.currentCardIndex;
+    _session = widget.session;
+    // Ensure totalCardsStudied reflects at minimum the card currently on screen.
+    final seen = _currentIndex + 1;
+    if (seen > _session.totalCardsStudied) {
+      _session = _session.copyWith(totalCardsStudied: seen);
+    }
   }
 
-  String get _currentCardId =>
-      widget.session.cardSequence[_currentIndex];
-  int get _total => widget.session.cardSequence.length;
+  @override
+  void dispose() {
+    _saveDebounce?.cancel();
+    super.dispose();
+  }
+
+  String get _uid => ref.read(authStateProvider).asData?.value ?? '';
+  String get _currentCardId => _session.cardSequence[_currentIndex];
+  int get _total => _session.cardSequence.length;
+
+  // Per-card progress for whichever card is currently on screen.
+  CardSessionData get _currentCardData =>
+      _session.cardProgress[_currentCardId] ?? const CardSessionData();
 
   void _previous() {
     if (_currentIndex > 0) {
-      setState(() { _currentIndex--; _revealed = false; });
+      setState(() {
+        _currentIndex--;
+        _revealed = false;
+        _session = _session.copyWith(currentCardIndex: _currentIndex);
+      });
+      _scheduleAutoSave();
     }
   }
 
+  // On last card, Next triggers session completion instead of advancing.
   void _next() {
     if (_currentIndex < _total - 1) {
-      setState(() { _currentIndex++; _revealed = false; });
+      final next = _currentIndex + 1;
+      setState(() {
+        _currentIndex = next;
+        _revealed = false;
+        _session = _session.copyWith(
+          currentCardIndex: next,
+          // High-water mark: only grows as the user navigates forward.
+          totalCardsStudied: next + 1 > _session.totalCardsStudied
+              ? next + 1
+              : _session.totalCardsStudied,
+        );
+      });
+      _scheduleAutoSave();
+    } else {
+      _completeSession();
     }
   }
+
+  // Toggle the known / unknown mark for the current card.
+  // Tapping the active button clears it; tapping the other switches to it.
+  void _updateCardMark({required bool markKnown}) {
+    if (!_revealed) return;
+    final data = _currentCardData;
+    final wasActive = markKnown ? data.markedKnown : data.markedUnknown;
+
+    final newKnown = markKnown ? !wasActive : false;
+    final newUnknown = !markKnown ? !wasActive : false;
+
+    final updated = Map<String, CardSessionData>.from(_session.cardProgress);
+    updated[_currentCardId] =
+        data.copyWith(markedKnown: newKnown, markedUnknown: newUnknown);
+
+    // Recount totals from the full progress map after the change.
+    int known = 0, unknown = 0;
+    for (final d in updated.values) {
+      if (d.markedKnown) known++;
+      if (d.markedUnknown) unknown++;
+    }
+
+    setState(() {
+      _session = _session.copyWith(
+        cardProgress: updated,
+        cardsKnown: known,
+        cardsUnknown: unknown,
+      );
+    });
+    _scheduleAutoSave();
+  }
+
+  // Cancel any pending save and restart the countdown.
+  void _scheduleAutoSave() {
+    _saveDebounce?.cancel();
+    _saveDebounce = Timer(const Duration(milliseconds: 1000), _saveNow);
+  }
+
+  // Writes the current session to Firestore; errors are swallowed so the
+  // session is never interrupted by a transient network issue.
+  Future<void> _saveNow() async {
+    try {
+      await ref
+          .read(studySessionRepositoryProvider)
+          .saveSession(_session, _uid);
+    } catch (_) {}
+  }
+
+  // "End" button — saves as in_progress so the user can resume later, then pops.
+  Future<void> _endSession() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    _saveDebounce?.cancel();
+    try {
+      await ref
+          .read(studySessionRepositoryProvider)
+          .saveSession(_session, _uid);
+    } catch (_) {}
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  // Triggered when the user taps Next on the last card.
+  // Computes SessionStats, marks the session completed in Firestore, then
+  // shows a summary dialog before popping back to the setup screen.
+  Future<void> _completeSession() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    _saveDebounce?.cancel();
+
+    final now = DateTime.now();
+    final totalMs = now.difference(_session.startTime).inMilliseconds;
+    final studied = _session.totalCardsStudied > 0
+        ? _session.totalCardsStudied
+        : _total;
+    final stats = SessionStats(
+      totalTimeSpent: totalMs,
+      avgTimePerCard: studied > 0 ? totalMs / studied : 0,
+      correctAnswers: _session.cardsKnown,
+      incorrectAnswers: _session.cardsUnknown,
+      skipped: studied - _session.cardsKnown - _session.cardsUnknown,
+    );
+
+    final completed = _session.copyWith(
+      totalCardsStudied: studied,
+      sessionStats: stats,
+    );
+
+    try {
+      await ref
+          .read(studySessionRepositoryProvider)
+          .completeSession(completed, _uid);
+    } catch (_) {}
+
+    if (mounted) {
+      // Update local state to reflect final counts for the dialog.
+      setState(() => _session = completed);
+      await _showCompletionDialog(stats);
+      if (mounted) Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _showCompletionDialog(SessionStats stats) => showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Session Complete'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('$_total cards reviewed'),
+              const SizedBox(height: 4),
+              Text('${_session.cardsKnown} marked Known'),
+              if (_session.cardsUnknown > 0) ...[
+                const SizedBox(height: 4),
+                Text("${_session.cardsUnknown} marked Don’t Know"),
+              ],
+            ],
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Done'),
+            ),
+          ],
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +234,8 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
         title: Text(widget.cardSet.name),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            // Disable while a save is in flight to prevent double-tap.
+            onPressed: _saving ? null : _endSession,
             child: const Text('End'),
           ),
         ],
@@ -108,7 +278,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
                   ),
                   child: _revealed
                       ? SingleChildScrollView(
-                          key: ValueKey('${_currentIndex}-revealed'),
+                          key: ValueKey('$_currentIndex-revealed'),
                           padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
                           child: Column(
                             children: [
@@ -120,7 +290,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
                           ),
                         )
                       : _WordCard(
-                          key: ValueKey('${_currentIndex}-word'),
+                          key: ValueKey('$_currentIndex-word'),
                           card: card,
                           onReveal: () => setState(() => _revealed = true),
                         ),
@@ -129,12 +299,18 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
             ),
           ),
 
-          // Previous / Next navigation bar.
+          // Navigation bar — Previous/Next + Know/Don't Know marking.
           _NavigationBar(
             currentIndex: _currentIndex,
             total: _total,
             onPrevious: _previous,
             onNext: _next,
+            onKnow: () => _updateCardMark(markKnown: true),
+            onDontKnow: () => _updateCardMark(markKnown: false),
+            isMarkedKnown: _currentCardData.markedKnown,
+            isMarkedUnknown: _currentCardData.markedUnknown,
+            // Know/Don't Know is disabled until the card has been revealed.
+            canMark: _revealed,
           ),
         ],
       ),
@@ -678,54 +854,147 @@ class _OptionButton extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// _NavigationBar — Previous / Next buttons with a "X of Y" counter.
-// Know / Don't Know marking is added in Phase 5c.
+// _NavigationBar — Previous / Next (→ Finish on last card) with a counter,
+// plus Know / Don't Know marking buttons.
 // ---------------------------------------------------------------------------
 class _NavigationBar extends StatelessWidget {
   final int currentIndex;
   final int total;
   final VoidCallback onPrevious;
+  // Also fires session completion when currentIndex == total - 1.
   final VoidCallback onNext;
+  final VoidCallback onKnow;
+  final VoidCallback onDontKnow;
+  final bool isMarkedKnown;
+  final bool isMarkedUnknown;
+  // Marking is disabled until the card has been revealed.
+  final bool canMark;
+
   const _NavigationBar({
     required this.currentIndex,
     required this.total,
     required this.onPrevious,
     required this.onNext,
+    required this.onKnow,
+    required this.onDontKnow,
+    required this.isMarkedKnown,
+    required this.isMarkedUnknown,
+    required this.canMark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isLast = currentIndex == total - 1;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
+      padding: const EdgeInsets.fromLTRB(8, 4, 8, 24),
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
               color: Theme.of(context).colorScheme.outlineVariant),
         ),
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            iconSize: 32,
-            tooltip: 'Previous card',
-            onPressed: currentIndex > 0 ? onPrevious : null,
+          // ── Know / Don't Know row ────────────────────────────────────
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _MarkButton(
+                label: "Don't Know",
+                icon: Icons.thumb_down_outlined,
+                activeIcon: Icons.thumb_down,
+                isActive: isMarkedUnknown,
+                activeColor: Theme.of(context).colorScheme.error,
+                onTap: canMark ? onDontKnow : null,
+              ),
+              const SizedBox(width: 32),
+              _MarkButton(
+                label: 'Know',
+                icon: Icons.thumb_up_outlined,
+                activeIcon: Icons.thumb_up,
+                isActive: isMarkedKnown,
+                activeColor: Colors.green[700]!,
+                onTap: canMark ? onKnow : null,
+              ),
+            ],
           ),
-          Expanded(
-            child: Text(
-              '${currentIndex + 1} / $total',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            iconSize: 32,
-            tooltip: 'Next card',
-            onPressed: currentIndex < total - 1 ? onNext : null,
+
+          // ── Previous / counter / Next ────────────────────────────────
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                iconSize: 32,
+                tooltip: 'Previous card',
+                onPressed: currentIndex > 0 ? onPrevious : null,
+              ),
+              Expanded(
+                child: Text(
+                  '${currentIndex + 1} / $total',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ),
+              IconButton(
+                // On the last card, the icon becomes a check to signal Finish.
+                icon: Icon(isLast ? Icons.check_circle_outline : Icons.chevron_right),
+                iconSize: 32,
+                tooltip: isLast ? 'Finish session' : 'Next card',
+                onPressed: onNext,
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _MarkButton — thumb-up / thumb-down button that fills in when active.
+// Greyed out when canMark is false (card not yet revealed).
+// ---------------------------------------------------------------------------
+class _MarkButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final IconData activeIcon;
+  final bool isActive;
+  final Color activeColor;
+  final VoidCallback? onTap;
+
+  const _MarkButton({
+    required this.label,
+    required this.icon,
+    required this.activeIcon,
+    required this.isActive,
+    required this.activeColor,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    // Active → use the semantic colour; disabled → dim; idle → muted
+    final Color color;
+    if (isActive) {
+      color = activeColor;
+    } else if (onTap == null) {
+      color = scheme.onSurface.withValues(alpha: 0.3);
+    } else {
+      color = scheme.onSurfaceVariant;
+    }
+
+    return TextButton.icon(
+      onPressed: onTap,
+      style: TextButton.styleFrom(
+        foregroundColor: color,
+        // Keep the active color visible even when disabled (post-reveal nav).
+        disabledForegroundColor: color,
+      ),
+      icon: Icon(isActive ? activeIcon : icon, color: color),
+      label: Text(label, style: TextStyle(color: color)),
     );
   }
 }

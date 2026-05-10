@@ -220,16 +220,16 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] "Try Again" button to re-attempt a field after a wrong answer
 - [x] Feedback messaging (correct, incorrect, partial) with visual distinction
 
-#### Phase 5c — Session controls, navigation & persistence
-- [ ] Navigation controls: Previous / Next buttons; Know / Don't Know marking
-- [ ] Progress indicator: "Card X of Y" label + linear progress bar
-- [ ] Card marking: known/unknown toggles with visual indicator per card
-- [ ] Boundary checks: disable Previous on first card, Next on last card
-- [ ] Card session state tracking: record per-card attempts, result, and timestamp
-- [ ] Auto-save to Firestore after each navigation action (debounced ~1 s to reduce write volume)
-- [ ] Session pause: write current state and navigate back; session stays in "active" status
-- [ ] Session resume: restore card sequence, current index, and all per-card state from Firestore
-- [ ] Session completion: mark status "completed", calculate and write SessionStats (total, known, unknown, duration)
+#### Phase 5c — Session controls, navigation & persistence (complete)
+- [x] Navigation controls: Previous / Next buttons; Know / Don't Know marking
+- [x] Progress indicator: "Card X of Y" label + linear progress bar
+- [x] Card marking: known/unknown toggles with visual indicator per card
+- [x] Boundary checks: disable Previous on first card, Next on last card
+- [x] Card session state tracking: record per-card attempts, result, and timestamp
+- [x] Auto-save to Firestore after each navigation action (debounced ~1 s to reduce write volume)
+- [x] Session pause: write current state and navigate back; session stays in "active" status
+- [x] Session resume: restore card sequence, current index, and all per-card state from Firestore
+- [x] Session completion: mark status "completed", calculate and write SessionStats (total, known, unknown, duration)
 
 #### Phase 5d — Session summary & history
 - [ ] Session summary screen: shown on completion; display stats (cards studied, known %, time, date)

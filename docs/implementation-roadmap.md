@@ -126,7 +126,7 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [ ] Implement field type icons/indicators
 - [ ] Add field randomization for multiple choice (optional)
 - [ ] Create default/example templates
-- [ ] Implement bulk card creation from CSV (optional, Phase 6)
+- [ ] Implement bulk card creation via JSON import (Phase 6)
 
 **Deliverable**: Full CRUD for templates and cards, with working field types.
 
@@ -249,45 +249,40 @@ The implementation is divided into 7 phases, starting with foundational setup an
 
 ## Phase 6: Import/Export (Weeks 8-9)
 
-**Goal**: Enable users to backup and share card sets.
+**Goal**: Enable users to bulk-create cards, share sets, and back up their data via JSON + ZIP.
 
 **Dependencies**: Phase 4 (need sets to export), Phase 3 (need cards)
 
-**Priority**: Medium - Important for data portability and sharing.
+**Priority**: Medium - Important for data portability and bulk card creation.
 
 ### Tasks
 
-#### Export Functionality
+#### Phase 6a — Export
 - [ ] Implement Firestore export function (retrieve full set + card data)
-- [ ] Implement JSON export format serialization
-- [ ] Implement CSV export format serialization
-- [ ] Create export UI with format selection
-- [ ] Implement file download for JSON and CSV
-- [ ] Add export metadata (timestamp, version)
+- [ ] Build ZIP archive: write `cards.json` with relative `media/` paths, download media from Firebase Storage
+- [ ] Add export metadata to `cards.json` (version, exportDate)
+- [ ] Create export UI (trigger from set detail screen)
+- [ ] Implement file download / share sheet
 
-#### Import Functionality
-- [ ] Create import file picker UI
-- [ ] Implement JSON file parsing and validation
-- [ ] Implement CSV file parsing and validation
-- [ ] Validate required fields during import
-- [ ] Validate field types and content structure
-- [ ] Implement error reporting with line numbers (CSV)
-- [ ] Create import preview dialog
-- [ ] Implement merge logic (new vs. existing set)
-- [ ] Implement duplicate detection and handling
-- [ ] Implement Firestore batch operations for bulk imports
-- [ ] Implement bulk import (multiple files at once) with consolidated summary report
-- [ ] Create success/error summary report
+#### Phase 6b — Import (core)
+- [ ] Create import file picker UI (accepts `.zip`)
+- [ ] Extract ZIP and parse `cards.json`
+- [ ] Validate required fields (primaryWord, translation, field names)
+- [ ] Validate field types and content structure (correctAnswers non-empty, correctIndex in range, etc.)
+- [ ] File size and encoding validation (10 MB limit, UTF-8)
+- [ ] Import preview dialog (card count, validation warnings)
+- [ ] Firestore batch write: create set + cards + upload media to Firebase Storage
+- [ ] Run tag upsert for every imported tag (see Phase 4d)
+- [ ] Success/error summary report
 
-#### Supporting Features
-- [ ] Add file size validation
-- [ ] Handle special characters and encoding
-- [ ] Create CSV template/example for users
-- [ ] Add unit tests for validation logic
-- [ ] Test import/export round-trip
-- [ ] Test with various CSV formats
+#### Phase 6c — Merge, bulk & polish
+- [ ] Merge to existing set (user selects target set; imported cards added to it)
+- [ ] Duplicate detection (match on primaryWord + translation; skip or overwrite)
+- [ ] Bulk import (multiple ZIP files at once) with consolidated summary
+- [ ] Add unit tests for validation and merge logic
+- [ ] Test full round-trip (export → import → verify data integrity)
 
-**Deliverable**: Complete import/export functionality for all formats.
+**Deliverable**: JSON/ZIP import and export covering single sets, media, all field types, and bulk creation.
 
 ---
 
@@ -439,7 +434,7 @@ The long-term vision for Flash Me is a content marketplace where users can publi
 
 **Should Have (High Priority):**
 - ✅ Offline support
-- ✅ CSV export
+- ✅ Bulk import/export
 - ✅ Session resume
 - ✅ Accessibility features
 - ✅ Cross-platform support

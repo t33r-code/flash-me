@@ -57,15 +57,15 @@ class _StudySessionSummaryScreenState
           ref.read(cardIdsInSetProvider(widget.cardSet.id)).asData?.value ?? [];
       if (cardIds.isEmpty) return;
 
+      // Always shuffle on Study Again — the user has already seen the cards
+      // in their previous order, so variety is the point.
       final sequence = List<String>.from(cardIds);
-      if (widget.session.shuffled) {
-        final rng = Random();
-        for (var i = sequence.length - 1; i > 0; i--) {
-          final j = rng.nextInt(i + 1);
-          final tmp = sequence[i];
-          sequence[i] = sequence[j];
-          sequence[j] = tmp;
-        }
+      final rng = Random();
+      for (var i = sequence.length - 1; i > 0; i--) {
+        final j = rng.nextInt(i + 1);
+        final tmp = sequence[i];
+        sequence[i] = sequence[j];
+        sequence[j] = tmp;
       }
 
       final progress = {for (final id in sequence) id: const CardSessionData()};

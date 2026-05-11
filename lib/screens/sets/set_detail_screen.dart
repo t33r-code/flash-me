@@ -5,6 +5,7 @@ import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
+import 'package:flash_me/providers/export_provider.dart';
 import 'package:flash_me/screens/sets/set_form_screen.dart';
 import 'package:flash_me/screens/study/study_session_history_screen.dart';
 import 'package:flash_me/screens/study/study_setup_screen.dart';
@@ -91,6 +92,48 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     }
   }
 
+  // Exports the set as a self-contained ZIP archive.
+  Future<void> _exportSet(CardSet liveSet) async {
+    final cards =
+        ref.read(cardsInSetProvider(widget.cardSet.id)).asData?.value ?? [];
+
+    // Show a non-dismissible progress dialog while the archive is built.
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Text('Preparing export…'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final savedPath = await ref
+          .read(exportServiceProvider)
+          .exportSet(liveSet, cards);
+      if (mounted) {
+        Navigator.of(context).pop(); // dismiss progress dialog
+        if (savedPath != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Saved to $savedPath')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // dismiss progress dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e')),
+        );
+      }
+    }
+  }
+
   // Navigates to the study setup screen for this set.
   void _study() {
     final currentSet =
@@ -124,6 +167,11 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       appBar: AppBar(
         title: Text(liveSet.name),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.upload_outlined),
+            tooltip: 'Export set',
+            onPressed: () => _exportSet(liveSet),
+          ),
           IconButton(
             icon: const Icon(Icons.history),
             tooltip: 'Session history',

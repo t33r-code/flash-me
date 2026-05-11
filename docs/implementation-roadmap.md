@@ -257,12 +257,12 @@ The implementation is divided into 7 phases, starting with foundational setup an
 
 ### Tasks
 
-#### Phase 6a — Export
-- [ ] Implement Firestore export function (retrieve full set + card data)
-- [ ] Build ZIP archive: write `cards.json` with relative `media/` paths, download media from Firebase Storage
-- [ ] Add export metadata to `cards.json` (version, exportDate)
-- [ ] Create export UI (trigger from set detail screen)
-- [ ] Implement file download / share sheet
+#### Phase 6a — Export (complete)
+- [x] Implement Firestore export function (retrieve full set + card data)
+- [x] Build ZIP archive: write `cards.json` with relative `media/` paths, download media from Firebase Storage
+- [x] Add export metadata to `cards.json` (version, exportDate)
+- [x] Create export UI (trigger from set detail screen)
+- [x] Implement file download / share sheet
 
 #### Phase 6b — Import (core)
 - [ ] Create import file picker UI (accepts `.zip`)

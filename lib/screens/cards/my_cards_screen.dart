@@ -62,6 +62,7 @@ class MyCardsScreen extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: null,
         onPressed: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const CardFormScreen()),
         ),

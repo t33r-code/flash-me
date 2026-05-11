@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:io' show Directory, File, Platform;
 
 import 'package:archive/archive.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/flash_card.dart';
+import 'web_download_stub.dart' if (dart.library.html) 'web_download_web.dart';
 
 // ---------------------------------------------------------------------------
 // ExportService — builds a ZIP archive for a card set and delivers it:
@@ -22,12 +23,6 @@ import 'package:flash_me/models/flash_card.dart';
 // ---------------------------------------------------------------------------
 class ExportService {
   Future<String?> exportSet(CardSet cardSet, List<FlashCard> cards) async {
-    if (kIsWeb) {
-      throw UnsupportedError(
-          'Export is not supported in the browser. '
-          'Use the mobile or desktop app.');
-    }
-
     final archive = Archive();
     final mediaBytes = <String, Uint8List>{}; // relative filename → bytes
 
@@ -86,19 +81,36 @@ class ExportService {
     if (zipBytes == null) throw Exception('Failed to encode ZIP archive.');
 
     final safeName = _safeName(cardSet.name);
-    final fileName = '$safeName-export.zip';
+    final now = DateTime.now();
+    final date =
+        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+    final fileName = '${safeName}_$date.zip';
 
     // ── 5. Deliver to the user ──────────────────────────────────────────
-    if (Platform.isAndroid || Platform.isIOS) {
-      // Mobile: write to temp dir, then open the system share sheet.
-      final dir = await getTemporaryDirectory();
+    if (kIsWeb) {
+      // Web: trigger a browser download via a temporary object URL.
+      triggerBrowserDownload(Uint8List.fromList(zipBytes), fileName);
+      return null;
+    } else if (Platform.isAndroid || Platform.isIOS) {
+      // Mobile: save to persistent local storage, then also open the share
+      // sheet so the user can forward the file to cloud storage / other apps.
+      final Directory dir;
+      if (Platform.isAndroid) {
+        // Public Downloads folder — visible in the system file manager.
+        dir = await getDownloadsDirectory() ?? await getTemporaryDirectory();
+      } else {
+        // iOS: visible in Files app under On My iPhone/{AppName}.
+        dir = await getApplicationDocumentsDirectory();
+      }
       final zipFile = File('${dir.path}/$fileName');
       await zipFile.writeAsBytes(zipBytes);
-      await Share.shareXFiles(
+      // Fire the share sheet without awaiting — exportSet() can return the
+      // save path immediately for the caller's SnackBar while the sheet opens.
+      Share.shareXFiles(
         [XFile(zipFile.path)],
         subject: 'Flash Me: ${cardSet.name}',
       );
-      return null; // delivery handled by the share sheet
+      return zipFile.path;
     } else {
       // Desktop: save directly to the Downloads folder.
       final downloadsDir =

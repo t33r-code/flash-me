@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -12,12 +15,31 @@ import 'utils/helpers.dart';
 // ignore: unused_import — ensures provider bindings are registered at startup
 import 'providers/storage_provider.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await GoogleSignIn.instance.initialize();
-  AppLogger.success('App initialized');
-  runApp(const ProviderScope(child: MyApp()));
+void main() {
+  // runZonedGuarded catches unhandled async errors that would otherwise
+  // terminate the process — specifically the firebase_auth Windows plugin bug
+  // where auth-state notifications are fired on a non-platform thread.
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    // Google Sign-In requires native support (Android/iOS) or a configured
+    // OAuth client ID (web). Skip on desktop; catch on web in case the client
+    // ID meta tag is absent — email/password auth still works without it.
+    if (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS) {
+      await GoogleSignIn.instance.initialize();
+    } else if (kIsWeb) {
+      try {
+        await GoogleSignIn.instance.initialize();
+      } catch (_) {
+        AppLogger.info('Google Sign-In not configured for web — skipping');
+      }
+    }
+    AppLogger.success('App initialized');
+    runApp(const ProviderScope(child: MyApp()));
+  }, (error, stack) {
+    AppLogger.error('Unhandled error: $error', stack);
+  });
 }
 
 class MyApp extends ConsumerWidget {

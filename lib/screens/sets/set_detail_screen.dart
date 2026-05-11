@@ -168,7 +168,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
         title: Text(liveSet.name),
         actions: [
           IconButton(
-            icon: const Icon(Icons.upload_outlined),
+            icon: const Icon(Icons.download_outlined),
             tooltip: 'Export set',
             onPressed: () => _exportSet(liveSet),
           ),
@@ -237,6 +237,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       floatingActionButton: cardsAsync.maybeWhen(
         data: (cards) => cards.isEmpty
             ? FloatingActionButton(
+                heroTag: 'addCards',
                 onPressed: _showCardPicker,
                 tooltip: 'Add cards',
                 child: const Icon(Icons.add),
@@ -260,6 +261,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                 ],
               ),
         orElse: () => FloatingActionButton(
+          heroTag: 'addCards',
           onPressed: _showCardPicker,
           tooltip: 'Add cards',
           child: const Icon(Icons.add),

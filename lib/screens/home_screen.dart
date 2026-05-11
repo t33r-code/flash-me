@@ -49,6 +49,7 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: null,
         // TODO: Navigate to create set screen (Phase 4)
         onPressed: () {},
         child: const Icon(Icons.add),

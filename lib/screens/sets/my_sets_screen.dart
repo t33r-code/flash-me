@@ -26,6 +26,7 @@ class MySetsScreen extends ConsumerWidget {
               ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: null,
         onPressed: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const SetFormScreen()),
         ),

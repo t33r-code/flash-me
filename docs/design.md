@@ -654,14 +654,13 @@ See [implementation roadmap](implementation-roadmap.md) for sequencing rationale
 Users can share and backup their card sets by importing and exporting them in standard formats. Both single sets and bulk operations are supported.
 
 ### Requirements
-- Export sets to standard formats (JSON and CSV)
-- Import sets from files (JSON and CSV)
+- Export sets as self-contained ZIP archives (JSON + media)
+- Import sets from ZIP archives
 - Support for exporting single sets or multiple sets
-- Support for importing into new sets or existing sets
-- Bulk operations (import/export multiple sets at once)
+- Support for importing into new sets or merging into existing sets
+- Bulk import (multiple ZIP files at once)
 - Comprehensive error handling and validation
 - Clear feedback on import success/failure
-- Backup/restore capability
 
 ### Design Details
 
@@ -719,9 +718,7 @@ spanish-verbs-export.zip
 }
 ```
 
-**Rationale for ZIP format:** Firebase Storage download URLs are user-scoped and non-portable. Bundling media files inside the ZIP makes sets fully self-contained for sharing and backup — the recipient imports one file and gets cards plus all media.
-
-**CSV import (manual authoring):** Users who prefer building card sets in a spreadsheet can create a CSV with columns `primaryWord`, `translation`, `primaryImageUrl`, `primaryAudioUrl`, and zip it up with their media files. The importer accepts either `cards.json` or a `cards.csv` inside the ZIP.
+**Rationale for ZIP format:** Firebase Storage download URLs are user-scoped and non-portable. Bundling media files inside the ZIP makes sets fully self-contained for sharing and bulk creation — the recipient imports one file and gets cards plus all media. JSON handles all field types (including multiple choice options and correct indices) natively without representational compromises.
 
 **Export Workflow:**
 1. User navigates to "My Sets"
@@ -737,8 +734,7 @@ spanish-verbs-export.zip
 #### Import Functionality
 
 **Import Formats Supported:**
-- ZIP archive (from Flash Me export) — contains `cards.json` or `cards.csv` plus `media/` folder
-- Optional: Quizlet CSV format (future consideration)
+- ZIP archive containing `cards.json` plus `media/` folder (Flash Me standard format)
 
 **Import Workflow:**
 1. User navigates to "Import Sets"
@@ -756,16 +752,17 @@ spanish-verbs-export.zip
 7. Success confirmation with import summary
 
 **Data Validation During Import:**
-- File format check (valid JSON/CSV structure)
-- Required fields check (primary word, translation, field names)
+- ZIP structure check (contains `cards.json`)
+- JSON schema validation
+- Required fields check (primaryWord, translation, field names)
 - Field type validation (reveal, text_input, multiple_choice)
-- Text input: Verify correct_answers array is not empty
-- Multiple choice: Verify options array and correct_index validity
+- Text input: verify correctAnswers array is non-empty
+- Multiple choice: verify options array and correctIndex are valid
 - Encoding check (UTF-8)
-- File size limit (e.g., 10MB)
+- File size limit (10 MB)
 
 **Error Handling:**
-- **Invalid format**: Clear error message with line number (for CSV)
+- **Invalid JSON**: Reject file, show parse error
 - **Missing required fields**: Skip problematic cards, report in summary
 - **Invalid field types**: Report which cards/fields are affected
 - **Encoding issues**: Alert user and suggest remediation
@@ -789,45 +786,20 @@ spanish-verbs-export.zip
 | Empty required field (e.g., primaryWord) | Skip card, report in summary |
 | Invalid field type value | Skip field, import card without it |
 | Malformed JSON | Reject file, show parse error |
-| Invalid CSV structure | Attempt to parse, report problematic rows |
 | File too large | Reject with size limit message |
 | Duplicate set name in import | Append suffix or allow user to rename |
 | Special characters in content | Preserve and encode properly |
 
 ### Implementation Notes
-- Use `csv` or `excel` package for CSV parsing in Dart
-- Validate JSON schema against expected structure
+- Use `archive` package for ZIP creation/extraction in Dart
+- Validate JSON schema against expected structure before processing
 - Use UTF-8 encoding for all files
-- Consider adding ZIP support for bulk exports (multiple sets in one file)
-- Display detailed import report/log showing what was imported and any issues
-- Test with various CSV formats and encodings
-- Consider providing CSV template for users to create cards in spreadsheet
+- Display detailed import report showing what was imported and any issues
 - Archive/backup integration: users can schedule automatic exports (future)
 
 ### Implementation Plan
-- [ ] Design Firestore export function to retrieve full set + card data
-- [ ] Implement JSON export format serialization
-- [ ] Implement CSV export format serialization
-- [ ] Create export UI with format selection
-- [ ] Implement file download for both JSON and CSV
-- [ ] Add export timestamp and version metadata
-- [ ] Create import file picker UI
-- [ ] Implement JSON file parsing and validation
-- [ ] Implement CSV file parsing and validation
-- [ ] Validate required fields during import (primaryWord, translation, etc.)
-- [ ] Validate field types and content structure
-- [ ] Implement error reporting with line numbers (CSV)
-- [ ] Create import preview dialog showing summary
-- [ ] Implement merge logic (new set vs. existing set)
-- [ ] Implement duplicate detection and handling
-- [ ] Create Firestore batch operations for bulk imports
-- [ ] Implement success/error summary report after import
-- [ ] Add file size validation
-- [ ] Test import/export round-trip (export → import → verify)
-- [ ] Test with various CSV formats and encodings
-- [ ] Create CSV template/example for users
-- [ ] Handle special characters and encoding properly
-- [ ] Add unit tests for import/export validation logic
+
+See [implementation roadmap — Phase 6](implementation-roadmap.md#phase-6-importexport-weeks-8-9) for the full task breakdown (6a export, 6b import core, 6c merge/bulk/polish).
 
 ---
 
@@ -1221,3 +1193,17 @@ The choice should be made as a dedicated spike task at the start of the marketpl
 | Monetization | If pursued: premium content, creator revenue share (requires separate design) |
 
 ---
+
+## Post-MVP Considerations
+
+### Desktop Bulk Card Creation Interface
+
+> **Status: Post-MVP concept only.** No implementation tasks assigned.
+
+Teachers and content creators who need to produce large numbers of cards (e.g. a full vocabulary unit) are poorly served by the per-card mobile creation flow. A desktop-optimised bulk creation interface would address this directly.
+
+**Concept:** A wide-layout screen (desktop/web only — Flutter's adaptive layout can gate it by platform or window width) presenting a spreadsheet-style editor where each row is a card. Columns correspond to the fields of a chosen template, so the structure is fixed per session and each row is directly editable. Changes are batched and written to Firestore on save rather than on every keystroke.
+
+**Why desktop-only:** Wide column layouts are impractical on mobile. The target user (a teacher preparing material at a desk) naturally works on a laptop or desktop. Keeping the mobile UI focused on single-card creation and the desktop UI focused on bulk creation avoids compromising either experience.
+
+**Relationship to import/export:** The bulk creation interface and JSON import serve similar user needs. JSON import is the right solution for users who already have data in another system or want to use external tools (including AI) to generate card content at scale. The spreadsheet-style interface is better for users who want to create content directly in the app without leaving it. Both are worth implementing; the import/export infrastructure (Phase 6) should be designed so the bulk creation interface can reuse the same Firestore batch write path.

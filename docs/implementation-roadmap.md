@@ -264,25 +264,32 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] Create export UI (trigger from set detail screen)
 - [x] Implement file download / share sheet
 
-#### Phase 6b — Import (core)
-- [ ] Create import file picker UI (accepts `.zip`)
-- [ ] Extract ZIP and parse `cards.json`
-- [ ] Validate required fields (primaryWord, translation, field names)
-- [ ] Validate field types and content structure (correctAnswers non-empty, correctIndex in range, etc.)
+#### Phase 6b — Import (account-level)
+- [ ] Fix: strip `fieldId` from exported card fields in `ExportService`
+- [ ] Fix: enforce `primaryWord` uniqueness within a set in the card picker UI
+- [ ] New Data screen (accessible from profile screen; hosts both Import and Export sections)
+- [ ] Import file picker (accepts `.zip`; triggers parse + diff immediately on pick)
+- [ ] ZIP parser supporting both single-set (`set: {}`) and multi-set (`sets: []`) formats
+- [ ] Validate required fields (primaryWord, translation, field types, content structure)
 - [ ] File size and encoding validation (10 MB limit, UTF-8)
-- [ ] Import preview dialog (card count, validation warnings)
-- [ ] Firestore batch write: create set + cards + upload media to Firebase Storage
+- [ ] Diff engine: match cards by `primaryWord`; categorise as new / updated / deleted per set
+- [ ] Import preview dialog:
+  - Options: [Delete cards not in import] [Skip card updates] — apply to all sets
+  - Per-set sections: matched set name or "New set"; New / Updated / Deleted card counts
+  - Expandable lists: New shows primaryWord + translation; Updated shows which fields changed; Deleted shown only when delete option is on
+  - Deleting whole sets is never part of import (only per-card deletion within a set)
+- [ ] Firestore batch write: create/update sets + cards + upload media to Firebase Storage
 - [ ] Run tag upsert for every imported tag (see Phase 4d)
 - [ ] Success/error summary report
 
-#### Phase 6c — Merge, bulk & polish
-- [ ] Merge to existing set (user selects target set; imported cards added to it)
-- [ ] Duplicate detection (match on primaryWord + translation; skip or overwrite)
-- [ ] Bulk import (multiple ZIP files at once) with consolidated summary
-- [ ] Add unit tests for validation and merge logic
+#### Phase 6c — Bulk export (account-level)
+- [ ] Bulk export UI on Data screen: set list with checkboxes + select-all
+- [ ] Multi-set ZIP format: `{ "version": "1.0", "exportDate": "...", "sets": [...] }`
+- [ ] Shared `media/` folder across all sets in the archive (no duplication)
+- [ ] Add unit tests for validation and diff logic
 - [ ] Test full round-trip (export → import → verify data integrity)
 
-**Deliverable**: JSON/ZIP import and export covering single sets, media, all field types, and bulk creation.
+**Deliverable**: Account-level Data screen with bulk import/export; full round-trip for single and multi-set ZIPs covering all field types and media.
 
 ---
 

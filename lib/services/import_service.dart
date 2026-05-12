@@ -9,6 +9,7 @@ import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/models/import_diff.dart';
 import 'package:flash_me/repositories/card_repository.dart';
 import 'package:flash_me/repositories/card_set_repository.dart';
+import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/exceptions.dart';
 
 // ---------------------------------------------------------------------------
@@ -196,12 +197,14 @@ class ImportService {
       if (existing == null) {
         newCards.add(NewCardEntry(imported));
       } else {
-        final changed = _changedFields(existing, imported);
-        if (changed.isNotEmpty) {
+        final changes = _buildChanges(existing, imported);
+        if (changes.isNotEmpty) {
+          final affectedSets = await cardSetRepo.getSetsContainingCard(existing.id, userId);
           updatedCards.add(UpdatedCardEntry(
             existing: existing,
             incoming: imported,
-            changedFields: changed,
+            changes: changes,
+            affectedSetNames: affectedSets.map((s) => s.name).toList(),
           ));
         }
         // If no fields changed, the card is identical — silently skip.
@@ -249,23 +252,127 @@ class ImportService {
     );
   }
 
-  // Conservative diff: any difference in any field counts as an update.
-  List<String> _changedFields(FlashCard existing, ImportCardData incoming) {
-    final changed = <String>[];
-    if (existing.translation != incoming.translation) changed.add('translation');
-    if (existing.primaryWordHidden != incoming.primaryWordHidden) {
-      changed.add('word visibility');
+  // Diff each attribute and return display-ready old→new pairs.
+  List<FieldChange> _buildChanges(FlashCard existing, ImportCardData incoming) {
+    final changes = <FieldChange>[];
+    if (existing.translation != incoming.translation) {
+      changes.add(FieldChange(
+        label: 'translation',
+        oldValue: existing.translation,
+        newValue: incoming.translation,
+      ));
     }
-    if (!_listsEqual(existing.tags, incoming.tags)) changed.add('tags');
-    if (_fieldsChanged(existing.fields, incoming.rawFields)) changed.add('fields');
+    if (existing.primaryWordHidden != incoming.primaryWordHidden) {
+      changes.add(FieldChange(
+        label: 'word visibility',
+        oldValue: existing.primaryWordHidden ? 'hidden' : 'visible',
+        newValue: incoming.primaryWordHidden ? 'hidden' : 'visible',
+      ));
+    }
+    if (!_listsEqual(existing.tags, incoming.tags)) {
+      changes.add(FieldChange(
+        label: 'tags',
+        oldValue: existing.tags.isEmpty ? '(none)' : existing.tags.join(', '),
+        newValue: incoming.tags.isEmpty ? '(none)' : incoming.tags.join(', '),
+      ));
+    }
+    if (_fieldsChanged(existing.fields, incoming.rawFields)) {
+      // Match fields by name to produce per-field old→new content entries.
+      final existingByName = {for (final f in existing.fields) f.name: f};
+      final incomingByName = {
+        for (final r in incoming.rawFields) (r['name'] as String? ?? ''): r,
+      };
+      // Preserve existing order, then append any newly added field names.
+      final allNames = [
+        ...existing.fields.map((f) => f.name),
+        ...incoming.rawFields
+            .map((r) => r['name'] as String? ?? '')
+            .where((n) => !existingByName.containsKey(n)),
+      ];
+      for (final name in allNames) {
+        final ef = existingByName[name];
+        final ir = incomingByName[name];
+        if (ef == null) {
+          changes.add(FieldChange(
+            label: name,
+            oldValue: '(not present)',
+            newValue: _fieldContentSummary(ir!),
+          ));
+        } else if (ir == null) {
+          changes.add(FieldChange(
+            label: name,
+            oldValue: _fieldContentSummary(ef),
+            newValue: '(removed)',
+          ));
+        } else if (ef.type != ir['type'] ||
+            jsonEncode(ef.content.toJson()) != jsonEncode(ir['content'])) {
+          changes.add(FieldChange(
+            label: name,
+            oldValue: _fieldContentSummary(ef),
+            newValue: _fieldContentSummary(ir),
+          ));
+        }
+      }
+    }
     // Media: compare presence only (URLs differ between accounts).
     if ((existing.primaryImageUrl != null) != (incoming.mediaImagePath != null)) {
-      changed.add('image');
+      changes.add(FieldChange(
+        label: 'image',
+        oldValue: existing.primaryImageUrl != null ? 'present' : 'none',
+        newValue: incoming.mediaImagePath != null ? 'present' : 'none',
+      ));
     }
     if ((existing.primaryAudioUrl != null) != (incoming.mediaAudioPath != null)) {
-      changed.add('audio');
+      changes.add(FieldChange(
+        label: 'audio',
+        oldValue: existing.primaryAudioUrl != null ? 'present' : 'none',
+        newValue: incoming.mediaAudioPath != null ? 'present' : 'none',
+      ));
     }
-    return changed;
+    return changes;
+  }
+
+  // Return a short human-readable summary of a field's answer content.
+  // Accepts either a typed [CardField] (existing card) or a raw
+  // [Map<String,dynamic>] (incoming from the ZIP).
+  String _fieldContentSummary(Object field) {
+    if (field is CardField) {
+      final c = field.content;
+      if (c is RevealContent) return c.answer ?? '(blank)';
+      if (c is TextInputContent) {
+        final a = c.correctAnswers;
+        return (a == null || a.isEmpty) ? '(any)' : a.join(' / ');
+      }
+      if (c is MultipleChoiceContent) {
+        final opts = c.options;
+        final idx = c.correctIndex;
+        if (idx != null && opts != null && idx >= 0 && idx < opts.length) {
+          return opts[idx];
+        }
+        return opts?.join(' / ') ?? '(no options)';
+      }
+      return '';
+    }
+    if (field is Map<String, dynamic>) {
+      final type = field['type'] as String? ?? '';
+      final content = field['content'] as Map<String, dynamic>? ?? {};
+      if (type == AppConstants.fieldTypeReveal) {
+        return (content['answer'] as String?) ?? '(blank)';
+      }
+      if (type == AppConstants.fieldTypeTextInput) {
+        final answers = (content['correctAnswers'] as List?)?.cast<String>();
+        return (answers == null || answers.isEmpty) ? '(any)' : answers.join(' / ');
+      }
+      if (type == AppConstants.fieldTypeMultipleChoice) {
+        final opts = (content['options'] as List?)?.cast<String>();
+        final idx = content['correctIndex'] as int?;
+        if (idx != null && opts != null && idx >= 0 && idx < opts.length) {
+          return opts[idx];
+        }
+        return opts?.join(' / ') ?? '(no options)';
+      }
+    }
+    return '';
   }
 
   bool _listsEqual(List<String> a, List<String> b) {

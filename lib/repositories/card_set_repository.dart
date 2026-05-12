@@ -49,4 +49,8 @@ abstract class CardSetRepository {
   // Find a set owned by [userId] whose name exactly matches [name].
   // Returns null if no such set exists.
   Future<CardSet?> findSetByName(String name, String userId);
+
+  // Return every set that contains [cardId] for this user.
+  // Used by the import preview to warn that updating a card affects other sets.
+  Future<List<CardSet>> getSetsContainingCard(String cardId, String userId);
 }

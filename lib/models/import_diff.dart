@@ -37,18 +37,30 @@ class NewCardEntry {
   const NewCardEntry(this.data);
 }
 
+// One changed attribute on an updated card — holds display-ready old/new strings.
+class FieldChange {
+  final String label;
+  final String oldValue;
+  final String newValue;
+  const FieldChange({required this.label, required this.oldValue, required this.newValue});
+}
+
 // A card in the import file whose primaryWord matches an existing card, and
 // whose content differs in at least one field.
 class UpdatedCardEntry {
   final FlashCard existing;
   final ImportCardData incoming;
-  // Human-readable names of the fields that differ.
-  final List<String> changedFields;
+  // Per-attribute old→new diffs, ready for display.
+  final List<FieldChange> changes;
+  // Names of every set that currently contains this card (may include other
+  // sets beyond the one being imported — updating is global).
+  final List<String> affectedSetNames;
 
   const UpdatedCardEntry({
     required this.existing,
     required this.incoming,
-    required this.changedFields,
+    required this.changes,
+    this.affectedSetNames = const [],
   });
 }
 

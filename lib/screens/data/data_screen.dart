@@ -318,9 +318,9 @@ class _SetDiffTileState extends State<_SetDiffTile> {
               onTap: () =>
                   setState(() => _updatedExpanded = !_updatedExpanded),
               children: diff.updatedCards
-                  .map((e) => _CardSummaryTile(
-                        primary: e.existing.primaryWord,
-                        secondary: e.changedFields.join(', '),
+                  .map((e) => _UpdatedCardTile(
+                        entry: e,
+                        currentSetName: diff.setName,
                       ))
                   .toList(),
             ),
@@ -439,6 +439,62 @@ class _CardSummaryTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Expanded row for an updated card — shows each old→new field change and
+// lists any other sets that also contain this card (so the user knows the
+// update will affect them too).
+// ---------------------------------------------------------------------------
+class _UpdatedCardTile extends StatelessWidget {
+  final UpdatedCardEntry entry;
+  final String currentSetName;
+
+  const _UpdatedCardTile({required this.entry, required this.currentSetName});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final otherSets = entry.affectedSetNames
+        .where((s) => s != currentSetName)
+        .toList();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            entry.existing.primaryWord,
+            style: theme.textTheme.bodySmall
+                ?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          ...entry.changes.map(
+            (c) => Padding(
+              padding: const EdgeInsets.only(left: 8, top: 1),
+              child: Text(
+                '${c.label}: ${c.oldValue} → ${c.newValue}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ),
+          if (otherSets.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 8, top: 2),
+              child: Text(
+                'Also in: ${otherSets.join(', ')}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
         ],
       ),
     );

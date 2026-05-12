@@ -451,11 +451,24 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
                   );
                 }
 
-                final notInSet = allCards
-                    .where((c) => !cardIdsInSet.contains(c.id))
-                    .toList();
                 final inSet = allCards
                     .where((c) => cardIdsInSet.contains(c.id))
+                    .toList();
+                // Primary words already used in this set — used to block
+                // cards with the same word even if not yet linked by ID.
+                final inSetWords =
+                    inSet.map((c) => c.primaryWord).toSet();
+                final notInSet = allCards
+                    .where((c) =>
+                        !cardIdsInSet.contains(c.id) &&
+                        !inSetWords.contains(c.primaryWord))
+                    .toList();
+                // Cards not in the set by ID but whose primaryWord is already
+                // taken — selectable would create a duplicate word in the set.
+                final wordConflict = allCards
+                    .where((c) =>
+                        !cardIdsInSet.contains(c.id) &&
+                        inSetWords.contains(c.primaryWord))
                     .toList();
 
                 // Guard against a false "all added" flash: Firestore's local
@@ -501,6 +514,33 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
                             : null,
                       ),
                     ),
+
+                    // Cards blocked because their primaryWord is already in
+                    // the set (different card, same word).
+                    if (wordConflict.isNotEmpty) ...[
+                      const Divider(),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                        child: Text(
+                          'Duplicate word — already in set',
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelMedium
+                              ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .outline),
+                        ),
+                      ),
+                      ...wordConflict.map(
+                        (card) => ListTile(
+                          enabled: false,
+                          title: Text(card.primaryWord),
+                          subtitle: Text(card.translation),
+                          trailing: const Icon(Icons.block_outlined),
+                        ),
+                      ),
+                    ],
 
                     // Already-in-set section (for reference).
                     if (inSet.isNotEmpty) ...[

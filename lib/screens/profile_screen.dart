@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/providers/auth_provider.dart';
+import 'package:flash_me/screens/data/data_screen.dart';
 import 'package:flash_me/utils/helpers.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -157,6 +158,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   leading: const Icon(Icons.email_outlined),
                   title: const Text('Email'),
                   subtitle: Text(user?.email ?? ''),
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.import_export_outlined),
+                  title: const Text('Import & Export'),
+                  subtitle: const Text('Import or export card sets as ZIP files'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const DataScreen()),
+                  ),
                 ),
                 const Divider(),
               ],

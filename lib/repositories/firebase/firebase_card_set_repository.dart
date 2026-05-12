@@ -245,4 +245,20 @@ class FirebaseCardSetRepository implements CardSetRepository {
     }
     return cards;
   }
+
+  @override
+  Future<CardSet?> findSetByName(String name, String userId) async {
+    try {
+      final snapshot = await _firestore
+          .collection(AppConstants.setsCollection)
+          .where('userId', isEqualTo: userId)
+          .where('name', isEqualTo: name)
+          .limit(1)
+          .get();
+      if (snapshot.docs.isEmpty) return null;
+      return CardSet.fromFirestore(snapshot.docs.first);
+    } catch (e) {
+      throw AppException('Failed to look up set by name: $e');
+    }
+  }
 }

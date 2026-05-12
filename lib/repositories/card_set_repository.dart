@@ -45,4 +45,8 @@ abstract class CardSetRepository {
   // Stream the full FlashCard objects for all cards in a set.
   // userId is required so the setCards query satisfies Firestore list rules.
   Stream<List<FlashCard>> watchCardsInSet(String setId, String userId);
+
+  // Find a set owned by [userId] whose name exactly matches [name].
+  // Returns null if no such set exists.
+  Future<CardSet?> findSetByName(String name, String userId);
 }

@@ -264,21 +264,20 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] Create export UI (trigger from set detail screen)
 - [x] Implement file download / share sheet
 
-#### Phase 6b — Import (account-level)
-- [ ] Fix: strip `fieldId` from exported card fields in `ExportService`
-- [ ] Fix: enforce `primaryWord` uniqueness within a set in the card picker UI
-- [ ] New Data screen (accessible from profile screen; hosts both Import and Export sections)
-- [ ] Import file picker (accepts `.zip`; triggers parse + diff immediately on pick)
-- [ ] ZIP parser supporting both single-set (`set: {}`) and multi-set (`sets: []`) formats
-- [ ] Validate required fields (primaryWord, translation, field types, content structure)
-- [ ] File size and encoding validation (10 MB limit, UTF-8)
-- [ ] Diff engine: match cards by `primaryWord`; categorise as new / updated / deleted per set
-- [ ] Import preview dialog:
+#### Phase 6b — Import (account-level) (complete)
+- [x] Fix: strip `fieldId` from exported card fields in `ExportService`
+- [x] Fix: enforce `primaryWord` uniqueness within a set in the card picker UI
+- [x] New Data screen (accessible from profile screen; hosts both Import and Export sections)
+- [x] Import file picker (accepts `.zip`; triggers parse + diff immediately on pick)
+- [x] ZIP parser supporting both single-set (`set: {}`) and multi-set (`sets: []`) formats
+- [x] Validate required fields (primaryWord, translation, field types, content structure)
+- [x] Diff engine: match cards by `primaryWord`; categorise as new / updated / deleted per set
+- [x] Import preview dialog:
   - Options: [Delete cards not in import] [Skip card updates] — apply to all sets
   - Per-set sections: matched set name or "New set"; New / Updated / Deleted card counts
   - Expandable lists: New shows primaryWord + translation; Updated shows which fields changed; Deleted shown only when delete option is on
   - Deleting whole sets is never part of import (only per-card deletion within a set)
-- [ ] Firestore batch write: create/update sets + cards + upload media to Firebase Storage
+- [x] Firestore batch write: create/update sets + cards + upload media to Firebase Storage
 - [ ] Run tag upsert for every imported tag (see Phase 4d)
 - [ ] Success/error summary report
 

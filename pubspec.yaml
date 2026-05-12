@@ -37,8 +37,9 @@ dependencies:
   file_picker: ^11.0.2
   path_provider: ^2.1.0
 
-  # CSV parsing
-  csv: ^8.0.0
+  # Import / export
+  archive: ^3.6.0       # ZIP creation and extraction
+  share_plus: ^10.0.0   # Mobile share sheet for exported files
 
   # Internationalization & Formatting
   intl: ^0.20.2
@@ -54,6 +55,7 @@ dependencies:
 
   # Connectivity
   connectivity_plus: ^7.1.1
+  web: ^1.1.1
 
 dev_dependencies:
   flutter_test:

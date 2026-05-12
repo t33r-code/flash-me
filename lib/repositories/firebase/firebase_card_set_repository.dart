@@ -245,4 +245,42 @@ class FirebaseCardSetRepository implements CardSetRepository {
     }
     return cards;
   }
+
+  @override
+  Future<CardSet?> findSetByName(String name, String userId) async {
+    try {
+      final snapshot = await _firestore
+          .collection(AppConstants.setsCollection)
+          .where('userId', isEqualTo: userId)
+          .where('name', isEqualTo: name)
+          .limit(1)
+          .get();
+      if (snapshot.docs.isEmpty) return null;
+      return CardSet.fromFirestore(snapshot.docs.first);
+    } catch (e) {
+      throw AppException('Failed to look up set by name: $e');
+    }
+  }
+
+  @override
+  Future<List<CardSet>> getSetsContainingCard(String cardId, String userId) async {
+    try {
+      final links = await _firestore
+          .collection(AppConstants.setCardsCollection)
+          .where('cardId', isEqualTo: cardId)
+          .where('userId', isEqualTo: userId)
+          .get();
+      if (links.docs.isEmpty) return [];
+      final setIds = links.docs.map((d) => d.data()['setId'] as String).toList();
+      final sets = <CardSet>[];
+      for (final setId in setIds) {
+        final set = await getSet(setId);
+        if (set != null) sets.add(set);
+      }
+      return sets;
+    } catch (e) {
+      _logger.e('Failed to get sets for card $cardId: $e');
+      throw AppException('Failed to get sets for card', code: 'get-sets-for-card-failed');
+    }
+  }
 }

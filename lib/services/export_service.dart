@@ -134,7 +134,12 @@ class ExportService {
         'primaryImageUrl': imagePath,
         'primaryAudioUrl': audioPath,
         'primaryWordHidden': card.primaryWordHidden,
-        'fields': card.fields.map((f) => f.toJson()).toList(),
+        // Strip fieldId — internal to the source account; importer generates new ones.
+        'fields': card.fields.map((f) {
+          final m = Map<String, dynamic>.from(f.toJson());
+          m.remove('fieldId');
+          return m;
+        }).toList(),
         'templateId': card.templateId,
         'tags': card.tags,
       };

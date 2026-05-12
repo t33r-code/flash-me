@@ -221,80 +221,90 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 ),
                 const SizedBox(height: 16),
               ],
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: AppStrings.email,
-                        prefixIcon: Icon(Icons.email_outlined),
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: AppValidators.validateEmail,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      textInputAction: _isSignIn
-                          ? TextInputAction.done
-                          : TextInputAction.next,
-                      onFieldSubmitted: _isSignIn ? (_) => _submit() : null,
-                      decoration: InputDecoration(
-                        labelText: AppStrings.password,
-                        prefixIcon: const Icon(Icons.lock_outlined),
-                        border: const OutlineInputBorder(),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                          onPressed: () => setState(
-                            () => _obscurePassword = !_obscurePassword,
-                          ),
+              // AutofillGroup tells the browser (and mobile autofill) that
+              // these fields belong to the same credential form, so it saves
+              // both email and password together.
+              AutofillGroup(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        autofillHints: const [AutofillHints.email],
+                        decoration: const InputDecoration(
+                          labelText: AppStrings.email,
+                          prefixIcon: Icon(Icons.email_outlined),
+                          border: OutlineInputBorder(),
                         ),
+                        validator: AppValidators.validateEmail,
                       ),
-                      validator: AppValidators.validatePassword,
-                    ),
-                    if (!_isSignIn) ...[
                       const SizedBox(height: 16),
                       TextFormField(
-                        controller: _confirmPasswordController,
-                        obscureText: _obscureConfirm,
-                        textInputAction: TextInputAction.done,
-                        onFieldSubmitted: (_) => _submit(),
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        textInputAction: _isSignIn
+                            ? TextInputAction.done
+                            : TextInputAction.next,
+                        autofillHints: _isSignIn
+                            ? const [AutofillHints.password]
+                            : const [AutofillHints.newPassword],
+                        onFieldSubmitted: _isSignIn ? (_) => _submit() : null,
                         decoration: InputDecoration(
-                          labelText: AppStrings.confirmPassword,
+                          labelText: AppStrings.password,
                           prefixIcon: const Icon(Icons.lock_outlined),
                           border: const OutlineInputBorder(),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscureConfirm
+                              _obscurePassword
                                   ? Icons.visibility_outlined
                                   : Icons.visibility_off_outlined,
                             ),
                             onPressed: () => setState(
-                              () => _obscureConfirm = !_obscureConfirm,
+                              () => _obscurePassword = !_obscurePassword,
                             ),
                           ),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please confirm your password';
-                          }
-                          if (value != _passwordController.text) {
-                            return 'Passwords do not match';
-                          }
-                          return null;
-                        },
+                        validator: AppValidators.validatePassword,
                       ),
+                      if (!_isSignIn) ...[
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _confirmPasswordController,
+                          obscureText: _obscureConfirm,
+                          textInputAction: TextInputAction.done,
+                          autofillHints: const [AutofillHints.newPassword],
+                          onFieldSubmitted: (_) => _submit(),
+                          decoration: InputDecoration(
+                            labelText: AppStrings.confirmPassword,
+                            prefixIcon: const Icon(Icons.lock_outlined),
+                            border: const OutlineInputBorder(),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscureConfirm
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                              ),
+                              onPressed: () => setState(
+                                () => _obscureConfirm = !_obscureConfirm,
+                              ),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please confirm your password';
+                            }
+                            if (value != _passwordController.text) {
+                              return 'Passwords do not match';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
               if (_isSignIn) ...[

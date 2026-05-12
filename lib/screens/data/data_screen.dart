@@ -79,14 +79,20 @@ class DataScreen extends ConsumerWidget {
       if (!context.mounted) return;
       Navigator.of(context).pop(); // dismiss progress
 
-      // Show preview dialog.
-      await showDialog<void>(
+      // Show preview dialog; returns a summary when the user confirms import.
+      final summary = await showDialog<_ImportSummaryData>(
         context: context,
         builder: (_) => _ImportPreviewDialog(
           analysis: analysis,
           userId: uid,
           ref: ref,
         ),
+      );
+
+      if (!context.mounted || summary == null) return;
+      await showDialog<void>(
+        context: context,
+        builder: (_) => _ImportSummaryDialog(summary: summary),
       );
     } on AppException catch (e) {
       if (!context.mounted) return;
@@ -139,10 +145,14 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
             cardRepo: widget.ref.read(cardRepositoryProvider),
           );
       if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Import complete.')),
-        );
+        Navigator.of(context).pop(_ImportSummaryData(
+          totalSets: widget.analysis.setDiffs.length,
+          newSets: widget.analysis.setDiffs.where((d) => d.isNewSet).length,
+          cardsAdded: widget.analysis.totalNewCards,
+          cardsUpdated: _skipUpdates ? 0 : widget.analysis.totalUpdatedCards,
+          cardsRemoved:
+              _deleteNotInImport ? widget.analysis.totalDeletableCards : 0,
+        ));
       }
     } catch (e) {
       if (mounted) {
@@ -495,6 +505,108 @@ class _UpdatedCardTile extends StatelessWidget {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Data returned by _ImportPreviewDialog when the user confirms an import.
+// ---------------------------------------------------------------------------
+class _ImportSummaryData {
+  final int totalSets;
+  final int newSets;
+  final int cardsAdded;
+  final int cardsUpdated;
+  final int cardsRemoved;
+
+  const _ImportSummaryData({
+    required this.totalSets,
+    required this.newSets,
+    required this.cardsAdded,
+    required this.cardsUpdated,
+    required this.cardsRemoved,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Post-import summary dialog — confirms what was actually applied.
+// ---------------------------------------------------------------------------
+class _ImportSummaryDialog extends StatelessWidget {
+  final _ImportSummaryData summary;
+
+  const _ImportSummaryDialog({required this.summary});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final s = summary;
+    final hasChanges = s.cardsAdded > 0 || s.cardsUpdated > 0 || s.cardsRemoved > 0;
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(Icons.check_circle_outline, color: Colors.green),
+          const SizedBox(width: 8),
+          const Text('Import Complete'),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _summaryRow(
+            theme,
+            Icons.library_books_outlined,
+            '${s.totalSets} set${s.totalSets == 1 ? '' : 's'} processed'
+                '${s.newSets > 0 ? ' (${s.newSets} new)' : ''}',
+          ),
+          if (!hasChanges)
+            _summaryRow(theme, Icons.info_outline, 'No changes were applied'),
+          if (s.cardsAdded > 0)
+            _summaryRow(
+              theme,
+              Icons.add_circle_outline,
+              '${s.cardsAdded} card${s.cardsAdded == 1 ? '' : 's'} added',
+              color: Colors.green,
+            ),
+          if (s.cardsUpdated > 0)
+            _summaryRow(
+              theme,
+              Icons.edit_outlined,
+              '${s.cardsUpdated} card${s.cardsUpdated == 1 ? '' : 's'} updated',
+              color: Colors.orange,
+            ),
+          if (s.cardsRemoved > 0)
+            _summaryRow(
+              theme,
+              Icons.remove_circle_outline,
+              '${s.cardsRemoved} card${s.cardsRemoved == 1 ? '' : 's'} removed from sets',
+              color: theme.colorScheme.error,
+            ),
+        ],
+      ),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Done'),
+        ),
+      ],
+    );
+  }
+
+  Widget _summaryRow(ThemeData theme, IconData icon, String label,
+      {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: color ?? theme.colorScheme.onSurfaceVariant),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(label, style: theme.textTheme.bodyMedium),
+          ),
         ],
       ),
     );

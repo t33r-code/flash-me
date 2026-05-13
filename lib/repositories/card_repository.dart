@@ -19,4 +19,13 @@ abstract class CardRepository {
 
   // Hard-delete a card and clean up all set-membership links.
   Future<void> deleteCard(String cardId);
+
+  // Find a card owned by [userId] whose primaryWord and translation exactly
+  // match. Returns null if no such card exists. Used by the import engine to
+  // reuse existing library cards rather than creating duplicates.
+  Future<FlashCard?> findCardByWordAndTranslation(
+    String primaryWord,
+    String translation,
+    String userId,
+  );
 }

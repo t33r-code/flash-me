@@ -37,6 +37,15 @@ class NewCardEntry {
   const NewCardEntry(this.data);
 }
 
+// A card in the import file whose [primaryWord + translation] matches a card
+// already in the user's library but not yet in this set. execute() will add
+// a set-membership link only — no card creation, no card update.
+class LibraryLinkEntry {
+  final FlashCard existingCard;
+  final ImportCardData incoming;
+  const LibraryLinkEntry({required this.existingCard, required this.incoming});
+}
+
 // One changed attribute on an updated card — holds display-ready old/new strings.
 class FieldChange {
   final String label;
@@ -69,6 +78,8 @@ class ImportSetDiff {
   final String setName;
   final CardSet? existingSet; // null → a new set will be created
   final List<NewCardEntry> newCards;
+  // Cards matched in the global library (not yet in this set) — linked only.
+  final List<LibraryLinkEntry> libraryLinkCards;
   final List<UpdatedCardEntry> updatedCards;
   // Cards currently in the set that are NOT in the import file.
   // Only acted upon when the user enables "delete cards not in import".
@@ -78,6 +89,7 @@ class ImportSetDiff {
     required this.setName,
     this.existingSet,
     required this.newCards,
+    this.libraryLinkCards = const [],
     required this.updatedCards,
     required this.deletableCards,
   });
@@ -85,6 +97,7 @@ class ImportSetDiff {
   bool get isNewSet => existingSet == null;
   bool get hasChanges =>
       newCards.isNotEmpty ||
+      libraryLinkCards.isNotEmpty ||
       updatedCards.isNotEmpty ||
       deletableCards.isNotEmpty;
 }
@@ -99,6 +112,8 @@ class ImportAnalysis {
 
   int get totalNewCards =>
       setDiffs.fold(0, (s, d) => s + d.newCards.length);
+  int get totalLibraryLinkCards =>
+      setDiffs.fold(0, (s, d) => s + d.libraryLinkCards.length);
   int get totalUpdatedCards =>
       setDiffs.fold(0, (s, d) => s + d.updatedCards.length);
   int get totalDeletableCards =>

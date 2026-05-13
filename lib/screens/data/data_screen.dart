@@ -149,6 +149,7 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
           totalSets: widget.analysis.setDiffs.length,
           newSets: widget.analysis.setDiffs.where((d) => d.isNewSet).length,
           cardsAdded: widget.analysis.totalNewCards,
+          cardsLinked: widget.analysis.totalLibraryLinkCards,
           cardsUpdated: _skipUpdates ? 0 : widget.analysis.totalUpdatedCards,
           cardsRemoved:
               _deleteNotInImport ? widget.analysis.totalDeletableCards : 0,
@@ -264,6 +265,7 @@ class _SetDiffTile extends StatefulWidget {
 
 class _SetDiffTileState extends State<_SetDiffTile> {
   bool _newExpanded = false;
+  bool _libraryExpanded = false;
   bool _updatedExpanded = false;
   bool _deletedExpanded = false;
 
@@ -310,6 +312,23 @@ class _SetDiffTileState extends State<_SetDiffTile> {
                   .map((e) => _CardSummaryTile(
                         primary: e.data.primaryWord,
                         secondary: e.data.translation,
+                      ))
+                  .toList(),
+            ),
+
+          // Library link row — card exists elsewhere in the library.
+          if (diff.libraryLinkCards.isNotEmpty)
+            _ExpandableCountRow(
+              icon: Icons.link,
+              color: theme.colorScheme.secondary,
+              label: '${diff.libraryLinkCards.length} from library',
+              expanded: _libraryExpanded,
+              onTap: () =>
+                  setState(() => _libraryExpanded = !_libraryExpanded),
+              children: diff.libraryLinkCards
+                  .map((e) => _CardSummaryTile(
+                        primary: e.existingCard.primaryWord,
+                        secondary: e.existingCard.translation,
                       ))
                   .toList(),
             ),
@@ -518,6 +537,7 @@ class _ImportSummaryData {
   final int totalSets;
   final int newSets;
   final int cardsAdded;
+  final int cardsLinked;
   final int cardsUpdated;
   final int cardsRemoved;
 
@@ -525,6 +545,7 @@ class _ImportSummaryData {
     required this.totalSets,
     required this.newSets,
     required this.cardsAdded,
+    required this.cardsLinked,
     required this.cardsUpdated,
     required this.cardsRemoved,
   });
@@ -542,7 +563,7 @@ class _ImportSummaryDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final s = summary;
-    final hasChanges = s.cardsAdded > 0 || s.cardsUpdated > 0 || s.cardsRemoved > 0;
+    final hasChanges = s.cardsAdded > 0 || s.cardsLinked > 0 || s.cardsUpdated > 0 || s.cardsRemoved > 0;
 
     return AlertDialog(
       title: Row(
@@ -570,6 +591,13 @@ class _ImportSummaryDialog extends StatelessWidget {
               Icons.add_circle_outline,
               '${s.cardsAdded} card${s.cardsAdded == 1 ? '' : 's'} added',
               color: Colors.green,
+            ),
+          if (s.cardsLinked > 0)
+            _summaryRow(
+              theme,
+              Icons.link,
+              '${s.cardsLinked} card${s.cardsLinked == 1 ? '' : 's'} linked from library',
+              color: Theme.of(context).colorScheme.secondary,
             ),
           if (s.cardsUpdated > 0)
             _summaryRow(

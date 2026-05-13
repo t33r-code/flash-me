@@ -69,6 +69,7 @@ class ImportService {
         rawSet: rawSet,
         userId: userId,
         cardSetRepo: cardSetRepo,
+        cardRepo: cardRepo,
       );
       diffs.add(diff);
     }
@@ -125,6 +126,15 @@ class ImportService {
         );
       }
 
+      // Link library cards to the set — no card creation needed.
+      for (final entry in diff.libraryLinkCards) {
+        await cardSetRepo.addCardToSet(
+          setId: targetSet.id,
+          cardId: entry.existingCard.id,
+          userId: userId,
+        );
+      }
+
       // Update existing cards (unless the user opted to skip updates).
       if (!skipUpdates) {
         for (final entry in diff.updatedCards) {
@@ -170,6 +180,7 @@ class ImportService {
     required Map<String, dynamic> rawSet,
     required String userId,
     required CardSetRepository cardSetRepo,
+    required CardRepository cardRepo,
   }) async {
     final setName = rawSet['name'] as String? ?? '';
     if (setName.isEmpty) throw AppException('A set in the import has no name.');
@@ -190,12 +201,24 @@ class ImportService {
     final importWords = importCards.map((c) => c.primaryWord).toSet();
 
     final newCards = <NewCardEntry>[];
+    final libraryLinkCards = <LibraryLinkEntry>[];
     final updatedCards = <UpdatedCardEntry>[];
 
     for (final imported in importCards) {
       final existing = existingByWord[imported.primaryWord];
       if (existing == null) {
-        newCards.add(NewCardEntry(imported));
+        // Not in this set — check the global library before creating a new card.
+        final libraryCard = await cardRepo.findCardByWordAndTranslation(
+          imported.primaryWord,
+          imported.translation,
+          userId,
+        );
+        if (libraryCard != null) {
+          libraryLinkCards.add(
+              LibraryLinkEntry(existingCard: libraryCard, incoming: imported));
+        } else {
+          newCards.add(NewCardEntry(imported));
+        }
       } else {
         final changes = _buildChanges(existing, imported);
         if (changes.isNotEmpty) {
@@ -219,6 +242,7 @@ class ImportService {
       setName: setName,
       existingSet: existingSet,
       newCards: newCards,
+      libraryLinkCards: libraryLinkCards,
       updatedCards: updatedCards,
       deletableCards: deletableCards,
     );

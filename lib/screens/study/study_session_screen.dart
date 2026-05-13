@@ -10,6 +10,13 @@ import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/study_session_provider.dart';
 import 'package:flash_me/screens/study/study_session_summary_screen.dart';
 
+// Three-phase reveal sequence per card.
+enum _RevealState {
+  hidden,             // word only, no translation
+  translationRevealed, // translation shown in-place; MORE / NEXT buttons
+  fullyRevealed,      // slide to top + additional fields + Know/Don't Know
+}
+
 // ---------------------------------------------------------------------------
 // StudySessionScreen — displays one card at a time from a StudySession.
 //
@@ -18,6 +25,7 @@ import 'package:flash_me/screens/study/study_session_summary_screen.dart';
 //
 // Phase 5c: Know/Don't Know marking, per-card state tracking, debounced
 // auto-save (~1 s after each action), End (pause), and session completion.
+// Phase 7:  Three-phase reveal — hidden → translationRevealed → fullyRevealed.
 // ---------------------------------------------------------------------------
 class StudySessionScreen extends ConsumerStatefulWidget {
   final StudySession session;
@@ -32,8 +40,8 @@ class StudySessionScreen extends ConsumerStatefulWidget {
 
 class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   late int _currentIndex;
-  // false = show word-only centred view; true = slide to top and show fields
-  bool _revealed = false;
+  // Controls the three-phase reveal sequence for the current card.
+  _RevealState _revealState = _RevealState.hidden;
   // Mutable local copy; updated on every user action and persisted via auto-save.
   late StudySession _session;
   // Debounce timer — restarted on each action, fires after 1 s to write Firestore.
@@ -71,7 +79,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     if (_currentIndex > 0) {
       setState(() {
         _currentIndex--;
-        _revealed = false;
+        _revealState = _RevealState.hidden;
         _session = _session.copyWith(currentCardIndex: _currentIndex);
       });
       _scheduleAutoSave();
@@ -84,7 +92,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
       final next = _currentIndex + 1;
       setState(() {
         _currentIndex = next;
-        _revealed = false;
+        _revealState = _RevealState.hidden;
         _session = _session.copyWith(
           currentCardIndex: next,
           // High-water mark: only grows as the user navigates forward.
@@ -102,7 +110,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   // Toggle the known / unknown mark for the current card.
   // Tapping the active button clears it; tapping the other switches to it.
   void _updateCardMark({required bool markKnown}) {
-    if (!_revealed) return;
+    if (_revealState != _RevealState.fullyRevealed) return;
     final data = _currentCardData;
     final wasActive = markKnown ? data.markedKnown : data.markedUnknown;
 
@@ -254,24 +262,33 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
                       child: child,
                     ),
                   ),
-                  child: _revealed
-                      ? SingleChildScrollView(
-                          key: ValueKey('$_currentIndex-revealed'),
-                          padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                          child: Column(
-                            children: [
-                              _PrimaryFieldCard(card: card),
-                              for (final field in card.fields)
-                                _buildField(field),
-                              const SizedBox(height: 16),
-                            ],
-                          ),
-                        )
-                      : _WordCard(
-                          key: ValueKey('$_currentIndex-word'),
-                          card: card,
-                          onReveal: () => setState(() => _revealed = true),
+                  child: switch (_revealState) {
+                    _RevealState.fullyRevealed => SingleChildScrollView(
+                        key: ValueKey('$_currentIndex-revealed'),
+                        padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                        child: Column(
+                          children: [
+                            _PrimaryFieldCard(card: card),
+                            for (final field in card.fields)
+                              _buildField(field),
+                            const SizedBox(height: 16),
+                          ],
                         ),
+                      ),
+                    _RevealState.translationRevealed => _TranslationRevealedCard(
+                        key: ValueKey('$_currentIndex-translation'),
+                        card: card,
+                        onMore: () => setState(
+                            () => _revealState = _RevealState.fullyRevealed),
+                        onNext: _next,
+                      ),
+                    _RevealState.hidden => _WordCard(
+                        key: ValueKey('$_currentIndex-word'),
+                        card: card,
+                        onReveal: () => setState(
+                            () => _revealState = _RevealState.translationRevealed),
+                      ),
+                  },
                 );
               },
             ),
@@ -287,8 +304,8 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
             onDontKnow: () => _updateCardMark(markKnown: false),
             isMarkedKnown: _currentCardData.markedKnown,
             isMarkedUnknown: _currentCardData.markedUnknown,
-            // Know/Don't Know is disabled until the card has been revealed.
-            canMark: _revealed,
+            // Know/Don't Know only enabled in the fully-revealed phase.
+            canMark: _revealState == _RevealState.fullyRevealed,
           ),
         ],
       ),
@@ -400,6 +417,101 @@ class _WordCardState extends State<_WordCard> {
                   ],
                 ],
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _TranslationRevealedCard — intermediate state after tapping the word.
+// Shows the primary word and its translation in-place (no slide).
+// MORE triggers full reveal; NEXT advances without marking the card.
+// ---------------------------------------------------------------------------
+class _TranslationRevealedCard extends StatelessWidget {
+  final FlashCard card;
+  final VoidCallback onMore;
+  final VoidCallback onNext;
+  const _TranslationRevealedCard({
+    super.key,
+    required this.card,
+    required this.onMore,
+    required this.onNext,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Card(
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (card.primaryImageUrl != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      card.primaryImageUrl!,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const SizedBox(
+                        height: 80,
+                        child: Center(
+                          child: Icon(Icons.broken_image_outlined,
+                              size: 40, color: Colors.grey),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                // Primary word
+                Text(
+                  card.primaryWord,
+                  style: Theme.of(context).textTheme.headlineLarge,
+                  textAlign: TextAlign.center,
+                ),
+
+                const Divider(height: 32),
+
+                // Translation revealed in-place
+                Text(
+                  card.translation,
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineMedium
+                      ?.copyWith(color: scheme.primary),
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(height: 32),
+
+                // NEXT skips ahead unmarked; MORE enters full reveal mode.
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    OutlinedButton(
+                      onPressed: onNext,
+                      child: const Text('Next'),
+                    ),
+                    const SizedBox(width: 16),
+                    FilledButton(
+                      onPressed: onMore,
+                      child: const Text('More'),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),

@@ -133,6 +133,29 @@ class FirebaseCardRepository implements CardRepository {
     }
   }
 
+  @override
+  Future<FlashCard?> findCardByWordAndTranslation(
+    String primaryWord,
+    String translation,
+    String userId,
+  ) async {
+    try {
+      final snapshot = await _firestore
+          .collection(AppConstants.cardsCollection)
+          .where('createdBy', isEqualTo: userId)
+          .where('primaryWord', isEqualTo: primaryWord)
+          .where('translation', isEqualTo: translation)
+          .limit(1)
+          .get();
+      if (snapshot.docs.isEmpty) return null;
+      return FlashCard.fromFirestore(snapshot.docs.first);
+    } catch (e) {
+      _logger.e('Failed to find card by word/translation: $e');
+      throw AppException('Failed to search card library',
+          code: 'find-card-failed');
+    }
+  }
+
   // Delete a Firebase Storage file by its download URL.
   // Uses refFromURL so we don't need to store the path separately.
   // Errors are swallowed — a missing file should not block card deletion.

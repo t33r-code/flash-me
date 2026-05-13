@@ -281,12 +281,12 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [ ] Run tag upsert for every imported tag (see Phase 4d)
 - [x] Success/error summary report
 
-#### Phase 6c — Bulk export (account-level)
-- [ ] Bulk export UI on Data screen: set list with checkboxes + select-all
-- [ ] Multi-set ZIP format: `{ "version": "1.0", "exportDate": "...", "sets": [...] }`
-- [ ] Shared `media/` folder across all sets in the archive (no duplication)
-- [ ] Add unit tests for validation and diff logic
-- [ ] Test full round-trip (export → import → verify data integrity)
+#### Phase 6c — Bulk export (account-level) (complete)
+- [x] Bulk export UI on Data screen: set list with checkboxes + select-all
+- [x] Multi-set ZIP format: `{ "version": "1.0", "exportDate": "...", "sets": [...] }`
+- [x] Shared `media/` folder across all sets in the archive (no duplication)
+- [ ] Add unit tests for validation and diff logic (deferred to Phase 7)
+- [ ] Test full round-trip (export → import → verify data integrity) (deferred to Phase 7)
 
 **Deliverable**: Account-level Data screen with bulk import/export; full round-trip for single and multi-set ZIPs covering all field types and media.
 

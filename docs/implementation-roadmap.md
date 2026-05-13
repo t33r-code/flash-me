@@ -271,22 +271,22 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] Import file picker (accepts `.zip`; triggers parse + diff immediately on pick)
 - [x] ZIP parser supporting both single-set (`set: {}`) and multi-set (`sets: []`) formats
 - [x] Validate required fields (primaryWord, translation, field types, content structure)
-- [x] Diff engine: match cards by `primaryWord`; categorise as new / updated / deleted per set
+- [x] Diff engine: match cards by `primaryWord` within the target set; check global library by `[primaryWord, translation]` before creating — matched library cards are linked (not duplicated)
 - [x] Import preview dialog:
   - Options: [Delete cards not in import] [Skip card updates] — apply to all sets
-  - Per-set sections: matched set name or "New set"; New / Updated / Deleted card counts
-  - Expandable lists: New shows primaryWord + translation; Updated shows which fields changed; Deleted shown only when delete option is on
+  - Per-set sections: matched set name or "New set"; New / From library / Updated / Deleted card counts
+  - Expandable lists: New shows primaryWord + translation; From library shows existing card being linked; Updated shows old→new value per changed field + other affected sets; Deleted shown only when delete option is on
   - Deleting whole sets is never part of import (only per-card deletion within a set)
 - [x] Firestore batch write: create/update sets + cards + upload media to Firebase Storage
 - [ ] Run tag upsert for every imported tag (see Phase 4d)
-- [ ] Success/error summary report
+- [x] Success/error summary report
 
-#### Phase 6c — Bulk export (account-level)
-- [ ] Bulk export UI on Data screen: set list with checkboxes + select-all
-- [ ] Multi-set ZIP format: `{ "version": "1.0", "exportDate": "...", "sets": [...] }`
-- [ ] Shared `media/` folder across all sets in the archive (no duplication)
-- [ ] Add unit tests for validation and diff logic
-- [ ] Test full round-trip (export → import → verify data integrity)
+#### Phase 6c — Bulk export (account-level) (complete)
+- [x] Bulk export UI on Data screen: set list with checkboxes + select-all
+- [x] Multi-set ZIP format: `{ "version": "1.0", "exportDate": "...", "sets": [...] }`
+- [x] Shared `media/` folder across all sets in the archive (no duplication)
+- [ ] Add unit tests for validation and diff logic (deferred to Phase 7)
+- [ ] Test full round-trip (export → import → verify data integrity) (deferred to Phase 7)
 
 **Deliverable**: Account-level Data screen with bulk import/export; full round-trip for single and multi-set ZIPs covering all field types and media.
 

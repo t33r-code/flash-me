@@ -2,46 +2,209 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/import_diff.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
+import 'package:flash_me/providers/export_provider.dart';
 import 'package:flash_me/providers/import_provider.dart';
 import 'package:flash_me/utils/exceptions.dart';
 
 // ---------------------------------------------------------------------------
-// DataScreen — account-level import (and future bulk-export) entry point.
+// DataScreen — account-level import & bulk export.
 // ---------------------------------------------------------------------------
-class DataScreen extends ConsumerWidget {
+class DataScreen extends ConsumerStatefulWidget {
   const DataScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DataScreen> createState() => _DataScreenState();
+}
+
+class _DataScreenState extends ConsumerState<DataScreen> {
+  // Export state.
+  final Set<String> _selectedSetIds = {};
+  bool _exporting = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final setsAsync = ref.watch(userSetsProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Import & Export')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // ── Import ──────────────────────────────────────────────────────
           _SectionHeader(title: 'Import', icon: Icons.upload_file_outlined),
           const SizedBox(height: 8),
           Text(
             'Import a ZIP archive exported from Flash Me. '
             'New sets are created automatically; existing sets are '
             'matched by name.',
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
           FilledButton.icon(
             icon: const Icon(Icons.folder_open_outlined),
             label: const Text('Choose ZIP file…'),
-            onPressed: () => _pickAndAnalyze(context, ref),
+            onPressed: () => _pickAndAnalyze(context),
+          ),
+
+          // ── Export ──────────────────────────────────────────────────────
+          const SizedBox(height: 32),
+          const Divider(),
+          const SizedBox(height: 16),
+          _SectionHeader(title: 'Export', icon: Icons.download_outlined),
+          const SizedBox(height: 8),
+          Text(
+            'Select sets to export as a ZIP archive. '
+            'The archive can be re-imported into any Flash Me account.',
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 12),
+          ...setsAsync.when(
+            loading: () =>
+                [const Center(child: CircularProgressIndicator())],
+            error: (_, _) =>
+                [const Text('Failed to load sets.')],
+            data: (sets) => _buildExportSection(sets, theme),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _pickAndAnalyze(BuildContext context, WidgetRef ref) async {
+  List<Widget> _buildExportSection(List<CardSet> sets, ThemeData theme) {
+    if (sets.isEmpty) {
+      return [
+        Text(
+          'No sets yet — create a set to export it.',
+          style: theme.textTheme.bodyMedium
+              ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        ),
+      ];
+    }
+
+    final allSelected = _selectedSetIds.length == sets.length;
+
+    return [
+      // Select-all toggle + count label.
+      Row(
+        children: [
+          TextButton(
+            onPressed: _exporting
+                ? null
+                : () => setState(() {
+                      if (allSelected) {
+                        _selectedSetIds.clear();
+                      } else {
+                        _selectedSetIds.addAll(sets.map((s) => s.id));
+                      }
+                    }),
+            child: Text(allSelected ? 'Deselect all' : 'Select all'),
+          ),
+          Text(
+            _selectedSetIds.isEmpty
+                ? 'None selected'
+                : '${_selectedSetIds.length} of ${sets.length} selected',
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+        ],
+      ),
+
+      // One checkbox row per set.
+      ...sets.map(
+        (s) => CheckboxListTile(
+          dense: true,
+          value: _selectedSetIds.contains(s.id),
+          onChanged: _exporting
+              ? null
+              : (checked) => setState(() {
+                    if (checked == true) {
+                      _selectedSetIds.add(s.id);
+                    } else {
+                      _selectedSetIds.remove(s.id);
+                    }
+                  }),
+          secondary: const Icon(Icons.library_books_outlined),
+          title: Text(s.name, overflow: TextOverflow.ellipsis),
+          subtitle: Text(
+              '${s.cardCount} card${s.cardCount == 1 ? '' : 's'}'),
+          controlAffinity: ListTileControlAffinity.leading,
+        ),
+      ),
+
+      const SizedBox(height: 16),
+      FilledButton.icon(
+        icon: _exporting
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
+              )
+            : const Icon(Icons.download_outlined),
+        label: Text(
+          _selectedSetIds.isEmpty
+              ? 'Export'
+              : 'Export ${_selectedSetIds.length} '
+                  'set${_selectedSetIds.length == 1 ? '' : 's'}',
+        ),
+        onPressed:
+            (_selectedSetIds.isEmpty || _exporting) ? null : _runExport,
+      ),
+    ];
+  }
+
+  Future<void> _runExport() async {
+    setState(() => _exporting = true);
+
+    final allSets = ref.read(userSetsProvider).asData?.value ?? [];
+    final selected =
+        allSets.where((s) => _selectedSetIds.contains(s.id)).toList();
+    final uid = ref.read(authStateProvider).asData?.value ?? '';
+
+    if (!mounted) return;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(children: [
+          CircularProgressIndicator(),
+          SizedBox(width: 20),
+          Text('Exporting…'),
+        ]),
+      ),
+    );
+
+    try {
+      final path = await ref.read(exportServiceProvider).exportSets(
+            sets: selected,
+            userId: uid,
+            cardSetRepo: ref.read(cardSetRepositoryProvider),
+          );
+
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+            path != null ? 'Saved to $path' : 'Export ready.'),
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e')));
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  Future<void> _pickAndAnalyze(BuildContext context) async {
     // Pick the file.
     final result = await FilePicker.pickFiles(
       type: FileType.custom,

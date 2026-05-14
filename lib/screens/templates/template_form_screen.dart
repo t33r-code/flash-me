@@ -485,7 +485,7 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
               ),
 
               // --- Fields ---
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               Text('Fields', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 4),
               Text(

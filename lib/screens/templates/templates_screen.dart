@@ -42,13 +42,14 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.copy_all_outlined, size: 80, color: Colors.grey),
+            Icon(Icons.copy_all_outlined, size: 80, color: onSurfaceVariant),
             const SizedBox(height: 16),
             Text('No templates yet',
                 style: Theme.of(context).textTheme.titleLarge),
@@ -59,7 +60,7 @@ class _EmptyState extends StatelessWidget {
               style: Theme.of(context)
                   .textTheme
                   .bodyMedium
-                  ?.copyWith(color: Colors.grey),
+                  ?.copyWith(color: onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
           ],
@@ -76,20 +77,22 @@ class _TemplateTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fieldCount = template.fields.length;
+    final fieldLabel = '$fieldCount field${fieldCount == 1 ? '' : 's'}';
+    // Subtitle: description when available, otherwise fall back to field count.
+    // Field count is not shown in trailing to avoid duplication when no description.
+    final subtitle = template.description != null
+        ? '${template.description}  ·  $fieldLabel'
+        : fieldLabel;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
         leading: const Icon(Icons.copy_all_outlined),
         title: Text(template.name),
-        subtitle: Text(
-          template.description ??
-              '$fieldCount field${fieldCount == 1 ? '' : 's'}',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: Text(
-          '$fieldCount field${fieldCount == 1 ? '' : 's'}',
-          style: Theme.of(context).textTheme.bodySmall,
+        subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+        trailing: Icon(
+          Icons.chevron_right,
+          size: 20,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(

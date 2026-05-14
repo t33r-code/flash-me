@@ -18,6 +18,11 @@ service cloud.firestore {
       match /studySessions/{sessionId} {
         allow read, write: if isUser(userId);
       }
+
+      // Per-card Skip / Review marks are private to the owning user.
+      match /cardMarks/{cardId} {
+        allow read, write: if isUser(userId);
+      }
     }
 
     // setCards join documents are private to the owning user.

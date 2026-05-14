@@ -9,6 +9,7 @@ This document outlines the design for all major features of the Flash Me applica
 - [Tag System](#tag-system)
 - [Import and Export Flash Card Sets](#import-and-export-flash-card-sets)
 - [Use Flash Card Sets (CORE USE CASE)](#use-flash-card-sets-core-use-case)
+- [User Performance Tracking](#user-performance-tracking)
 - [Marketplace & Lessons — Long-Term Vision](#marketplace--lessons--long-term-vision)
 
 ---
@@ -816,7 +817,7 @@ Users study flash cards by going through a set and testing their knowledge with 
   - Text input fields (type answer, click check, see feedback)
   - Multiple choice fields (select option, click check, see feedback)
 - Navigate between cards (previous/next)
-- Mark cards as known/unknown
+- Mark cards as Skip or Review
 - Track study progress (current card number, total cards)
 - Display session statistics (cards studied, mastery progress)
 - Session history (saved session data)
@@ -909,7 +910,7 @@ users/{userId}/studySessions/{sessionId}
 │  │ [Check Answer]                  │ │
 │  └─────────────────────────────────┘ │
 ├─────────────────────────────────────┤
-│ ◀ Previous    [Know] [Don't Know]   │
+│ ◀ Previous    [Review] [Skip]       │
 │                              Next ▶  │
 └─────────────────────────────────────┘
 ```
@@ -962,15 +963,13 @@ users/{userId}/studySessions/{sessionId}
   - Disabled on last card
   - Moves to next card regardless of whether current card is fully answered
 
-- **Know Button**: Mark current card as "known"
-  - Flag card in cardProgress
-  - Can toggle on/off
-  - Visible indicator when marked
+- **Skip Button** (amber, check-circle): Mark current card as known / skip in future
+  - Flag card in cardProgress; also persisted globally in `cardMarks`
+  - Can toggle on/off; mutually exclusive with Review
   
-- **Don't Know Button**: Mark current card as "unknown"
-  - Flag card in cardProgress
-  - Can toggle on/off
-  - Useful for prioritizing cards to study again
+- **Review Button** (green, flag): Mark current card for focused follow-up
+  - Flag card in cardProgress; also persisted globally in `cardMarks`
+  - Can toggle on/off; mutually exclusive with Skip
 
 **Progress Indicator:**
 - Show "Card X of Y" at top
@@ -1090,6 +1089,102 @@ users/{userId}/studySessions/{sessionId}
 - [ ] Test offline study with sync on reconnect
 - [ ] Performance testing with large card sets (1000+ cards)
 - [ ] Accessibility testing (screen readers, text size)
+
+---
+
+## User Performance Tracking
+
+### Overview
+
+Flash Me tracks two complementary signals of user performance to enable future adaptive study features:
+
+1. **User-initiated marks (Skip / Review)** — explicit, per-card judgements made by the user during study. Durable across sessions; represent the user's own assessment of each card.
+2. **Question result history** — automatic, per-field recordings of success and failure on interactive questions. Capture objective performance data over time.
+
+Together these signals will power future filtered study modes — for example, "study only cards marked Review" or "study only cards where I've failed the conjugation question recently."
+
+---
+
+### User-Initiated Card Marks (Skip / Review)
+
+#### Behaviour
+
+After a card is fully revealed (user has tapped **More**), two mark buttons appear in the navigation bar:
+
+- **Skip** (check-circle, amber): "I know this card — skip it in future."
+- **Review** (flag, green): "I need more practice — prioritise this card."
+
+Tapping the active button a second time **clears** the mark. The two marks are mutually exclusive — activating one while the other is set switches to the new one. Marks are intentionally separate from the session's counter totals; they are a durable cross-session signal rather than a per-session statistic.
+
+#### Data Model
+
+```
+users/{userId}/cardMarks/{cardId}
+  mark:       string    — 'skip' | 'review'
+  markedAt:   timestamp — when the card was first marked (preserved on updates)
+  updatedAt:  timestamp — when the mark was last changed
+```
+
+`cardId` is used as the document ID for O(1) lookup and natural upsert semantics — writing the same document ID simply replaces the previous mark.
+
+#### Future Use
+
+- Filter study sessions to show only **Review** cards
+- Filter study sessions to exclude **Skip** cards
+- Per-set dashboard row showing how many cards are in each mark state
+
+---
+
+### Automatic Question Result Tracking
+
+#### What Is Tracked
+
+Every time a user answers an interactive field during study, the outcome is recorded automatically:
+
+| Field type | Trigger | Recorded outcome |
+|---|---|---|
+| `text_input` | User taps **Check** | `success` if answer matches `correctAnswers`; `fail` otherwise |
+| `multiple_choice` | User selects an option | `success` if selected index matches `correctIndex`; `fail` otherwise |
+| `reveal` | User taps to reveal | **Not tracked** — passive field with no checkable outcome |
+
+A **Try Again** on a text input generates a second result entry if the user re-checks — the full attempt history is captured.
+
+#### Rolling Window
+
+Each field stores the **last 5 results**, newest-first, padded with `'unseen'` until the field has been answered 5 times:
+
+```
+['success', 'fail', 'unseen', 'unseen', 'unseen']
+  ↑ most recent                           ↑ oldest / not yet attempted
+```
+
+When a new result arrives it is prepended and the oldest entry is dropped. This gives a compact, time-ordered snapshot of recent performance without unbounded storage growth.
+
+#### Data Model
+
+```
+users/{userId}/questionResults/{cardId}_{fieldId}
+  cardId:     string         — owning card
+  fieldId:    string         — which field on the card
+  fieldName:  string         — human-readable label, e.g. "Conjugation (yo)"
+  fieldType:  string         — 'text_input' | 'multiple_choice'
+  results:    array<string>  — 5 entries, newest first; values: 'success' | 'fail' | 'unseen'
+  updatedAt:  timestamp
+```
+
+The document ID `{cardId}_{fieldId}` (two Firestore auto-IDs joined with an underscore) enables an efficient **prefix range query** to fetch all results for a given card without a composite index:
+
+```dart
+.where(FieldPath.documentId, isGreaterThanOrEqualTo: '${cardId}_')
+.where(FieldPath.documentId, isLessThan:             '${cardId}_￿')
+```
+
+#### Future Use
+
+- Identify cards where a specific field has been failed repeatedly (e.g. 4 of last 5 = `fail`)
+- Filter study sessions to include only cards with at least one recent `fail`
+- Surface weak-spot analysis: "You consistently struggle with gender questions"
+- Provide input data for a future spaced-repetition scheduler
 
 ---
 

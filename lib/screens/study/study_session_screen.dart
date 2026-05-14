@@ -8,6 +8,7 @@ import 'package:flash_me/models/study_session.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_mark_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
+import 'package:flash_me/providers/question_result_provider.dart';
 import 'package:flash_me/providers/study_session_provider.dart';
 import 'package:flash_me/screens/study/study_session_summary_screen.dart';
 import 'package:flash_me/utils/constants.dart';
@@ -320,12 +321,33 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     );
   }
 
+  // Persists a success/fail outcome for an interactive field — fire-and-forget.
+  void _recordFieldResult(CardField field, bool correct) {
+    ref.read(questionResultRepositoryProvider).recordResult(
+      userId: _uid,
+      cardId: _currentCardId,
+      fieldId: field.fieldId,
+      fieldName: field.name,
+      fieldType: field.type,
+      outcome: correct ? AppConstants.resultSuccess : AppConstants.resultFail,
+    ).ignore();
+  }
+
   // Dispatch each field to its typed widget using Dart's sealed class switch.
+  // Only text_input and multiple_choice get an onResult callback — reveal
+  // fields are passive and have no checkable outcome.
   Widget _buildField(CardField field) => switch (field.content) {
         RevealContent c => _RevealFieldCard(field: field, content: c),
-        TextInputContent c => _TextInputFieldCard(field: field, content: c),
-        MultipleChoiceContent c =>
-          _MultipleChoiceFieldCard(field: field, content: c),
+        TextInputContent c => _TextInputFieldCard(
+            field: field,
+            content: c,
+            onResult: (correct) => _recordFieldResult(field, correct),
+          ),
+        MultipleChoiceContent c => _MultipleChoiceFieldCard(
+            field: field,
+            content: c,
+            onResult: (correct) => _recordFieldResult(field, correct),
+          ),
       };
 }
 
@@ -625,7 +647,10 @@ class _RevealFieldCardState extends State<_RevealFieldCard> {
 class _TextInputFieldCard extends StatefulWidget {
   final CardField field;
   final TextInputContent content;
-  const _TextInputFieldCard({required this.field, required this.content});
+  // Called once when the answer is checked — null on cards without tracking.
+  final void Function(bool correct)? onResult;
+  const _TextInputFieldCard(
+      {required this.field, required this.content, this.onResult});
 
   @override
   State<_TextInputFieldCard> createState() => _TextInputFieldCardState();
@@ -653,6 +678,7 @@ class _TextInputFieldCardState extends State<_TextInputFieldCard> {
     final correct =
         answers.any((a) => a.toLowerCase() == input.toLowerCase());
     setState(() => _result = correct);
+    widget.onResult?.call(correct);
   }
 
   void _tryAgain() {
@@ -787,8 +813,10 @@ class _TextInputFieldCardState extends State<_TextInputFieldCard> {
 class _MultipleChoiceFieldCard extends StatefulWidget {
   final CardField field;
   final MultipleChoiceContent content;
+  // Called once when the user selects an option — null on cards without tracking.
+  final void Function(bool correct)? onResult;
   const _MultipleChoiceFieldCard(
-      {required this.field, required this.content});
+      {required this.field, required this.content, this.onResult});
 
   @override
   State<_MultipleChoiceFieldCard> createState() =>
@@ -820,8 +848,12 @@ class _MultipleChoiceFieldCardState
               _OptionButton(
                 label: options[i],
                 state: _stateFor(i, correctIndex, answered),
-                onTap:
-                    answered ? null : () => setState(() => _selectedIndex = i),
+                onTap: answered
+                    ? null
+                    : () {
+                        setState(() => _selectedIndex = i);
+                        widget.onResult?.call(i == correctIndex);
+                      },
               ),
 
             // Optional explanation shown after answering.

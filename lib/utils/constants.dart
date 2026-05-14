@@ -12,10 +12,18 @@ class AppConstants {
   static const String templatesCollection = 'templates';
   static const String studySessionsSubcollection = 'studySessions';
   static const String cardMarksSubcollection = 'cardMarks'; // users/{uid}/cardMarks/{cardId}
+  static const String questionResultsSubcollection = 'questionResults'; // users/{uid}/questionResults/{cardId}_{fieldId}
 
   // Card mark values — stored in cardMarks documents.
   static const String markSkip = 'skip';
   static const String markReview = 'review';
+
+  // Question result values — stored in questionResults documents.
+  static const String resultSuccess = 'success';
+  static const String resultFail = 'fail';
+  static const String resultUnseen = 'unseen';
+  // Rolling window size for question results.
+  static const int questionResultsWindowSize = 5;
 
   // Field types
   static const String fieldTypeReveal = 'reveal';

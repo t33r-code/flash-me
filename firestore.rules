@@ -23,6 +23,11 @@ service cloud.firestore {
       match /cardMarks/{cardId} {
         allow read, write: if isUser(userId);
       }
+
+      // Per-field question results (last 5 success/fail/unseen) are private to the owning user.
+      match /questionResults/{resultId} {
+        allow read, write: if isUser(userId);
+      }
     }
 
     // setCards join documents are private to the owning user.

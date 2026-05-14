@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/flash_card.dart';
+import 'package:flash_me/repositories/card_set_repository.dart';
 import 'web_download_stub.dart' if (dart.library.html) 'web_download_web.dart';
 
 // ---------------------------------------------------------------------------
@@ -76,49 +77,93 @@ class ExportService {
           'media/${entry.key}', entry.value.length, entry.value));
     }
 
-    // ── 4. Encode ZIP ───────────────────────────────────────────────────
+    // ── 4. Encode ZIP and deliver ───────────────────────────────────────
     final zipBytes = ZipEncoder().encode(archive);
     if (zipBytes == null) throw Exception('Failed to encode ZIP archive.');
 
     final safeName = _safeName(cardSet.name);
-    final now = DateTime.now();
-    final date =
-        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
-    final fileName = '${safeName}_$date.zip';
+    final date = _dateStamp();
+    return _deliver(
+      Uint8List.fromList(zipBytes),
+      '${safeName}_$date.zip',
+      shareSubject: 'Flash Me: ${cardSet.name}',
+    );
+  }
 
-    // ── 5. Deliver to the user ──────────────────────────────────────────
-    if (kIsWeb) {
-      // Web: trigger a browser download via a temporary object URL.
-      triggerBrowserDownload(Uint8List.fromList(zipBytes), fileName);
-      return null;
-    } else if (Platform.isAndroid || Platform.isIOS) {
-      // Mobile: save to persistent local storage, then also open the share
-      // sheet so the user can forward the file to cloud storage / other apps.
-      final Directory dir;
-      if (Platform.isAndroid) {
-        // Public Downloads folder — visible in the system file manager.
-        dir = await getDownloadsDirectory() ?? await getTemporaryDirectory();
-      } else {
-        // iOS: visible in Files app under On My iPhone/{AppName}.
-        dir = await getApplicationDocumentsDirectory();
+  // Export [sets] into a single ZIP using the multi-set format.
+  // Media files are shared across sets — a card that appears in multiple sets
+  // is only downloaded once. Returns the save path on desktop, null elsewhere.
+  Future<String?> exportSets({
+    required List<CardSet> sets,
+    required String userId,
+    required CardSetRepository cardSetRepo,
+  }) async {
+    final archive = Archive();
+    final mediaBytes = <String, Uint8List>{}; // shared deduplication map
+    final rawSets = <Map<String, dynamic>>[];
+
+    for (final cardSet in sets) {
+      final cards =
+          await cardSetRepo.watchCardsInSet(cardSet.id, userId).first;
+
+      final exportCards = <Map<String, dynamic>>[];
+      for (final card in cards) {
+        String? imagePath;
+        String? audioPath;
+
+        if (card.primaryImageUrl != null) {
+          final filename =
+              _mediaFilename(card.id, 'image', card.primaryImageUrl!);
+          if (!mediaBytes.containsKey(filename)) {
+            final bytes = await _downloadBytes(card.primaryImageUrl!);
+            if (bytes != null) mediaBytes[filename] = bytes;
+          }
+          if (mediaBytes.containsKey(filename)) imagePath = 'media/$filename';
+        }
+
+        if (card.primaryAudioUrl != null) {
+          final filename =
+              _mediaFilename(card.id, 'audio', card.primaryAudioUrl!);
+          if (!mediaBytes.containsKey(filename)) {
+            final bytes = await _downloadBytes(card.primaryAudioUrl!);
+            if (bytes != null) mediaBytes[filename] = bytes;
+          }
+          if (mediaBytes.containsKey(filename)) audioPath = 'media/$filename';
+        }
+
+        exportCards.add(_cardToExportMap(card, imagePath, audioPath));
       }
-      final zipFile = File('${dir.path}/$fileName');
-      await zipFile.writeAsBytes(zipBytes);
-      // Fire the share sheet without awaiting — exportSet() can return the
-      // save path immediately for the caller's SnackBar while the sheet opens.
-      Share.shareXFiles(
-        [XFile(zipFile.path)],
-        subject: 'Flash Me: ${cardSet.name}',
-      );
-      return zipFile.path;
-    } else {
-      // Desktop: save directly to the Downloads folder.
-      final downloadsDir =
-          await getDownloadsDirectory() ?? await getTemporaryDirectory();
-      final zipFile = File('${downloadsDir.path}/$fileName');
-      await zipFile.writeAsBytes(zipBytes);
-      return zipFile.path; // caller shows a confirmation with the path
+
+      rawSets.add({
+        'name': cardSet.name,
+        if (cardSet.description != null) 'description': cardSet.description,
+        'tags': cardSet.tags,
+        if (cardSet.color != null) 'color': cardSet.color,
+        'cards': exportCards,
+      });
     }
+
+    final jsonMap = {
+      'version': '1.0',
+      'exportDate': DateTime.now().toUtc().toIso8601String(),
+      'sets': rawSets,
+    };
+    final jsonBytes = utf8.encode(jsonEncode(jsonMap));
+    archive.addFile(ArchiveFile('cards.json', jsonBytes.length, jsonBytes));
+
+    for (final entry in mediaBytes.entries) {
+      archive.addFile(
+          ArchiveFile('media/${entry.key}', entry.value.length, entry.value));
+    }
+
+    final zipBytes = ZipEncoder().encode(archive);
+    if (zipBytes == null) throw Exception('Failed to encode ZIP archive.');
+
+    return _deliver(
+      Uint8List.fromList(zipBytes),
+      'flash_me_${_dateStamp()}.zip',
+      shareSubject: 'Flash Me export',
+    );
   }
 
   // Build a clean export map — strips internal IDs and user-scoped fields.
@@ -176,4 +221,40 @@ class ExportService {
       .replaceAll(RegExp(r'[^\w\s-]'), '')
       .trim()
       .replaceAll(RegExp(r'\s+'), '_');
+
+  // Returns a YYYYMMDD date stamp for filenames.
+  String _dateStamp() {
+    final now = DateTime.now();
+    return '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+  }
+
+  // Platform-appropriate ZIP delivery. Returns the save path on desktop,
+  // null on web/mobile (browser download or share sheet).
+  Future<String?> _deliver(
+    Uint8List zipBytes,
+    String fileName, {
+    required String shareSubject,
+  }) async {
+    if (kIsWeb) {
+      triggerBrowserDownload(zipBytes, fileName);
+      return null;
+    } else if (Platform.isAndroid || Platform.isIOS) {
+      final Directory dir;
+      if (Platform.isAndroid) {
+        dir = await getDownloadsDirectory() ?? await getTemporaryDirectory();
+      } else {
+        dir = await getApplicationDocumentsDirectory();
+      }
+      final zipFile = File('${dir.path}/$fileName');
+      await zipFile.writeAsBytes(zipBytes);
+      Share.shareXFiles([XFile(zipFile.path)], subject: shareSubject);
+      return zipFile.path;
+    } else {
+      final downloadsDir =
+          await getDownloadsDirectory() ?? await getTemporaryDirectory();
+      final zipFile = File('${downloadsDir.path}/$fileName');
+      await zipFile.writeAsBytes(zipBytes);
+      return zipFile.path;
+    }
+  }
 }

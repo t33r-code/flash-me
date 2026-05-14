@@ -18,6 +18,9 @@ import 'package:flash_me/screens/study/study_session_summary_screen.dart';
 //
 // Phase 5c: Know/Don't Know marking, per-card state tracking, debounced
 // auto-save (~1 s after each action), End (pause), and session completion.
+// Phase 7:  The translation-reveal intermediate state lives inside _WordCard
+// (AnimatedCrossFade) so the word stays put. The parent only tracks whether
+// the card has been fully revealed (slide + fields + Know/Don't Know).
 // ---------------------------------------------------------------------------
 class StudySessionScreen extends ConsumerStatefulWidget {
   final StudySession session;
@@ -32,8 +35,9 @@ class StudySessionScreen extends ConsumerStatefulWidget {
 
 class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   late int _currentIndex;
-  // false = show word-only centred view; true = slide to top and show fields
-  bool _revealed = false;
+  // false = _WordCard handles word + translation-reveal internally (no slide).
+  // true  = card slides to top and additional fields appear.
+  bool _fullyRevealed = false;
   // Mutable local copy; updated on every user action and persisted via auto-save.
   late StudySession _session;
   // Debounce timer — restarted on each action, fires after 1 s to write Firestore.
@@ -71,7 +75,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     if (_currentIndex > 0) {
       setState(() {
         _currentIndex--;
-        _revealed = false;
+        _fullyRevealed = false;
         _session = _session.copyWith(currentCardIndex: _currentIndex);
       });
       _scheduleAutoSave();
@@ -84,7 +88,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
       final next = _currentIndex + 1;
       setState(() {
         _currentIndex = next;
-        _revealed = false;
+        _fullyRevealed = false;
         _session = _session.copyWith(
           currentCardIndex: next,
           // High-water mark: only grows as the user navigates forward.
@@ -102,7 +106,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   // Toggle the known / unknown mark for the current card.
   // Tapping the active button clears it; tapping the other switches to it.
   void _updateCardMark({required bool markKnown}) {
-    if (!_revealed) return;
+    if (!_fullyRevealed) return;
     final data = _currentCardData;
     final wasActive = markKnown ? data.markedKnown : data.markedUnknown;
 
@@ -254,7 +258,10 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
                       child: child,
                     ),
                   ),
-                  child: _revealed
+                  // _WordCard keeps the same key whether or not translation
+                  // is visible, so AnimatedSwitcher only fires for the
+                  // fully-revealed transition (the desired slide-in effect).
+                  child: _fullyRevealed
                       ? SingleChildScrollView(
                           key: ValueKey('$_currentIndex-revealed'),
                           padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
@@ -270,7 +277,9 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
                       : _WordCard(
                           key: ValueKey('$_currentIndex-word'),
                           card: card,
-                          onReveal: () => setState(() => _revealed = true),
+                          onMore: () =>
+                              setState(() => _fullyRevealed = true),
+                          onNext: _next,
                         ),
                 );
               },
@@ -287,8 +296,8 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
             onDontKnow: () => _updateCardMark(markKnown: false),
             isMarkedKnown: _currentCardData.markedKnown,
             isMarkedUnknown: _currentCardData.markedUnknown,
-            // Know/Don't Know is disabled until the card has been revealed.
-            canMark: _revealed,
+            // Know/Don't Know only enabled in the fully-revealed phase.
+            canMark: _fullyRevealed,
           ),
         ],
       ),
@@ -305,15 +314,19 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// _WordCard — pre-reveal view.  Fills the available space with just the
-// primary word (centred).  Calling onReveal transitions to the full field
-// list.  Handles primaryWordHidden: shows "Show Word" before the word.
+// _WordCard — handles both the pre-reveal (word only) and translation-revealed
+// (word + translation + MORE/NEXT) states internally, so the primary word
+// never moves.  AnimatedCrossFade fades the hint out and the translation in
+// below the word — no widget swap, no AnimatedSwitcher flash.
+// onMore  → parent triggers full slide-in reveal (additional fields).
+// onNext  → parent advances to the next card, leaving this card unmarked.
 // ---------------------------------------------------------------------------
 class _WordCard extends StatefulWidget {
   final FlashCard card;
-  final VoidCallback onReveal;
+  final VoidCallback onMore;
+  final VoidCallback onNext;
   const _WordCard(
-      {super.key, required this.card, required this.onReveal});
+      {super.key, required this.card, required this.onMore, required this.onNext});
 
   @override
   State<_WordCard> createState() => _WordCardState();
@@ -321,6 +334,7 @@ class _WordCard extends StatefulWidget {
 
 class _WordCardState extends State<_WordCard> {
   late bool _wordVisible;
+  bool _translationVisible = false;
 
   @override
   void initState() {
@@ -339,7 +353,10 @@ class _WordCardState extends State<_WordCard> {
         child: Card(
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            onTap: _wordVisible ? widget.onReveal : null,
+            // Tapping the card reveals the translation; disabled once visible.
+            onTap: (_wordVisible && !_translationVisible)
+                ? () => setState(() => _translationVisible = true)
+                : null,
             child: Padding(
               padding: const EdgeInsets.all(32),
               child: Column(
@@ -376,26 +393,67 @@ class _WordCardState extends State<_WordCard> {
                       label: const Text('Show Word'),
                     ),
                   ] else ...[
+                    // Word stays fixed; only the section below it animates.
                     Text(
                       card.primaryWord,
                       style: Theme.of(context).textTheme.headlineLarge,
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.touch_app_outlined,
-                            size: 18, color: scheme.onSurfaceVariant),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Tap to reveal',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(color: scheme.onSurfaceVariant),
+
+                    // "Tap to reveal" hint fades out; translation + buttons fade in.
+                    AnimatedCrossFade(
+                      duration: const Duration(milliseconds: 220),
+                      sizeCurve: Curves.easeOut,
+                      firstChild: Padding(
+                        padding: const EdgeInsets.only(top: 24),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.touch_app_outlined,
+                                size: 18, color: scheme.onSurfaceVariant),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Tap to reveal',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(color: scheme.onSurfaceVariant),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
+                      secondChild: Column(
+                        children: [
+                          const Divider(height: 32),
+                          Text(
+                            card.translation,
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(color: scheme.primary),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 28),
+                          // NEXT skips ahead unmarked; MORE enters full reveal.
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              OutlinedButton(
+                                onPressed: widget.onNext,
+                                child: const Text('Next'),
+                              ),
+                              const SizedBox(width: 16),
+                              FilledButton(
+                                onPressed: widget.onMore,
+                                child: const Text('More'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      crossFadeState: _translationVisible
+                          ? CrossFadeState.showSecond
+                          : CrossFadeState.showFirst,
                     ),
                   ],
                 ],

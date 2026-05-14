@@ -302,6 +302,12 @@ The implementation is divided into 7 phases, starting with foundational setup an
 
 ### Tasks
 
+#### Phase 7c — Study tab & study modes (complete)
+- [x] Add Study tab to bottom nav (centre position: Sets | Cards | Study | Templates | Profile); icon: `Icons.school`
+- [x] `StudyScreen` — mode card list: "Study a Set" (enabled), "Study Review" + "Study Mistakes" (disabled, "Soon" badge)
+- [x] Set-picker bottom sheet (`DraggableScrollableSheet`) on "Study a Set" tap; shows name, card count, colour accent; tapping a set navigates to `StudySetupScreen`
+- [x] Remove Study FAB from `SetDetailScreen`; replace with play-circle AppBar icon as a quick shortcut
+
 #### Phase 7a — Study flow enhancements (complete)
 - [x] Three-phase card reveal: tap word → translation fades in with MORE / NEXT buttons; MORE expands full card; mark buttons activate only after MORE
 - [x] Rename Know / Don't Know → **Skip / Review** throughout (study screen, summary screen, strings)

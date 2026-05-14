@@ -196,6 +196,12 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
               ),
             ),
           ),
+          // Quick-study shortcut — bypasses the Study tab set picker for this set.
+          IconButton(
+            icon: const Icon(Icons.play_circle_outline),
+            tooltip: 'Study this set',
+            onPressed: _study,
+          ),
         ],
       ),
       body: cardsAsync.when(
@@ -232,40 +238,11 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                 },
               ),
       ),
-      // When the set has cards: extended Study FAB (primary) + small Add FAB.
-      // When the set is empty: just the Add FAB so the user can populate it.
-      floatingActionButton: cardsAsync.maybeWhen(
-        data: (cards) => cards.isEmpty
-            ? FloatingActionButton(
-                heroTag: 'addCards',
-                onPressed: _showCardPicker,
-                tooltip: 'Add cards',
-                child: const Icon(Icons.add),
-              )
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  FloatingActionButton.small(
-                    heroTag: 'addCards',
-                    onPressed: _showCardPicker,
-                    tooltip: 'Add cards',
-                    child: const Icon(Icons.add),
-                  ),
-                  const SizedBox(height: 8),
-                  FloatingActionButton.extended(
-                    heroTag: 'study',
-                    onPressed: _study,
-                    icon: const Icon(Icons.play_arrow),
-                    label: const Text('Study'),
-                  ),
-                ],
-              ),
-        orElse: () => FloatingActionButton(
-          heroTag: 'addCards',
-          onPressed: _showCardPicker,
-          tooltip: 'Add cards',
-          child: const Icon(Icons.add),
-        ),
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'addCards',
+        onPressed: _showCardPicker,
+        tooltip: 'Add cards',
+        child: const Icon(Icons.add),
       ),
     );
   }

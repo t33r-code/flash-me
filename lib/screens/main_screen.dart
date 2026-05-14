@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flash_me/screens/sets/my_sets_screen.dart';
 import 'package:flash_me/screens/cards/my_cards_screen.dart';
+import 'package:flash_me/screens/study/study_screen.dart';
 import 'package:flash_me/screens/templates/templates_screen.dart';
 import 'package:flash_me/screens/profile_screen.dart';
 
-// Root shell — owns the BottomNavigationBar and switches between the four tabs.
+// Root shell — owns the BottomNavigationBar and switches between the five tabs.
 // IndexedStack keeps each tab's widget tree alive so scroll positions and state
 // are preserved when the user switches tabs.
 class MainScreen extends StatefulWidget {
@@ -20,6 +21,7 @@ class _MainScreenState extends State<MainScreen> {
   static const List<Widget> _tabs = [
     MySetsScreen(),
     MyCardsScreen(),
+    StudyScreen(),     // centre tab — the core use case
     TemplatesScreen(),
     ProfileScreen(),
   ];
@@ -43,6 +45,11 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.style_outlined),
             activeIcon: Icon(Icons.style),
             label: 'Cards',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.school_outlined),
+            activeIcon: Icon(Icons.school),
+            label: 'Study',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.copy_all_outlined),

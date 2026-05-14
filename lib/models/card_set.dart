@@ -14,6 +14,8 @@ class CardSet {
   final bool isPublic; // reserved for future sharing features
   final List<String> tags; // optional labels, e.g. ["verbs", "beginner"]
   final String? color; // optional hex color for UI differentiation
+  final String? nativeLanguage; // ISO 639-1 code for the user's native language
+  final String? targetLanguage; // ISO 639-1 code for the language being studied
 
   const CardSet({
     required this.id,
@@ -26,6 +28,8 @@ class CardSet {
     this.isPublic = false,
     this.tags = const [],
     this.color,
+    this.nativeLanguage,
+    this.targetLanguage,
   });
 
   factory CardSet.fromFirestore(DocumentSnapshot doc) {
@@ -41,6 +45,8 @@ class CardSet {
       isPublic: data['isPublic'] as bool? ?? false,
       tags: List<String>.from(data['tags'] as List? ?? []),
       color: data['color'] as String?,
+      nativeLanguage: data['nativeLanguage'] as String?,
+      targetLanguage: data['targetLanguage'] as String?,
     );
   }
 
@@ -54,6 +60,8 @@ class CardSet {
         'isPublic': isPublic,
         'tags': tags,
         'color': color,
+        'nativeLanguage': nativeLanguage,
+        'targetLanguage': targetLanguage,
       };
 
   Map<String, dynamic> toJson() => {
@@ -67,6 +75,8 @@ class CardSet {
         'isPublic': isPublic,
         'tags': tags,
         'color': color,
+        'nativeLanguage': nativeLanguage,
+        'targetLanguage': targetLanguage,
       };
 
   CardSet copyWith({
@@ -80,6 +90,8 @@ class CardSet {
     bool? isPublic,
     List<String>? tags,
     String? color,
+    String? nativeLanguage,
+    String? targetLanguage,
   }) =>
       CardSet(
         id: id ?? this.id,
@@ -92,5 +104,7 @@ class CardSet {
         isPublic: isPublic ?? this.isPublic,
         tags: tags ?? this.tags,
         color: color ?? this.color,
+        nativeLanguage: nativeLanguage ?? this.nativeLanguage,
+        targetLanguage: targetLanguage ?? this.targetLanguage,
       );
 }

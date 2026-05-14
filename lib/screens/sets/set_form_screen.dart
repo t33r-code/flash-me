@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
+import 'package:flash_me/widgets/language_picker.dart';
 
 // ---------------------------------------------------------------------------
 // SetFormScreen — create or edit a CardSet.
@@ -24,6 +25,8 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
 
   List<String> _tags = [];
   String? _selectedColor;
+  String? _nativeLanguage;
+  String? _targetLanguage;
   bool _isSaving = false;
 
   bool get _isEditing => widget.cardSet != null;
@@ -50,6 +53,8 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
     _descController = TextEditingController(text: s?.description ?? '');
     _tags = List.from(s?.tags ?? []);
     _selectedColor = s?.color;
+    _nativeLanguage = s?.nativeLanguage;
+    _targetLanguage = s?.targetLanguage;
   }
 
   @override
@@ -93,6 +98,8 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
           updatedAt: DateTime.now(),
           tags: _tags,
           color: _selectedColor,
+          nativeLanguage: _nativeLanguage,
+          targetLanguage: _targetLanguage,
         ));
       } else {
         await repo.updateSet(widget.cardSet!.copyWith(
@@ -102,6 +109,8 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
               : _descController.text.trim(),
           tags: _tags,
           color: _selectedColor,
+          nativeLanguage: _nativeLanguage,
+          targetLanguage: _targetLanguage,
         ));
       }
       if (mounted) Navigator.of(context).pop();
@@ -200,6 +209,23 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 3,
+              ),
+              const SizedBox(height: 20),
+
+              // --- Languages ---
+              Text('Languages',
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 12),
+              LanguagePicker(
+                label: 'Target language (being studied)',
+                value: _targetLanguage,
+                onChanged: (v) => setState(() => _targetLanguage = v),
+              ),
+              const SizedBox(height: 12),
+              LanguagePicker(
+                label: 'Native language',
+                value: _nativeLanguage,
+                onChanged: (v) => setState(() => _nativeLanguage = v),
               ),
               const SizedBox(height: 20),
 

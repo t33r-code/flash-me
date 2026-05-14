@@ -8,6 +8,7 @@ This document outlines the design for all major features of the Flash Me applica
 - [Groupings of Flash Cards (Card Sets)](#groupings-of-flash-cards-card-sets)
 - [Tag System](#tag-system)
 - [Import and Export Flash Card Sets](#import-and-export-flash-card-sets)
+- [Study Tab & Study Modes](#study-tab--study-modes)
 - [Use Flash Card Sets (CORE USE CASE)](#use-flash-card-sets-core-use-case)
 - [User Performance Tracking](#user-performance-tracking)
 - [Marketplace & Lessons — Long-Term Vision](#marketplace--lessons--long-term-vision)
@@ -826,6 +827,36 @@ spanish-verbs-export.zip
 ### Implementation Plan
 
 See [implementation roadmap — Phase 6](implementation-roadmap.md#phase-6-importexport-weeks-8-9) for the full task breakdown (6a export, 6b import core, 6c merge/bulk/polish).
+
+---
+
+## Study Tab & Study Modes
+
+### Overview
+
+Study is the core use case of Flash Me. Rather than being a secondary action buried inside a set's detail screen, it lives as a first-class tab in the main navigation bar (centre position: **Sets | Cards | Study | Templates | Profile**).
+
+### Study Mode Cards
+
+The Study tab home displays a card for each available study mode. Modes that are not yet implemented are shown in a disabled state with a "Soon" badge — the UI scales to new modes without structural changes.
+
+| Mode | Status | Description |
+|---|---|---|
+| **Study a Set** | Available | Choose a set from a bottom-sheet picker; proceeds to the session setup screen |
+| **Study Review** | Coming soon | Study only cards the user has flagged with the Review mark |
+| **Study Mistakes** | Coming soon | Drill questions the user has answered incorrectly in recent sessions |
+
+### Set Picker Flow
+
+Tapping "Study a Set" opens a `DraggableScrollableSheet` listing all the user's sets (name, card count, colour accent). Tapping a set navigates to `StudySetupScreen` which handles the Resume/New Session choice and shuffle toggle.
+
+### Quick-Study Shortcut
+
+The Set Detail screen retains a play-circle icon in the AppBar that navigates directly to `StudySetupScreen` for that set — bypassing the Study tab set picker for users who arrive at a set and want to study immediately.
+
+### Future Modes
+
+"Study Review" and "Study Mistakes" will be implemented once sufficient `cardMarks` and `questionResults` data exists to make them meaningful. Each mode generates a synthetic card set at session start (filtered from the user's full card library) and passes it to the existing `StudySetupScreen` + `StudySessionScreen` pipeline.
 
 ---
 

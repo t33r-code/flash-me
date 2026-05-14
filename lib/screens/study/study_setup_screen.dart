@@ -6,6 +6,7 @@ import 'package:flash_me/models/study_session.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/study_session_provider.dart';
+import 'package:flash_me/screens/study/study_session_history_screen.dart';
 import 'package:flash_me/screens/study/study_session_screen.dart';
 import 'package:flash_me/utils/constants.dart';
 
@@ -132,7 +133,19 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
         ref.watch(cardIdsInSetProvider(widget.cardSet.id)).asData?.value ?? [];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Study')),
+      appBar: AppBar(
+        title: const Text('Study'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: 'Session history',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) =>
+                  StudySessionHistoryScreen(cardSet: widget.cardSet),
+            )),
+          ),
+        ],
+      ),
       body: _checkingSession
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(

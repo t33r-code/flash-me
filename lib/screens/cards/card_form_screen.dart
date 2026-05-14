@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_field.dart';
+import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/card_template.dart';
 import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_provider.dart';
+import 'package:flash_me/providers/language_provider.dart';
 import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/screens/templates/template_form_screen.dart';
+import 'package:flash_me/widgets/language_picker.dart';
 
 // ---------------------------------------------------------------------------
 // _TemplatePickerSheet — bottom sheet listing the user's templates.
@@ -188,10 +191,12 @@ class _FieldState {
 // ---------------------------------------------------------------------------
 // CardFormScreen — create or edit a FlashCard.
 // Pass [card] to pre-populate the form in edit mode; omit for create mode.
+// Pass [parentSet] when creating from inside a set — its language pair is used as default.
 // ---------------------------------------------------------------------------
 class CardFormScreen extends ConsumerStatefulWidget {
   final FlashCard? card;
-  const CardFormScreen({super.key, this.card});
+  final CardSet? parentSet; // non-null when creating from a set's "add card" flow
+  const CardFormScreen({super.key, this.card, this.parentSet});
 
   @override
   ConsumerState<CardFormScreen> createState() => _CardFormScreenState();
@@ -205,6 +210,8 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
 
   List<String> _tags = [];
   final List<_FieldState> _fields = [];
+  String? _nativeLanguage;
+  String? _targetLanguage;
   bool _isSaving = false;
 
   bool get _isEditing => widget.card != null;
@@ -220,6 +227,18 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
     _tags = List.from(card?.tags ?? []);
     if (card != null) {
       _fields.addAll(card.fields.map(_FieldState.fromCardField));
+      // Edit mode: use the card's existing language pair.
+      _nativeLanguage = card.nativeLanguage;
+      _targetLanguage = card.targetLanguage;
+    } else if (widget.parentSet != null) {
+      // Creating inside a set: inherit the set's language pair.
+      _nativeLanguage = widget.parentSet!.nativeLanguage;
+      _targetLanguage = widget.parentSet!.targetLanguage;
+    } else {
+      // Creating in the Cards section: inherit from the last card this session.
+      final last = ref.read(lastUsedLanguagesProvider);
+      _nativeLanguage = last?.native;
+      _targetLanguage = last?.target;
     }
   }
 
@@ -371,10 +390,16 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
                 translation: _translationController.text.trim(),
                 fields: fields,
                 tags: _tags,
+                nativeLanguage: _nativeLanguage,
+                targetLanguage: _targetLanguage,
                 createdAt: DateTime.now(),
                 updatedAt: DateTime.now(),
                 createdBy: uid,
               ),
+            );
+        // Remember the language pair for the next card created this session.
+        ref.read(lastUsedLanguagesProvider.notifier).set(
+              (native: _nativeLanguage, target: _targetLanguage),
             );
       } else {
         await ref.read(cardRepositoryProvider).updateCard(
@@ -383,6 +408,8 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
                 translation: _translationController.text.trim(),
                 fields: fields,
                 tags: _tags,
+                nativeLanguage: _nativeLanguage,
+                targetLanguage: _targetLanguage,
               ),
             );
       }
@@ -711,6 +738,23 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
                 validator: (v) => v?.trim().isEmpty ?? true
                     ? 'Translation is required'
                     : null,
+              ),
+
+              // --- Languages ---
+              const SizedBox(height: 24),
+              Text('Languages',
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 12),
+              LanguagePicker(
+                label: 'Target language (being studied)',
+                value: _targetLanguage,
+                onChanged: (v) => setState(() => _targetLanguage = v),
+              ),
+              const SizedBox(height: 12),
+              LanguagePicker(
+                label: 'Native language',
+                value: _nativeLanguage,
+                onChanged: (v) => setState(() => _nativeLanguage = v),
               ),
 
               // --- Tags ---

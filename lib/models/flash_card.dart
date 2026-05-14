@@ -15,6 +15,8 @@ class FlashCard {
   final List<CardField> fields; // additional fields (reveal, text input, multiple choice)
   final String? templateId; // optional: which template this card was created from
   final List<String> tags; // user-defined labels for search and filtering in My Cards
+  final String? nativeLanguage; // ISO 639-1 code for the user's native language, e.g. 'en'
+  final String? targetLanguage; // ISO 639-1 code for the language being studied, e.g. 'es'
   final DateTime createdAt;
   final DateTime updatedAt;
   final String createdBy; // uid of the owning user
@@ -29,6 +31,8 @@ class FlashCard {
     required this.fields,
     this.templateId,
     this.tags = const [],
+    this.nativeLanguage,
+    this.targetLanguage,
     required this.createdAt,
     required this.updatedAt,
     required this.createdBy,
@@ -50,6 +54,8 @@ class FlashCard {
           .toList(),
       templateId: data['templateId'] as String?,
       tags: List<String>.from(data['tags'] as List? ?? []),
+      nativeLanguage: data['nativeLanguage'] as String?,
+      targetLanguage: data['targetLanguage'] as String?,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       updatedAt: (data['updatedAt'] as Timestamp).toDate(),
       createdBy: data['createdBy'] as String? ?? '',
@@ -66,6 +72,8 @@ class FlashCard {
         'fields': fields.map((f) => f.toJson()).toList(),
         'templateId': templateId,
         'tags': tags,
+        'nativeLanguage': nativeLanguage,
+        'targetLanguage': targetLanguage,
         'createdAt': Timestamp.fromDate(createdAt),
         'updatedAt': Timestamp.fromDate(updatedAt),
         'createdBy': createdBy,
@@ -84,6 +92,8 @@ class FlashCard {
         'fields': fields.map((f) => f.toJson()).toList(),
         'templateId': templateId,
         'tags': tags,
+        'nativeLanguage': nativeLanguage,
+        'targetLanguage': targetLanguage,
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
         'createdBy': createdBy,
@@ -99,6 +109,8 @@ class FlashCard {
     List<CardField>? fields,
     String? templateId,
     List<String>? tags,
+    String? nativeLanguage,
+    String? targetLanguage,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? createdBy,
@@ -113,6 +125,8 @@ class FlashCard {
         fields: fields ?? this.fields,
         templateId: templateId ?? this.templateId,
         tags: tags ?? this.tags,
+        nativeLanguage: nativeLanguage ?? this.nativeLanguage,
+        targetLanguage: targetLanguage ?? this.targetLanguage,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
         createdBy: createdBy ?? this.createdBy,

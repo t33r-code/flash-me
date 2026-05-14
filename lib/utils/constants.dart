@@ -11,6 +11,11 @@ class AppConstants {
   static const String setCardsCollection = 'setCards'; // many-to-many join: set ↔ card
   static const String templatesCollection = 'templates';
   static const String studySessionsSubcollection = 'studySessions';
+  static const String cardMarksSubcollection = 'cardMarks'; // users/{uid}/cardMarks/{cardId}
+
+  // Card mark values — stored in cardMarks documents.
+  static const String markSkip = 'skip';
+  static const String markReview = 'review';
 
   // Field types
   static const String fieldTypeReveal = 'reveal';
@@ -85,8 +90,8 @@ class AppStrings {
   static const String newSession = 'New Session';
   static const String nextCard = 'Next';
   static const String previousCard = 'Previous';
-  static const String know = 'Know';
-  static const String dontKnow = "Don't Know";
+  static const String skip = 'Skip';
+  static const String review = 'Review';
   static const String checkAnswer = 'Check Answer';
   static const String showAnswer = 'Show Answer';
   static const String correct = 'Correct!';

@@ -6,9 +6,11 @@ import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/models/study_session.dart';
 import 'package:flash_me/providers/auth_provider.dart';
+import 'package:flash_me/providers/card_mark_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/study_session_provider.dart';
 import 'package:flash_me/screens/study/study_session_summary_screen.dart';
+import 'package:flash_me/utils/constants.dart';
 
 // ---------------------------------------------------------------------------
 // StudySessionScreen — displays one card at a time from a StudySession.
@@ -103,19 +105,21 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     }
   }
 
-  // Toggle the known / unknown mark for the current card.
+  // Toggle the Skip / Review mark for the current card.
   // Tapping the active button clears it; tapping the other switches to it.
-  void _updateCardMark({required bool markKnown}) {
+  // The mark is also persisted to users/{uid}/cardMarks/{cardId} for use
+  // by future filtered study modes.
+  void _updateCardMark({required bool markSkip}) {
     if (!_fullyRevealed) return;
     final data = _currentCardData;
-    final wasActive = markKnown ? data.markedKnown : data.markedUnknown;
+    final wasActive = markSkip ? data.markedKnown : data.markedUnknown;
 
-    final newKnown = markKnown ? !wasActive : false;
-    final newUnknown = !markKnown ? !wasActive : false;
+    final newSkip = markSkip ? !wasActive : false;
+    final newReview = !markSkip ? !wasActive : false;
 
     final updated = Map<String, CardSessionData>.from(_session.cardProgress);
     updated[_currentCardId] =
-        data.copyWith(markedKnown: newKnown, markedUnknown: newUnknown);
+        data.copyWith(markedKnown: newSkip, markedUnknown: newReview);
 
     // Recount totals from the full progress map after the change.
     int known = 0, unknown = 0;
@@ -131,6 +135,18 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
         cardsUnknown: unknown,
       );
     });
+
+    // Persist the mark globally — fire-and-forget, errors don't interrupt study.
+    final repo = ref.read(cardMarkRepositoryProvider);
+    final cardId = _currentCardId;
+    if (newSkip) {
+      repo.setMark(_uid, cardId, AppConstants.markSkip).ignore();
+    } else if (newReview) {
+      repo.setMark(_uid, cardId, AppConstants.markReview).ignore();
+    } else {
+      repo.removeMark(_uid, cardId).ignore();
+    }
+
     _scheduleAutoSave();
   }
 
@@ -292,10 +308,10 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
             total: _total,
             onPrevious: _previous,
             onNext: _next,
-            onKnow: () => _updateCardMark(markKnown: true),
-            onDontKnow: () => _updateCardMark(markKnown: false),
-            isMarkedKnown: _currentCardData.markedKnown,
-            isMarkedUnknown: _currentCardData.markedUnknown,
+            onSkip: () => _updateCardMark(markSkip: true),
+            onReview: () => _updateCardMark(markSkip: false),
+            isMarkedSkip: _currentCardData.markedKnown,
+            isMarkedReview: _currentCardData.markedUnknown,
             // Know/Don't Know only enabled in the fully-revealed phase.
             canMark: _fullyRevealed,
           ),
@@ -891,7 +907,7 @@ class _OptionButton extends StatelessWidget {
 
 // ---------------------------------------------------------------------------
 // _NavigationBar — Previous / Next (→ Finish on last card) with a counter,
-// plus Know / Don't Know marking buttons.
+// plus Skip / Review marking buttons.
 // ---------------------------------------------------------------------------
 class _NavigationBar extends StatelessWidget {
   final int currentIndex;
@@ -899,11 +915,11 @@ class _NavigationBar extends StatelessWidget {
   final VoidCallback onPrevious;
   // Also fires session completion when currentIndex == total - 1.
   final VoidCallback onNext;
-  final VoidCallback onKnow;
-  final VoidCallback onDontKnow;
-  final bool isMarkedKnown;
-  final bool isMarkedUnknown;
-  // Marking is disabled until the card has been revealed.
+  final VoidCallback onSkip;
+  final VoidCallback onReview;
+  final bool isMarkedSkip;
+  final bool isMarkedReview;
+  // Marking is disabled until the card has been fully revealed.
   final bool canMark;
 
   const _NavigationBar({
@@ -911,10 +927,10 @@ class _NavigationBar extends StatelessWidget {
     required this.total,
     required this.onPrevious,
     required this.onNext,
-    required this.onKnow,
-    required this.onDontKnow,
-    required this.isMarkedKnown,
-    required this.isMarkedUnknown,
+    required this.onSkip,
+    required this.onReview,
+    required this.isMarkedSkip,
+    required this.isMarkedReview,
     required this.canMark,
   });
 
@@ -933,26 +949,26 @@ class _NavigationBar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Know / Don't Know row ────────────────────────────────────
+          // ── Review / Skip row ────────────────────────────────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _MarkButton(
-                label: "Don't Know",
+                label: 'Review',
                 icon: Icons.thumb_down_outlined,
                 activeIcon: Icons.thumb_down,
-                isActive: isMarkedUnknown,
+                isActive: isMarkedReview,
                 activeColor: Theme.of(context).colorScheme.error,
-                onTap: canMark ? onDontKnow : null,
+                onTap: canMark ? onReview : null,
               ),
               const SizedBox(width: 32),
               _MarkButton(
-                label: 'Know',
+                label: 'Skip',
                 icon: Icons.thumb_up_outlined,
                 activeIcon: Icons.thumb_up,
-                isActive: isMarkedKnown,
+                isActive: isMarkedSkip,
                 activeColor: Colors.green[700]!,
-                onTap: canMark ? onKnow : null,
+                onTap: canMark ? onSkip : null,
               ),
             ],
           ),

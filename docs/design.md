@@ -163,6 +163,8 @@ cards/{cardId}
     - type: enum (reveal, text_input, multiple_choice)
     - content: object (varies by type; answer fields are nullable so templates reuse this same model)
   - templateId: string (optional, reference to template used)
+  - nativeLanguage: string? (optional, ISO 639-1 code for the user's reading language, e.g. 'en')
+  - targetLanguage: string? (optional, ISO 639-1 code for the language being studied, e.g. 'es')
   - createdAt: timestamp
   - updatedAt: timestamp
   - createdBy: userId
@@ -170,6 +172,23 @@ cards/{cardId}
 Set membership is tracked in `setCards` (see Card-Set Relationship below), not on the card document itself.
 
 **Media lifecycle:** When a card is deleted, `firebase_card_repository` fetches the card document first, deletes both Storage files (if present) via `refFromURL`, then removes all `setCards` links and the card document in a Firestore batch. Deletion errors on Storage files are logged as warnings and do not block the card deletion.
+
+#### Card Language Pair
+
+Each card (and each set) carries an optional language pair: **`nativeLanguage`** (the user's reading language) and **`targetLanguage`** (the language being studied). Both are ISO 639-1 two-letter codes (e.g. `'en'`, `'es'`, `'ja'`).
+
+**Design decision — language on the card, not inferred from content:** A user learning multiple languages will create cards and sets in different target languages. Tagging the card itself (rather than relying on set membership) makes each card self-describing — a card remains correctly identified even if it appears in multiple sets or in a future auto-generated "Review" set. The same pair is also stored on the set as a default for new cards.
+
+**Default inheritance when creating a card:**
+1. If the card is created from inside a set (future set-level creation flow), it inherits the set's language pair.
+2. If the card is created in the Cards section (no parent set), it inherits from the last card created this session.
+3. If neither applies (first card this session), the pickers default to "Not set" and the user fills them in.
+
+**UI:** A `LanguagePicker` widget opens a searchable bottom sheet listing 74 ISO 639-1 languages. The user can filter by typing either the language name (e.g. "Spanish") or its code (e.g. "es"). Current selection is highlighted; "Not set" is always available at the top. The session-level default is stored in `lastUsedLanguagesProvider` (in-memory, not persisted across app launches).
+
+**Future use:** Language pair will be used to filter study sessions by language (e.g. "only study Spanish cards"), to group cards in auto-generated Review/problem sets, and to display correctly in a future marketplace where content is discoverable by target language.
+
+**Templates do not carry a language pair.** Templates define field structure only; the language is a property of the content (card or set), not the structure.
 
 #### Card Templates
 - Templates are reusable field configurations
@@ -274,6 +293,8 @@ sets/{setId}
   - cloneable: boolean (default false; isPublic must be true; creator must explicitly opt in)
   - tags: array<string> (optional, for organization: ["verbs", "regular"])
   - color: string (optional, for UI differentiation)
+  - nativeLanguage: string? (optional, ISO 639-1 code; inherited by cards created within this set)
+  - targetLanguage: string? (optional, ISO 639-1 code; inherited by cards created within this set)
 ```
 
 #### Set Description Format
@@ -691,6 +712,8 @@ spanish-verbs-export.zip
     "description": "Regular and irregular verbs",
     "tags": ["verbs", "regular"],
     "color": "#FF5733",
+    "nativeLanguage": "en",
+    "targetLanguage": "es",
     "cards": [
       {
         "primaryWord": "hablar",
@@ -698,6 +721,8 @@ spanish-verbs-export.zip
         "primaryImageUrl": "media/hablar.png",
         "primaryAudioUrl": "media/hablar.mp3",
         "primaryWordHidden": false,
+        "nativeLanguage": "en",
+        "targetLanguage": "es",
         "fields": [
           {
             "name": "Conjugation (yo)",
@@ -888,8 +913,8 @@ users/{userId}/studySessions/{sessionId}
 ├─────────────────────────────────────┤
 │ PRIMARY FIELD (Foreign Language)     │
 │  ┌─────────────────────────────────┐ │
-│  │ hablar                          │ │ Click to reveal translation
-│  │ [Click to show translation]     │ │
+│  │ hablar                          │ │ Phase 1: tap reveals translation
+│  │ 👆 Tap to reveal                │ │
 │  └─────────────────────────────────┘ │
 │                                       │
 │ ADDITIONAL FIELDS                     │
@@ -915,12 +940,16 @@ users/{userId}/studySessions/{sessionId}
 └─────────────────────────────────────┘
 ```
 
-**Primary Field Display:**
-- Displays foreign language word prominently
-- Initially shows: "Click to show translation"
-- On click: Reveals native language translation
-- After revealed: User can see both words
-- Not timed; user controls when to reveal
+**Primary Field Display (Three-Phase Reveal):**
+
+The primary field reveal is a three-step progression that keeps the word visually stable while progressively exposing more content:
+
+- **Phase 1 — Word shown:** Primary word displayed prominently; a "Tap to reveal" hint appears beneath it. Additional fields are not yet visible.
+- **On tap → Phase 2 — Translation revealed:** The translation fades in below the word in-place (the word does not move). Two buttons appear:
+  - **NEXT** — advance to the next card without interacting with any additional fields and without marking the card.
+  - **MORE** — expand to the full card view.
+- **Phase 3 — Fully revealed:** All additional fields slide in and become interactive. Skip / Review mark buttons in the navigation bar become active. The user can answer text input and multiple choice fields, and mark the card.
+- Not timed; the user controls each reveal step.
 
 **Reveal-on-Click Field:**
 - Shows label/question

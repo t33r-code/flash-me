@@ -302,6 +302,23 @@ The implementation is divided into 7 phases, starting with foundational setup an
 
 ### Tasks
 
+#### Phase 7a — Study flow enhancements (complete)
+- [x] Three-phase card reveal: tap word → translation fades in with MORE / NEXT buttons; MORE expands full card; mark buttons activate only after MORE
+- [x] Rename Know / Don't Know → **Skip / Review** throughout (study screen, summary screen, strings)
+- [x] Skip / Review icons: Skip = check-circle (amber), Review = flag (green)
+- [x] `users/{uid}/cardMarks/{cardId}` Firestore subcollection — durable cross-session card marks; fire-and-forget upsert preserving original `markedAt`
+- [x] Question result tracking — rolling 5-result window (`success` / `fail` / `unseen`, newest-first) stored at `users/{uid}/questionResults/{cardId}_{fieldId}`; tracked for `text_input` and `multiple_choice` fields; `reveal` fields excluded
+- [x] `QuestionResultRepository` + `FirebaseQuestionResultRepository`; prefix range query for per-card lookup without a composite index
+- [x] Deploy updated Firestore rules for `cardMarks` and `questionResults` subcollections
+
+#### Phase 7b — Language pair on cards and sets (complete)
+- [x] Add `nativeLanguage` + `targetLanguage` (ISO 639-1 string, nullable) to `FlashCard` and `CardSet` models, Firestore serialization, and JSON export
+- [x] `lib/utils/languages.dart` — curated list of 74 ISO 639-1 languages (`kLanguages`) + `languageName(code)` lookup
+- [x] `LanguagePicker` widget — searchable bottom sheet (`DraggableScrollableSheet`) with autofocus search field filtering by name or code; current selection highlighted; "Not set" always pinned at top
+- [x] Language pickers added to `CardFormScreen` and `SetFormScreen`
+- [x] Default language inheritance: card created inside a set inherits set's language pair; card created in the Cards section inherits from `lastUsedLanguagesProvider` (last card saved this session)
+- [x] One-shot admin script (`scripts/seed_languages.js`) to back-fill language fields on existing Firestore documents
+
 #### UI/UX Polish
 - [ ] Review all screens for visual consistency
 - [ ] Improve error messages and user feedback

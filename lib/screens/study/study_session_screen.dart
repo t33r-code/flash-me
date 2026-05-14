@@ -408,11 +408,14 @@ class _WordCardState extends State<_WordCard> {
                         height: 180,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => const SizedBox(
+                        errorBuilder: (ctx, _, _) => SizedBox(
                           height: 80,
                           child: Center(
                             child: Icon(Icons.broken_image_outlined,
-                                size: 40, color: Colors.grey),
+                                size: 40,
+                                color: Theme.of(ctx)
+                                    .colorScheme
+                                    .onSurfaceVariant),
                           ),
                         ),
                       ),
@@ -532,11 +535,14 @@ class _PrimaryFieldCard extends StatelessWidget {
                   height: 140,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => const SizedBox(
+                  errorBuilder: (ctx, _, _) => SizedBox(
                     height: 60,
                     child: Center(
                       child: Icon(Icons.broken_image_outlined,
-                          size: 32, color: Colors.grey),
+                          size: 32,
+                          color: Theme.of(ctx)
+                              .colorScheme
+                              .onSurfaceVariant),
                     ),
                   ),
                 ),

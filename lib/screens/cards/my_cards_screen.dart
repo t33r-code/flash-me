@@ -78,46 +78,59 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.style_outlined, size: 80, color: Colors.grey),
-          const SizedBox(height: 16),
-          Text('My Cards', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Text(
-            'No cards yet. Tap + to create your first card.',
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: Colors.grey),
-            textAlign: TextAlign.center,
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.style_outlined, size: 80, color: onSurfaceVariant),
+            const SizedBox(height: 16),
+            Text('My Cards', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            Text(
+              'No cards yet. Tap + to create your first card.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: onSurfaceVariant),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// Single card row: shows primary word, translation, and first tag if any.
+// Single card row: shows primary word, translation, first tag (if any), and chevron.
 class _CardTile extends StatelessWidget {
   final FlashCard card;
   const _CardTile({required this.card});
 
   @override
   Widget build(BuildContext context) {
+    final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
         title: Text(card.primaryWord),
         subtitle: Text(card.translation),
-        trailing: card.tags.isNotEmpty
-            ? Chip(
+        // Tag chip (if any) + chevron side by side in trailing.
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (card.tags.isNotEmpty) ...[
+              Chip(
                 label: Text(card.tags.first),
                 visualDensity: VisualDensity.compact,
-              )
-            : null,
+              ),
+              const SizedBox(width: 4),
+            ],
+            Icon(Icons.chevron_right, size: 20, color: onSurfaceVariant),
+          ],
+        ),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => CardFormScreen(card: card),

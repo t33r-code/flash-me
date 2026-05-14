@@ -45,14 +45,15 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.library_books_outlined,
-                size: 80, color: Colors.grey),
+            Icon(Icons.library_books_outlined,
+                size: 80, color: onSurfaceVariant),
             const SizedBox(height: 16),
             Text('No sets yet',
                 style: Theme.of(context).textTheme.titleLarge),
@@ -62,7 +63,7 @@ class _EmptyState extends StatelessWidget {
               style: Theme.of(context)
                   .textTheme
                   .bodyMedium
-                  ?.copyWith(color: Colors.grey),
+                  ?.copyWith(color: onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
           ],
@@ -182,7 +183,7 @@ class _SetTile extends StatelessWidget {
                         ),
                       ],
 
-                      // Tags + last updated.
+                      // Tags + language pair + last updated.
                       const SizedBox(height: 6),
                       Row(
                         children: [
@@ -214,7 +215,24 @@ class _SetTile extends StatelessWidget {
                           ] else
                             const Spacer(),
 
+                          // Language pair badge (target → native), shown when set.
+                          if (cardSet.targetLanguage != null &&
+                              cardSet.nativeLanguage != null) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              '${cardSet.targetLanguage!.toUpperCase()} → ${cardSet.nativeLanguage!.toUpperCase()}',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant),
+                            ),
+                          ],
+
                           // Last updated date.
+                          const SizedBox(width: 8),
                           Text(
                             _relativeDate(cardSet.updatedAt),
                             style: Theme.of(context)

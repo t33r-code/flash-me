@@ -13,7 +13,7 @@ import 'package:flash_me/screens/templates/template_form_screen.dart';
 import 'package:flash_me/widgets/language_picker.dart';
 
 // ---------------------------------------------------------------------------
-// _TemplatePickerSheet — bottom sheet listing the user's templates.
+// _TemplatePickerSheet — draggable bottom sheet listing the user's templates.
 // Returns the selected CardTemplate via Navigator.pop.
 // ---------------------------------------------------------------------------
 class _TemplatePickerSheet extends StatelessWidget {
@@ -22,39 +22,55 @@ class _TemplatePickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text('Choose a template',
-              style: Theme.of(context).textTheme.titleMedium),
-        ),
-        const Divider(height: 1),
-        Flexible(
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: templates.length,
-            itemBuilder: (ctx, i) {
-              final t = templates[i];
-              final fieldCount = t.fields.length;
-              return ListTile(
-                leading: const Icon(Icons.copy_all_outlined),
-                title: Text(t.name),
-                subtitle: Text(
-                  t.description ??
-                      '$fieldCount field${fieldCount == 1 ? '' : 's'}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                onTap: () => Navigator.of(ctx).pop(t),
-              );
-            },
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.5,
+      minChildSize: 0.3,
+      maxChildSize: 0.9,
+      builder: (ctx, scrollController) => Column(
+        children: [
+          // Drag handle + title.
+          const SizedBox(height: 8),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.outlineVariant,
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-      ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Text('Choose a template',
+                style: Theme.of(context).textTheme.titleMedium),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: ListView.builder(
+              controller: scrollController,
+              itemCount: templates.length,
+              itemBuilder: (_, i) {
+                final t = templates[i];
+                final fieldCount = t.fields.length;
+                final fieldLabel =
+                    '$fieldCount field${fieldCount == 1 ? '' : 's'}';
+                return ListTile(
+                  leading: const Icon(Icons.copy_all_outlined),
+                  title: Text(t.name),
+                  subtitle: Text(
+                    t.description != null
+                        ? '${t.description}  ·  $fieldLabel'
+                        : fieldLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  onTap: () => Navigator.of(ctx).pop(t),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -285,6 +301,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
 
     final selected = await showModalBottomSheet<CardTemplate>(
       context: context,
+      isScrollControlled: true,
       builder: (_) => _TemplatePickerSheet(templates: templates),
     );
     if (selected == null || !mounted) return;

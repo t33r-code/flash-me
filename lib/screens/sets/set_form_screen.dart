@@ -210,7 +210,7 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
                 ),
                 maxLines: 3,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // --- Languages ---
               Text('Languages',
@@ -227,13 +227,13 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
                 value: _nativeLanguage,
                 onChanged: (v) => setState(() => _nativeLanguage = v),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // --- Colour ---
               Text('Colour', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
               _buildColorPicker(),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // --- Tags ---
               Text('Tags', style: Theme.of(context).textTheme.titleMedium),

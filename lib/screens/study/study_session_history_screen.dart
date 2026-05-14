@@ -79,7 +79,6 @@ class _SessionHistoryTile extends StatelessWidget {
         session.status == AppConstants.sessionStatusCompleted;
     final studied = session.totalCardsStudied;
     final total = session.cardSequence.length;
-    final known = session.cardsKnown;
     final duration = _formatDuration(session.sessionStats.totalTimeSpent);
 
     return Card(
@@ -118,19 +117,13 @@ class _SessionHistoryTile extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 6),
-            // Stats: cards · known · time
+            // Stats: cards · time
             Row(
               children: [
                 Icon(Icons.style_outlined,
                     size: 14, color: scheme.onSurfaceVariant),
                 const SizedBox(width: 4),
                 Text('$studied / $total cards',
-                    style: Theme.of(context).textTheme.bodySmall),
-                const SizedBox(width: 16),
-                Icon(Icons.thumb_up_outlined,
-                    size: 14, color: Colors.green[600]),
-                const SizedBox(width: 4),
-                Text('$known known',
                     style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(width: 16),
                 Icon(Icons.timer_outlined,

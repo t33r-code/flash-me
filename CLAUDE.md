@@ -6,6 +6,8 @@ A multi-platform Flutter flashcard app for language learning. Cards have a prima
 Full feature specifications: `docs/design.md`
 Implementation progress: `docs/implementation-roadmap.md`
 
+> **Documentation discipline:** Whenever implementation diverges from or extends the original design — new fields, changed behaviour, renamed concepts, new data models — update **both** `docs/design.md` and `docs/implementation-roadmap.md` in the same branch and commit as the code change. The two documents must stay in sync with each other and with the codebase at all times.
+
 ---
 
 ## Tech stack

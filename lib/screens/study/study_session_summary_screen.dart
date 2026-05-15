@@ -8,6 +8,7 @@ import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/study_session_provider.dart';
 import 'package:flash_me/screens/study/study_session_screen.dart';
 import 'package:flash_me/utils/constants.dart';
+import 'package:flash_me/utils/transitions.dart';
 
 // ---------------------------------------------------------------------------
 // StudySessionSummaryScreen — shown immediately after session completion.
@@ -32,10 +33,45 @@ class StudySessionSummaryScreen extends ConsumerStatefulWidget {
 }
 
 class _StudySessionSummaryScreenState
-    extends ConsumerState<StudySessionSummaryScreen> {
+    extends ConsumerState<StudySessionSummaryScreen>
+    with SingleTickerProviderStateMixin {
   bool _starting = false;
 
+  late final AnimationController _animController;
+  // Three staggered sections: hero icon+title, stats card, action buttons.
+  late final Animation<double> _heroAnim;
+  late final Animation<double> _statsAnim;
+  late final Animation<double> _actionsAnim;
+
   String get _uid => ref.read(authStateProvider).asData?.value ?? '';
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _heroAnim = CurvedAnimation(
+      parent: _animController,
+      curve: const Interval(0.0, 0.55, curve: Curves.easeOut),
+    );
+    _statsAnim = CurvedAnimation(
+      parent: _animController,
+      curve: const Interval(0.2, 0.75, curve: Curves.easeOut),
+    );
+    _actionsAnim = CurvedAnimation(
+      parent: _animController,
+      curve: const Interval(0.4, 1.0, curve: Curves.easeOut),
+    );
+    _animController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
 
   // Format milliseconds as "Xm Ys" or just "Ys" for short sessions.
   String _formatDuration(int ms) {
@@ -92,12 +128,10 @@ class _StudySessionSummaryScreenState
 
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => StudySessionScreen(
-              session: newSession,
-              cardSet: widget.cardSet,
-            ),
-          ),
+          studyEnterRoute(StudySessionScreen(
+            session: newSession,
+            cardSet: widget.cardSet,
+          )),
         );
       }
     } catch (_) {
@@ -109,6 +143,20 @@ class _StudySessionSummaryScreenState
         setState(() => _starting = false);
       }
     }
+  }
+
+  // Wraps a child in a fade + upward slide driven by [anim].
+  Widget _animated(Animation<double> anim, Widget child) {
+    return FadeTransition(
+      opacity: anim,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.06),
+          end: Offset.zero,
+        ).animate(anim),
+        child: child,
+      ),
+    );
   }
 
   @override
@@ -141,47 +189,58 @@ class _StudySessionSummaryScreenState
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // ── Hero area ────────────────────────────────────────────────
-            Icon(Icons.check_circle_outline, size: 80, color: scheme.primary),
-            const SizedBox(height: 12),
-            Text(
-              widget.cardSet.name,
-              style: Theme.of(context).textTheme.headlineSmall,
-              textAlign: TextAlign.center,
+            _animated(
+              _heroAnim,
+              Column(
+                children: [
+                  Icon(Icons.check_circle_outline,
+                      size: 80, color: scheme.primary),
+                  const SizedBox(height: 12),
+                  Text(
+                    widget.cardSet.name,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 32),
 
             // ── Stats card ───────────────────────────────────────────────
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    _StatRow(
-                      icon: Icons.style_outlined,
-                      label: 'Cards studied',
-                      value: '$studied',
-                    ),
-                    const Divider(height: 24),
-                    _StatRow(
-                      icon: Icons.check_circle_outline,
-                      iconColor: Colors.amber[700],
-                      label: 'Skip',
-                      value: '$known  ($knownPct%)',
-                    ),
-                    const SizedBox(height: 8),
-                    _StatRow(
-                      icon: Icons.flag_outlined,
-                      iconColor: Colors.green[700],
-                      label: 'Review',
-                      value: '$unknown  ($unknownPct%)',
-                    ),
-                    const Divider(height: 24),
-                    _StatRow(
-                      icon: Icons.timer_outlined,
-                      label: 'Time',
-                      value: duration,
-                    ),
-                  ],
+            _animated(
+              _statsAnim,
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      _StatRow(
+                        icon: Icons.style_outlined,
+                        label: 'Cards studied',
+                        value: '$studied',
+                      ),
+                      const Divider(height: 24),
+                      _StatRow(
+                        icon: Icons.check_circle_outline,
+                        iconColor: Colors.amber[700],
+                        label: 'Skip',
+                        value: '$known  ($knownPct%)',
+                      ),
+                      const SizedBox(height: 8),
+                      _StatRow(
+                        icon: Icons.flag_outlined,
+                        iconColor: Colors.green[700],
+                        label: 'Review',
+                        value: '$unknown  ($unknownPct%)',
+                      ),
+                      const Divider(height: 24),
+                      _StatRow(
+                        icon: Icons.timer_outlined,
+                        label: 'Time',
+                        value: duration,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -189,22 +248,30 @@ class _StudySessionSummaryScreenState
             const SizedBox(height: 32),
 
             // ── Actions ──────────────────────────────────────────────────
-            FilledButton.icon(
-              onPressed: _starting ? null : _studyAgain,
-              icon: _starting
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.replay),
-              label: const Text('Study Again'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: _starting ? null : () => Navigator.of(context).pop(),
-              child: const Text('Done'),
+            _animated(
+              _actionsAnim,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  FilledButton.icon(
+                    onPressed: _starting ? null : _studyAgain,
+                    icon: _starting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.replay),
+                    label: const Text('Study Again'),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: _starting ? null : () => Navigator.of(context).pop(),
+                    child: const Text('Done'),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

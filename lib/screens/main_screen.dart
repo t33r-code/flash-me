@@ -29,7 +29,20 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _tabs),
+      // Stack + AnimatedOpacity preserves each tab's state (equivalent to
+      // IndexedStack) while crossfading between them on tab switch.
+      body: Stack(
+        fit: StackFit.expand,
+        children: List.generate(_tabs.length, (i) => AnimatedOpacity(
+          opacity: i == _selectedIndex ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          child: IgnorePointer(
+            ignoring: i != _selectedIndex,
+            child: _tabs[i],
+          ),
+        )),
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (i) => setState(() => _selectedIndex = i),

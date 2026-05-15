@@ -110,9 +110,12 @@ class _SetTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        cardSet.color != null ? _hexColor(cardSet.color!) : null;
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final color = cardSet.color != null ? _hexColor(cardSet.color!) : null;
     final count = cardSet.cardCount;
+    final hasLanguage =
+        cardSet.targetLanguage != null && cardSet.nativeLanguage != null;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -133,120 +136,86 @@ class _SetTile extends StatelessWidget {
               else
                 const SizedBox(width: 6),
 
-              // Set info.
+              // Left: name, description, tags.
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+                  padding: const EdgeInsets.fromLTRB(12, 12, 8, 10),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Name + card count on the same row.
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              cardSet.name,
-                              style: Theme.of(context).textTheme.titleMedium,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '$count card${count == 1 ? '' : 's'}',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant),
-                          ),
-                        ],
+                      Text(
+                        cardSet.name,
+                        style: textTheme.titleMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-
-                      // Description (if present).
                       if (cardSet.description != null &&
                           cardSet.description!.isNotEmpty) ...[
                         const SizedBox(height: 2),
                         Text(
                           cardSet.description!,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant),
+                          style: textTheme.bodySmall
+                              ?.copyWith(color: scheme.onSurfaceVariant),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
-
-                      // Tags + language pair + last updated.
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          // Tags as compact chips (up to 3 shown).
-                          if (cardSet.tags.isNotEmpty) ...[
-                            Expanded(
-                              child: Wrap(
-                                spacing: 4,
-                                runSpacing: 0,
-                                children: cardSet.tags
-                                    .take(3)
-                                    .map(
-                                      (tag) => Chip(
-                                        label: Text(tag),
-                                        labelStyle: Theme.of(context)
-                                            .textTheme
-                                            .labelSmall,
-                                        padding: EdgeInsets.zero,
-                                        materialTapTargetSize:
-                                            MaterialTapTargetSize
-                                                .shrinkWrap,
-                                        visualDensity:
-                                            VisualDensity.compact,
-                                      ),
-                                    )
-                                    .toList(),
-                              ),
-                            ),
-                          ] else
-                            const Spacer(),
-
-                          // Language pair badge (target → native), shown when set.
-                          if (cardSet.targetLanguage != null &&
-                              cardSet.nativeLanguage != null) ...[
-                            const SizedBox(width: 8),
-                            Text(
-                              '${cardSet.targetLanguage!.toUpperCase()} → ${cardSet.nativeLanguage!.toUpperCase()}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
-                                  ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant),
-                            ),
-                          ],
-
-                          // Last updated date.
-                          const SizedBox(width: 8),
-                          Text(
-                            _relativeDate(cardSet.updatedAt),
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant),
-                          ),
-                        ],
-                      ),
+                      if (cardSet.tags.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 0,
+                          children: cardSet.tags
+                              .take(3)
+                              .map((tag) => Chip(
+                                    label: Text(tag),
+                                    labelStyle: textTheme.labelSmall,
+                                    padding: EdgeInsets.zero,
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    visualDensity: VisualDensity.compact,
+                                  ))
+                              .toList(),
+                        ),
+                      ],
                     ],
                   ),
+                ),
+              ),
+
+              // Right info column: language (top) · card count · date (bottom).
+              // Uses spaceBetween so the date is always pushed to the bottom of
+              // the tile regardless of how many lines the left content has.
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 12, 8, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Top group: language badge (if set) above card count.
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (hasLanguage)
+                          Text(
+                            '${cardSet.targetLanguage!.toUpperCase()} → ${cardSet.nativeLanguage!.toUpperCase()}',
+                            style: textTheme.labelSmall
+                                ?.copyWith(color: scheme.onSurfaceVariant),
+                          ),
+                        Text(
+                          '$count card${count == 1 ? '' : 's'}',
+                          style: textTheme.bodySmall
+                              ?.copyWith(color: scheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                    // Bottom: last updated date.
+                    Text(
+                      _relativeDate(cardSet.updatedAt),
+                      style: textTheme.bodySmall
+                          ?.copyWith(color: scheme.onSurfaceVariant),
+                    ),
+                  ],
                 ),
               ),
 

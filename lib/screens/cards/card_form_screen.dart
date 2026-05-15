@@ -431,16 +431,18 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
               ),
             );
       }
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        setState(() => _isSaving = false);
+        Navigator.of(context).pop();
+      }
     } catch (_) {
       if (mounted) {
+        setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text('Failed to save card. Please try again.')),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -501,16 +503,18 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
       await ref
           .read(cardRepositoryProvider)
           .deleteCard(widget.card!.id);
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        setState(() => _isSaving = false);
+        Navigator.of(context).pop();
+      }
     } catch (_) {
       if (mounted) {
+        setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text('Failed to delete card. Please try again.')),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
     }
   }
 

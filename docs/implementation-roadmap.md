@@ -330,7 +330,7 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] Improve error messages and user feedback
 - [x] Add loading states and spinners
 - [x] Implement smooth animations and transitions
-- [ ] Ensure responsive design on all screen sizes
+- [ ] Ensure responsive design on all screen sizes *(deferred — widescreen layout owned by the Web Dashboard phase; see Post-MVP below)*
 - [ ] Test on various device sizes (phones, tablets, desktops)
 
 #### Comprehensive Testing
@@ -433,6 +433,31 @@ The long-term vision for Flash Me is a content marketplace where users can publi
 - [ ] Staggered list-item entrance animations on Sets, Cards, and Templates screens (first-load fade-in per item)
 - [ ] Animated add/remove for dynamic fields in CardFormScreen and TemplateFormScreen (`AnimatedList` refactor)
 
+### Web Dashboard — Bulk Card Creation & Desktop Experience
+
+> **Full design: [docs/design.md — Web Dashboard](design.md#web-dashboard--bulk-card-creation--desktop-experience)**
+
+This phase establishes the desktop layout conventions for the whole app (responsive shell, NavigationDrawer, content max-width) and delivers a keyboard-focused bulk card creation interface for teachers and content creators.
+
+**Why deferred:** Widescreen layout decisions are made here once, correctly, rather than retrofitted during Phase 7 mobile polish.
+
+#### Dashboard Alpha
+- [ ] Responsive shell: swap `BottomNavigationBar` → persistent `NavigationDrawer` above a screen-width breakpoint; establish content max-width constraints app-wide
+- [ ] Bulk card editor: template-driven grid (one row per card, columns match template fields), keyboard Tab/Enter navigation, batch Firestore write on save
+- [ ] Set assignment on save — choose or create target set before committing
+
+#### Dashboard Beta
+- [ ] Inline per-cell field validation
+- [ ] Undo/redo, duplicate row, reorder rows
+
+#### Master-detail layouts
+- [ ] Set detail split-pane (card list + card preview/edit panel)
+- [ ] Cards screen list + form panel
+
+#### Advanced creator tools
+- [ ] CSV paste with column mapping
+- [ ] Bulk tag assignment
+
 ---
 
 ## Development Timeline Summary
@@ -450,6 +475,8 @@ The long-term vision for Flash Me is a content marketplace where users can publi
 | — | — | — |
 | Phase 4d: Global Tag System | 1 week | Search foundation (post-MVP) |
 | Phase 4c: Search & Filter | 1 week | Discovery (post-MVP, needs 4d) |
+| Web Dashboard Alpha | TBD | Desktop layout + bulk card creation |
+| Web Dashboard Beta+ | TBD | Master-detail, advanced creator tools |
 | Marketplace Alpha | TBD | Content sharing (long-term) |
 
 ---

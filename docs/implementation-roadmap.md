@@ -329,7 +329,7 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] Review all screens for visual consistency
 - [x] Improve error messages and user feedback
 - [x] Add loading states and spinners
-- [ ] Implement smooth animations and transitions
+- [x] Implement smooth animations and transitions
 - [ ] Ensure responsive design on all screen sizes
 - [ ] Test on various device sizes (phones, tablets, desktops)
 
@@ -428,6 +428,10 @@ The long-term vision for Flash Me is a content marketplace where users can publi
 - [ ] Keyboard-centric UI modes
 - [ ] Window management enhancements
 - [ ] Drag-and-drop improvements
+
+### Deferred Animation Work (from Phase 7 polish pass)
+- [ ] Staggered list-item entrance animations on Sets, Cards, and Templates screens (first-load fade-in per item)
+- [ ] Animated add/remove for dynamic fields in CardFormScreen and TemplateFormScreen (`AnimatedList` refactor)
 
 ---
 

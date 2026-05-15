@@ -127,7 +127,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       if (mounted) {
         Navigator.of(context).pop(); // dismiss progress dialog
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e')),
+          const SnackBar(content: Text('Export failed. Please try again.')),
         );
       }
     }

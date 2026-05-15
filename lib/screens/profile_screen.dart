@@ -17,6 +17,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   bool _isLoading = false;
   bool _isEditing = false;
+  bool _isSigningOut = false;
 
   @override
   void dispose() {
@@ -51,15 +52,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _signOut() async {
+    setState(() => _isSigningOut = true);
     try {
       await ref.read(authRepositoryProvider).signOut();
     } catch (_) {
       if (mounted) {
+        setState(() => _isSigningOut = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Sign out failed. Please try again.')),
         );
       }
     }
+    // On success, authStateProvider fires and main.dart replaces this screen —
+    // no need to reset _isSigningOut since the widget will be unmounted.
   }
 
   @override
@@ -181,8 +186,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ],
               const SizedBox(height: 32),
               OutlinedButton.icon(
-                onPressed: _signOut,
-                icon: const Icon(Icons.logout),
+                onPressed: _isSigningOut ? null : _signOut,
+                icon: _isSigningOut
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.logout),
                 label: const Text('Sign Out'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: theme.colorScheme.error,

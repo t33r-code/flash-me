@@ -117,59 +117,75 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Reset Password'),
-        content: Form(
-          key: formKey,
-          child: TextFormField(
-            controller: emailController,
-            keyboardType: TextInputType.emailAddress,
-            autofocus: true,
-            decoration: const InputDecoration(
-              labelText: AppStrings.email,
-              border: OutlineInputBorder(),
+      builder: (dialogContext) {
+        // Declared in the showDialog closure so it persists across rebuilds.
+        bool sending = false;
+        return StatefulBuilder(
+          builder: (sbContext, setSbState) => AlertDialog(
+            title: const Text('Reset Password'),
+            content: Form(
+              key: formKey,
+              child: TextFormField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: AppStrings.email,
+                  border: OutlineInputBorder(),
+                ),
+                validator: AppValidators.validateEmail,
+              ),
             ),
-            validator: AppValidators.validateEmail,
+            actions: [
+              TextButton(
+                onPressed: sending
+                    ? null
+                    : () => Navigator.of(dialogContext).pop(),
+                child: const Text(AppStrings.cancel),
+              ),
+              FilledButton(
+                onPressed: sending
+                    ? null
+                    : () async {
+                        if (!formKey.currentState!.validate()) return;
+                        setSbState(() => sending = true);
+                        try {
+                          await ref
+                              .read(authRepositoryProvider)
+                              .resetPassword(emailController.text.trim());
+                          if (dialogContext.mounted) {
+                            Navigator.of(dialogContext).pop();
+                          }
+                          if (mounted) {
+                            messenger.showSnackBar(const SnackBar(
+                              content: Text(
+                                'Password reset email sent. Check your inbox.',
+                              ),
+                            ));
+                          }
+                        } catch (_) {
+                          setSbState(() => sending = false);
+                          if (mounted) {
+                            messenger.showSnackBar(const SnackBar(
+                              content: Text(
+                                'Failed to send reset email. Please try again.',
+                              ),
+                            ));
+                          }
+                        }
+                      },
+                child: sending
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Send Reset Email'),
+              ),
+            ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text(AppStrings.cancel),
-          ),
-          FilledButton(
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              Navigator.of(dialogContext).pop();
-              try {
-                await ref.read(authRepositoryProvider).resetPassword(
-                  emailController.text.trim(),
-                );
-                if (mounted) {
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Password reset email sent. Check your inbox.',
-                      ),
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Failed to send reset email. Please try again.',
-                      ),
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text('Send Reset Email'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

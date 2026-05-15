@@ -25,6 +25,8 @@ class _DataScreenState extends ConsumerState<DataScreen> {
   // Export state.
   final Set<String> _selectedSetIds = {};
   bool _exporting = false;
+  // True while a picked ZIP is being parsed and diffed.
+  bool _analyzing = false;
 
   @override
   Widget build(BuildContext context) {
@@ -47,9 +49,15 @@ class _DataScreenState extends ConsumerState<DataScreen> {
           ),
           const SizedBox(height: 16),
           FilledButton.icon(
-            icon: const Icon(Icons.folder_open_outlined),
+            icon: _analyzing
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.folder_open_outlined),
             label: const Text('Choose ZIP file…'),
-            onPressed: () => _pickAndAnalyze(context),
+            onPressed: _analyzing ? null : () => _pickAndAnalyze(context),
           ),
 
           // ── Export ──────────────────────────────────────────────────────
@@ -205,32 +213,33 @@ class _DataScreenState extends ConsumerState<DataScreen> {
   }
 
   Future<void> _pickAndAnalyze(BuildContext context) async {
-    // Pick the file.
-    final result = await FilePicker.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['zip'],
-      withData: true,
-    );
-    if (result == null || result.files.isEmpty) return;
-    final bytes = result.files.first.bytes;
-    if (bytes == null) return;
-
-    if (!context.mounted) return;
-
-    // Show progress while analyzing.
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const AlertDialog(
-        content: Row(children: [
-          CircularProgressIndicator(),
-          SizedBox(width: 20),
-          Text('Analysing archive…'),
-        ]),
-      ),
-    );
-
+    setState(() => _analyzing = true);
     try {
+      // Pick the file.
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['zip'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+      final bytes = result.files.first.bytes;
+      if (bytes == null) return;
+
+      if (!context.mounted) return;
+
+      // Show progress while analyzing.
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const AlertDialog(
+          content: Row(children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Text('Analysing archive…'),
+          ]),
+        ),
+      );
+
       final uid = ref.read(authStateProvider).asData?.value ?? '';
       final analysis = await ref.read(importServiceProvider).analyze(
             zipBytes: bytes,
@@ -269,6 +278,8 @@ class _DataScreenState extends ConsumerState<DataScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to read the archive. Check the file format and try again.')),
       );
+    } finally {
+      if (mounted) setState(() => _analyzing = false);
     }
   }
 }

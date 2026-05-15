@@ -221,16 +221,18 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
               ),
             );
       }
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        setState(() => _isSaving = false);
+        Navigator.of(context).pop();
+      }
     } catch (_) {
       if (mounted) {
+        setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text('Failed to save template. Please try again.')),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -264,17 +266,19 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
       await ref
           .read(templateRepositoryProvider)
           .deleteTemplate(widget.template!.id);
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        setState(() => _isSaving = false);
+        Navigator.of(context).pop();
+      }
     } catch (_) {
       if (mounted) {
+        setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content:
                   Text('Failed to delete template. Please try again.')),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
     }
   }
 

@@ -114,16 +114,18 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
           targetLanguage: _targetLanguage,
         ));
       }
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        setState(() => _isSaving = false);
+        Navigator.of(context).pop();
+      }
     } catch (_) {
       if (mounted) {
+        setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text('Failed to save set. Please try again.')),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
     }
   }
 

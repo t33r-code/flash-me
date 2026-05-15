@@ -27,6 +27,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
     setState(() => _isLoading = true);
     try {
       await ref.read(authRepositoryProvider).updateUserProfile(
@@ -122,6 +123,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   key: _formKey,
                   child: TextFormField(
                     controller: _displayNameController,
+                    enabled: !_isLoading,
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) => _saveProfile(),
                     decoration: const InputDecoration(

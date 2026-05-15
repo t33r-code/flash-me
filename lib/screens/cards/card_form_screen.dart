@@ -394,6 +394,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
       }
     }
 
+    FocusScope.of(context).unfocus();
     setState(() => _isSaving = true);
     try {
       final uid = ref.read(authStateProvider).asData?.value ?? '';
@@ -723,7 +724,9 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
       ),
       body: Form(
         key: _formKey,
-        child: SingleChildScrollView(
+        child: IgnorePointer(
+          ignoring: _isSaving,
+          child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -861,6 +864,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
               const SizedBox(height: 16),
             ],
           ),
+        ),
         ),
       ),
     );

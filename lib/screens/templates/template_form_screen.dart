@@ -188,6 +188,7 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
     setState(() => _isSaving = true);
     try {
       final uid = ref.read(authStateProvider).asData?.value ?? '';
@@ -444,7 +445,9 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
       ),
       body: Form(
         key: _formKey,
-        child: SingleChildScrollView(
+        child: IgnorePointer(
+          ignoring: _isSaving,
+          child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -536,6 +539,7 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
               const SizedBox(height: 16),
             ],
           ),
+        ),
         ),
       ),
     );

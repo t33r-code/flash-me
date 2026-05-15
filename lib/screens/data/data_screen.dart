@@ -198,7 +198,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e')));
+          const SnackBar(content: Text('Export failed. Please try again.')));
     } finally {
       if (mounted) setState(() => _exporting = false);
     }
@@ -267,7 +267,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
       if (!context.mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Import failed: $e')),
+        const SnackBar(content: Text('Failed to read the archive. Check the file format and try again.')),
       );
     }
   }
@@ -322,7 +322,7 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
       if (mounted) {
         setState(() => _importing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Import failed: $e')),
+          const SnackBar(content: Text('Import failed. Please try again.')),
         );
       }
     }

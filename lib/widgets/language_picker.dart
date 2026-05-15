@@ -11,25 +11,28 @@ class LanguagePicker extends StatelessWidget {
   final String? value;
   final ValueChanged<String?> onChanged;
   final String label;
+  final bool enabled;
 
   const LanguagePicker({
     super.key,
     required this.value,
     required this.onChanged,
     required this.label,
+    this.enabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final displayName = languageName(value);
     return InkWell(
-      onTap: () => _showSearch(context),
+      onTap: enabled ? () => _showSearch(context) : null,
       borderRadius: BorderRadius.circular(4),
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
           suffixIcon: const Icon(Icons.arrow_drop_down),
+          enabled: enabled,
         ),
         child: Text(
           displayName ?? 'Not set',

@@ -80,6 +80,7 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
     setState(() => _isSaving = true);
     try {
       final uid = ref.read(authStateProvider).asData?.value ?? '';
@@ -141,7 +142,7 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
         final itemColor =
             hex == null ? Colors.transparent : _hexColor(hex);
         return GestureDetector(
-          onTap: () => setState(() => _selectedColor = hex),
+          onTap: _isSaving ? null : () => setState(() => _selectedColor = hex),
           child: Container(
             width: 36,
             height: 36,
@@ -191,6 +192,7 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
               // --- Name ---
               TextFormField(
                 controller: _nameController,
+                enabled: !_isSaving,
                 decoration: const InputDecoration(
                   labelText: 'Set name *',
                   hintText: 'e.g. Spanish Verbs',
@@ -204,6 +206,7 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
               // --- Description ---
               TextFormField(
                 controller: _descController,
+                enabled: !_isSaving,
                 decoration: const InputDecoration(
                   labelText: 'Description (optional)',
                   border: OutlineInputBorder(),
@@ -219,12 +222,14 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
               LanguagePicker(
                 label: 'Target language (being studied)',
                 value: _targetLanguage,
+                enabled: !_isSaving,
                 onChanged: (v) => setState(() => _targetLanguage = v),
               ),
               const SizedBox(height: 12),
               LanguagePicker(
                 label: 'Native language',
                 value: _nativeLanguage,
+                enabled: !_isSaving,
                 onChanged: (v) => setState(() => _nativeLanguage = v),
               ),
               const SizedBox(height: 24),
@@ -245,7 +250,8 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
                   children: _tags
                       .map((tag) => Chip(
                             label: Text(tag),
-                            onDeleted: () => _removeTag(tag),
+                            onDeleted:
+                                _isSaving ? null : () => _removeTag(tag),
                           ))
                       .toList(),
                 ),
@@ -253,6 +259,7 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
               ],
               TextField(
                 controller: _tagInputController,
+                enabled: !_isSaving,
                 decoration: InputDecoration(
                   hintText: 'Type a tag and press Enter',
                   prefixIcon: const Icon(Icons.label_outline),
@@ -260,11 +267,13 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
                       borderRadius: BorderRadius.circular(8)),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.add),
-                    onPressed: () => _addTag(_tagInputController.text),
+                    onPressed: _isSaving
+                        ? null
+                        : () => _addTag(_tagInputController.text),
                   ),
                 ),
                 textInputAction: TextInputAction.done,
-                onSubmitted: _addTag,
+                onSubmitted: _isSaving ? null : _addTag,
               ),
 
               // --- Save / Cancel ---

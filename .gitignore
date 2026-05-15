@@ -46,6 +46,15 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Flutter DevTools local config (auto-generated, not project state)
+devtools_options.yaml
+
+# Claude Code local session state
+.claude/
+
+# One-off scripts and their dependencies / credentials (never commit credentials)
+scripts/
+
 # Firebase config files are intentionally tracked.
 # API keys are client-restricted by platform bundle ID; Firebase security rules
 # are the real access control layer. Review before making this repo public.

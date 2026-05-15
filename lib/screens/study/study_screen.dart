@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/screens/study/study_setup_screen.dart';
+import 'package:flash_me/utils/transitions.dart';
 
 // ---------------------------------------------------------------------------
 // StudyScreen — the Study tab home.
@@ -65,7 +66,7 @@ class StudyScreen extends ConsumerWidget {
     );
     if (selected == null || !context.mounted) return;
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => StudySetupScreen(cardSet: selected)),
+      studyEnterRoute(StudySetupScreen(cardSet: selected)),
     );
   }
 }

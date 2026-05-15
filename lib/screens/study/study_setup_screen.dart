@@ -9,6 +9,7 @@ import 'package:flash_me/providers/study_session_provider.dart';
 import 'package:flash_me/screens/study/study_session_history_screen.dart';
 import 'package:flash_me/screens/study/study_session_screen.dart';
 import 'package:flash_me/utils/constants.dart';
+import 'package:flash_me/utils/transitions.dart';
 
 // ---------------------------------------------------------------------------
 // StudySetupScreen — entry point for studying a set.
@@ -99,10 +100,9 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
 
       if (mounted) {
         // pushReplacement so back from the session screen returns to SetDetailScreen.
-        Navigator.of(context).pushReplacement(MaterialPageRoute(
-          builder: (_) =>
-              StudySessionScreen(session: session, cardSet: widget.cardSet),
-        ));
+        Navigator.of(context).pushReplacement(
+          studyEnterRoute(StudySessionScreen(session: session, cardSet: widget.cardSet)),
+        );
       }
     } catch (_) {
       if (mounted) {
@@ -119,10 +119,9 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
   void _resume() {
     final session = _activeSession;
     if (session == null) return;
-    Navigator.of(context).pushReplacement(MaterialPageRoute(
-      builder: (_) =>
-          StudySessionScreen(session: session, cardSet: widget.cardSet),
-    ));
+    Navigator.of(context).pushReplacement(
+      studyEnterRoute(StudySessionScreen(session: session, cardSet: widget.cardSet)),
+    );
   }
 
   @override
@@ -139,10 +138,9 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
           IconButton(
             icon: const Icon(Icons.history),
             tooltip: 'Session history',
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) =>
-                  StudySessionHistoryScreen(cardSet: widget.cardSet),
-            )),
+            onPressed: () => Navigator.of(context).push(
+              studyEnterRoute(StudySessionHistoryScreen(cardSet: widget.cardSet)),
+            ),
           ),
         ],
       ),

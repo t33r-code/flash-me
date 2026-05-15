@@ -12,6 +12,7 @@ import 'package:flash_me/providers/question_result_provider.dart';
 import 'package:flash_me/providers/study_session_provider.dart';
 import 'package:flash_me/screens/study/study_session_summary_screen.dart';
 import 'package:flash_me/utils/constants.dart';
+import 'package:flash_me/utils/transitions.dart';
 
 // ---------------------------------------------------------------------------
 // StudySessionScreen — displays one card at a time from a StudySession.
@@ -242,12 +243,10 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
 
     if (mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => StudySessionSummaryScreen(
-            session: completed,
-            cardSet: widget.cardSet,
-          ),
-        ),
+        studySurfaceRoute(StudySessionSummaryScreen(
+          session: completed,
+          cardSet: widget.cardSet,
+        )),
       );
     }
   }
@@ -1074,7 +1073,7 @@ class _NavigationBar extends StatelessWidget {
 // _MarkButton — thumb-up / thumb-down button that fills in when active.
 // Greyed out when canMark is false (card not yet revealed).
 // ---------------------------------------------------------------------------
-class _MarkButton extends StatelessWidget {
+class _MarkButton extends StatefulWidget {
   final String label;
   final IconData icon;
   final IconData activeIcon;
@@ -1092,27 +1091,48 @@ class _MarkButton extends StatelessWidget {
   });
 
   @override
+  State<_MarkButton> createState() => _MarkButtonState();
+}
+
+class _MarkButtonState extends State<_MarkButton> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    // Active → use the semantic colour; disabled → dim; idle → muted
+    // Active → semantic colour; disabled → dim; idle → muted
     final Color color;
-    if (isActive) {
-      color = activeColor;
-    } else if (onTap == null) {
+    if (widget.isActive) {
+      color = widget.activeColor;
+    } else if (widget.onTap == null) {
       color = scheme.onSurface.withValues(alpha: 0.3);
     } else {
       color = scheme.onSurfaceVariant;
     }
 
-    return TextButton.icon(
-      onPressed: onTap,
-      style: TextButton.styleFrom(
-        foregroundColor: color,
-        // Keep the active color visible even when disabled (post-reveal nav).
-        disabledForegroundColor: color,
+    // Listener fires at pointer level without competing with TextButton's
+    // gesture recogniser — used only for the press-scale visual.
+    return Listener(
+      onPointerDown: (_) {
+        if (widget.onTap != null) setState(() => _pressed = true);
+      },
+      onPointerUp: (_) => setState(() => _pressed = false),
+      onPointerCancel: (_) => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.88 : 1.0,
+        duration: const Duration(milliseconds: 80),
+        curve: Curves.easeOut,
+        child: TextButton.icon(
+          onPressed: widget.onTap,
+          style: TextButton.styleFrom(
+            foregroundColor: color,
+            // Keep the active color visible even when disabled (post-reveal nav).
+            disabledForegroundColor: color,
+          ),
+          icon: Icon(widget.isActive ? widget.activeIcon : widget.icon, color: color),
+          label: Text(widget.label, style: TextStyle(color: color)),
+        ),
       ),
-      icon: Icon(isActive ? activeIcon : icon, color: color),
-      label: Text(label, style: TextStyle(color: color)),
     );
   }
 }

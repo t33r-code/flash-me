@@ -104,7 +104,7 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-// Single card row: shows primary word, translation, first tag (if any), and chevron.
+// Single card row: shows primary word, translation (+ language if set), first tag, chevron.
 class _CardTile extends StatelessWidget {
   final FlashCard card;
   const _CardTile({required this.card});
@@ -112,11 +112,17 @@ class _CardTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
+    final hasLanguage =
+        card.targetLanguage != null && card.nativeLanguage != null;
+    // Append language badge to subtitle when set: "translation  ·  EN → CS"
+    final subtitle = hasLanguage
+        ? '${card.translation}  ·  ${card.targetLanguage!.toUpperCase()} → ${card.nativeLanguage!.toUpperCase()}'
+        : card.translation;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
         title: Text(card.primaryWord),
-        subtitle: Text(card.translation),
+        subtitle: Text(subtitle),
         // Tag chip (if any) + chevron side by side in trailing.
         trailing: Row(
           mainAxisSize: MainAxisSize.min,

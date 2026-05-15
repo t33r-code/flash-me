@@ -47,6 +47,8 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   Timer? _saveDebounce;
   // Prevents double-tapping End or Finish while a save is in flight.
   bool _saving = false;
+  // True while a background auto-save has failed; drives the warning banner.
+  bool _saveFailed = false;
 
   @override
   void initState() {
@@ -157,14 +159,40 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     _saveDebounce = Timer(const Duration(milliseconds: 1000), _saveNow);
   }
 
-  // Writes the current session to Firestore; errors are swallowed so the
-  // session is never interrupted by a transient network issue.
+  // Writes the current session to Firestore.
+  // On failure: shows a persistent MaterialBanner so the user knows progress
+  // may not be saving.  On recovery: banner is hidden automatically.
   Future<void> _saveNow() async {
     try {
       await ref
           .read(studySessionRepositoryProvider)
           .saveSession(_session, _uid);
-    } catch (_) {}
+      if (_saveFailed && mounted) {
+        setState(() => _saveFailed = false);
+        ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
+      }
+    } catch (_) {
+      if (!_saveFailed && mounted) {
+        setState(() => _saveFailed = true);
+        ScaffoldMessenger.of(context).showMaterialBanner(
+          MaterialBanner(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            content: const Text(
+                'Saving progress failed — check your connection.'),
+            leading: const Icon(Icons.cloud_off_outlined),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  setState(() => _saveFailed = false);
+                  ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
+                },
+                child: const Text('Dismiss'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
   }
 
   // "End" button — saves as in_progress so the user can resume later, then pops.

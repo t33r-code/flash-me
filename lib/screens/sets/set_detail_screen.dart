@@ -22,6 +22,7 @@ class SetDetailScreen extends ConsumerStatefulWidget {
 
 class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   bool _isDeleting = false;
+  bool _isExporting = false;
 
   Future<void> _confirmDelete() async {
     final confirmed = await showDialog<bool>(
@@ -93,6 +94,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
 
   // Exports the set as a self-contained ZIP archive.
   Future<void> _exportSet(CardSet liveSet) async {
+    setState(() => _isExporting = true);
     final cards =
         ref.read(cardsInSetProvider(widget.cardSet.id)).asData?.value ?? [];
 
@@ -130,6 +132,8 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
           const SnackBar(content: Text('Export failed. Please try again.')),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 
@@ -169,7 +173,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
           IconButton(
             icon: const Icon(Icons.download_outlined),
             tooltip: 'Export set',
-            onPressed: () => _exportSet(liveSet),
+            onPressed: _isExporting ? null : () => _exportSet(liveSet),
           ),
 
           IconButton(
@@ -253,7 +257,9 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.style_outlined, size: 80, color: Colors.grey),
+            Icon(Icons.style_outlined,
+                size: 80,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(height: 16),
             Text('No cards yet',
                 style: Theme.of(context).textTheme.titleLarge),
@@ -263,7 +269,8 @@ class _EmptyState extends StatelessWidget {
               style: Theme.of(context)
                   .textTheme
                   .bodyMedium
-                  ?.copyWith(color: Colors.grey),
+                  ?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),

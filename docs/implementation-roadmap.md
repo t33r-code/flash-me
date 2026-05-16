@@ -344,12 +344,13 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [ ] Battery usage optimization (for mobile)
 
 #### Phase 7d — Accessibility & Localization
-- [ ] Audit for accessibility issues
-- [ ] Add screen reader support
+- [ ] Audit for accessibility issues (colour contrast, touch target sizes, semantic labels on custom widgets)
+- [ ] Dark mode: audit for hardcoded colours that break in dark theme; add dark mode toggle to ProfileScreen (persisted to device preferences)
+- [ ] Add screen reader support (`Semantics` labels on custom widgets; smoke-test core flows with TalkBack/VoiceOver)
 - [ ] Test with accessibility tools
-- [ ] Add text size adjustment controls
-- [ ] Implement high contrast mode
-- [ ] Prepare for localization (structure for multiple languages)
+- [ ] Add text size adjustment controls *(deferred — Flutter respects system text scale by default; revisit if issues found during audit)*
+- [ ] Implement high contrast mode *(deferred — post-MVP enhancement)*
+- [ ] Prepare for localization (structure for multiple languages) *(deferred — no second language planned for MVP)*
 
 #### Documentation
 - [ ] Create user documentation/help

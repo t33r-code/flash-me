@@ -1351,14 +1351,50 @@ The choice should be made as a dedicated spike task at the start of the marketpl
 
 ## Post-MVP Considerations
 
-### Desktop Bulk Card Creation Interface
+### Web Dashboard — Bulk Card Creation & Desktop Experience
 
-> **Status: Post-MVP concept only.** No implementation tasks assigned.
+> **Status: Formal post-MVP phase.** No implementation tasks assigned yet.
 
-Teachers and content creators who need to produce large numbers of cards (e.g. a full vocabulary unit) are poorly served by the per-card mobile creation flow. A desktop-optimised bulk creation interface would address this directly.
+#### Motivation
 
-**Concept:** A wide-layout screen (desktop/web only — Flutter's adaptive layout can gate it by platform or window width) presenting a spreadsheet-style editor where each row is a card. Columns correspond to the fields of a chosen template, so the structure is fixed per session and each row is directly editable. Changes are batched and written to Firestore on save rather than on every keystroke.
+The mobile app is optimised for study-focused users: single-card creation, set browsing, and session-based learning. A second, distinct audience — teachers and content creators who need to produce large volumes of cards (e.g. a full vocabulary unit) — is poorly served by the per-card mobile flow and benefits from a keyboard-driven, wide-layout experience. Rather than retrofitting the mobile UI with desktop patterns, the dashboard will be built as a dedicated effort that owns the widescreen layout from the ground up.
 
-**Why desktop-only:** Wide column layouts are impractical on mobile. The target user (a teacher preparing material at a desk) naturally works on a laptop or desktop. Keeping the mobile UI focused on single-card creation and the desktop UI focused on bulk creation avoids compromising either experience.
+#### Responsive Design Deferral
 
-**Relationship to import/export:** The bulk creation interface and JSON import serve similar user needs. JSON import is the right solution for users who already have data in another system or want to use external tools (including AI) to generate card content at scale. The spreadsheet-style interface is better for users who want to create content directly in the app without leaving it. Both are worth implementing; the import/export infrastructure (Phase 6) should be designed so the bulk creation interface can reuse the same Firestore batch write path.
+Widescreen layout decisions (navigation pattern, master-detail splits, content max-width breakpoints) are intentionally deferred from Phase 7 mobile polish to this effort. Implementing responsive layout twice — once as a retrofit and once properly for the dashboard — would produce inconsistent results and wasted work. The dashboard phase will establish and own the desktop layout conventions for the whole app.
+
+#### Concept
+
+A web-first, wide-layout screen presenting a spreadsheet-style editor where each row is a card. Columns correspond to the fields of a chosen template, so the structure is fixed per session and each row is directly editable inline. Changes are batched and written to Firestore on save rather than on every keystroke.
+
+**Key behaviours:**
+- Template-driven column layout — select a template and the grid columns match its fields
+- Keyboard-first navigation — Tab/Enter to move between cells, no mouse required for bulk entry
+- Inline validation — field errors surface per cell without blocking other rows
+- Batch Firestore write — same write path as the existing import infrastructure (Phase 6)
+- Set assignment on save — choose or create the target set before committing
+
+#### Navigation Pattern
+
+Desktop and wide-tablet layouts will use a persistent `NavigationDrawer` (full-width sidebar with labels and optional metadata) rather than a `NavigationRail`. The `BottomNavigationBar` remains for mobile. The shell adapts based on a screen-width breakpoint, swapping between the two at runtime.
+
+#### Relationship to Import/Export
+
+JSON import (Phase 6) and the dashboard serve overlapping user needs. Import is better when the user already has data elsewhere or wants to use external tools (including AI) to generate content at scale. The dashboard is better for users who want to create content directly in-app without leaving it. Both paths share the same Firestore batch write layer.
+
+#### Scope of the Dashboard Phase
+
+Beyond the bulk editor, this effort is the right time to address:
+- **Navigation shell** — swap `BottomNavigationBar` for persistent `NavigationDrawer` on wide screens; establish breakpoints app-wide
+- **Content max-width** — constrain all single-column screens (forms, study session, summary) so they don't stretch on desktop
+- **Hover and focus states** — audit interactive elements for mouse/keyboard accessibility on desktop
+- **Master-detail layouts** — set detail (list + card preview), cards screen (list + form panel) where screen width allows
+
+#### Implementation Phasing (future)
+
+| Sub-phase | Scope |
+|---|---|
+| Dashboard Alpha | Responsive shell (NavigationDrawer + breakpoints + content max-width); bulk card editor (template-driven grid, keyboard nav, batch save) |
+| Dashboard Beta | Inline field validation, undo/redo, duplicate row, reorder rows |
+| Master-detail layouts | Set detail split-pane, Cards screen list+form panel |
+| Advanced creator tools | CSV paste, column mapping, bulk tag assignment |

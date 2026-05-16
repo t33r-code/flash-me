@@ -331,7 +331,7 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] Add loading states and spinners
 - [x] Implement smooth animations and transitions
 - [ ] Ensure responsive design on all screen sizes *(deferred — widescreen layout owned by the Web Dashboard phase; see Post-MVP below)*
-- [ ] Test on various device sizes (phones, tablets, desktops)
+- [ ] Test on various device sizes (phones, tablets, desktops) *(deferred — tablet/desktop testing blocked on Web Dashboard phase)*
 
 #### Comprehensive Testing
 - [ ] Unit tests for all services and models

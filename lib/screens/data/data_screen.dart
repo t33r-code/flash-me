@@ -447,6 +447,9 @@ class _SetDiffTileState extends State<_SetDiffTile> {
   Widget build(BuildContext context) {
     final diff = widget.diff;
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final successColor = isDark ? Colors.green[300]! : Colors.green[700]!;
+    final warningColor = isDark ? Colors.orange[300]! : Colors.orange[700]!;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -478,7 +481,7 @@ class _SetDiffTileState extends State<_SetDiffTile> {
           if (diff.newCards.isNotEmpty)
             _ExpandableCountRow(
               icon: Icons.add_circle_outline,
-              color: Colors.green,
+              color: successColor,
               label: '${diff.newCards.length} new',
               expanded: _newExpanded,
               onTap: () => setState(() => _newExpanded = !_newExpanded),
@@ -513,7 +516,7 @@ class _SetDiffTileState extends State<_SetDiffTile> {
               icon: Icons.edit_outlined,
               color: widget.skipUpdates
                   ? theme.disabledColor
-                  : Colors.orange,
+                  : warningColor,
               label: widget.skipUpdates
                   ? '${diff.updatedCards.length} updated (skipped)'
                   : '${diff.updatedCards.length} updated',
@@ -736,13 +739,16 @@ class _ImportSummaryDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final successColor = isDark ? Colors.green[300]! : Colors.green[700]!;
+    final warningColor = isDark ? Colors.orange[300]! : Colors.orange[700]!;
     final s = summary;
     final hasChanges = s.cardsAdded > 0 || s.cardsLinked > 0 || s.cardsUpdated > 0 || s.cardsRemoved > 0;
 
     return AlertDialog(
       title: Row(
         children: [
-          Icon(Icons.check_circle_outline, color: Colors.green),
+          Icon(Icons.check_circle_outline, color: successColor),
           const SizedBox(width: 8),
           const Text('Import Complete'),
         ],
@@ -764,7 +770,7 @@ class _ImportSummaryDialog extends StatelessWidget {
               theme,
               Icons.add_circle_outline,
               '${s.cardsAdded} card${s.cardsAdded == 1 ? '' : 's'} added',
-              color: Colors.green,
+              color: successColor,
             ),
           if (s.cardsLinked > 0)
             _summaryRow(
@@ -778,7 +784,7 @@ class _ImportSummaryDialog extends StatelessWidget {
               theme,
               Icons.edit_outlined,
               '${s.cardsUpdated} card${s.cardsUpdated == 1 ? '' : 's'} updated',
-              color: Colors.orange,
+              color: warningColor,
             ),
           if (s.cardsRemoved > 0)
             _summaryRow(

@@ -383,15 +383,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         : 'Already have an account? ',
                     style: theme.textTheme.bodyMedium,
                   ),
-                  GestureDetector(
-                    onTap: _isLoading ? null : _toggleMode,
-                    child: Text(
-                      _isSignIn ? AppStrings.signUp : AppStrings.signIn,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.primary,
+                  // TextButton enforces the 48dp minimum touch target.
+                  TextButton(
+                    onPressed: _isLoading ? null : _toggleMode,
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      foregroundColor: theme.colorScheme.primary,
+                      textStyle: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                    child: Text(_isSignIn ? AppStrings.signUp : AppStrings.signIn),
                   ),
                 ],
               ),

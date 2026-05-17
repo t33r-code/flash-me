@@ -137,41 +137,67 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
 
   Widget _buildColorPicker() {
     return Wrap(
-      spacing: 12,
-      runSpacing: 12,
+      spacing: 0,
+      runSpacing: 0,
       children: _colorPalette.map((hex) {
         final selected = _selectedColor == hex;
         final itemColor =
             hex == null ? Colors.transparent : _hexColor(hex);
-        return GestureDetector(
-          onTap: _isSaving ? null : () => setState(() => _selectedColor = hex),
-          child: Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: itemColor,
-              border: Border.all(
-                color: hex == null
-                    ? Theme.of(context).colorScheme.outline
-                    : itemColor,
-                width: selected ? 3 : 1,
+        // Semantics label announces colour name and selection state.
+        // SizedBox expands the hit area to 48dp without changing the 36dp visual.
+        final colorLabel = hex == null
+            ? 'No colour'
+            : const {
+                '#EF5350': 'Red',
+                '#FF7043': 'Deep orange',
+                '#FFCA28': 'Amber',
+                '#66BB6A': 'Green',
+                '#26A69A': 'Teal',
+                '#42A5F5': 'Blue',
+                '#5C6BC0': 'Indigo',
+                '#AB47BC': 'Purple',
+                '#EC407A': 'Pink',
+              }[hex] ??
+            hex;
+        return Semantics(
+          label: '$colorLabel${selected ? ', selected' : ''}',
+          button: true,
+          child: GestureDetector(
+            onTap: _isSaving ? null : () => setState(() => _selectedColor = hex),
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: Center(
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: itemColor,
+                    border: Border.all(
+                      color: hex == null
+                          ? Theme.of(context).colorScheme.outline
+                          : itemColor,
+                      width: selected ? 3 : 1,
+                    ),
+                  ),
+                  child: selected
+                      ? Icon(
+                          Icons.check,
+                          size: 20,
+                          color: hex == null
+                              ? Theme.of(context).colorScheme.onSurface
+                              : Colors.white,
+                        )
+                      // "None" option shows a slash icon when unselected.
+                      : hex == null
+                          ? Icon(Icons.block,
+                              size: 18,
+                              color: Theme.of(context).colorScheme.outline)
+                          : null,
+                ),
               ),
             ),
-            child: selected
-                ? Icon(
-                    Icons.check,
-                    size: 20,
-                    color: hex == null
-                        ? Theme.of(context).colorScheme.onSurface
-                        : Colors.white,
-                  )
-                // "None" option shows a slash icon when unselected.
-                : hex == null
-                    ? Icon(Icons.block,
-                        size: 18,
-                        color: Theme.of(context).colorScheme.outline)
-                    : null,
           ),
         );
       }).toList(),

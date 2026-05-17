@@ -417,7 +417,10 @@ class _WordCardState extends State<_WordCard> {
         padding: const EdgeInsets.all(24),
         child: Card(
           clipBehavior: Clip.antiAlias,
-          child: InkWell(
+          child: Semantics(
+            // Hint tells screen readers what the tap action does.
+            onTapHint: (!_wordVisible || _translationVisible) ? null : 'reveal translation',
+            child: InkWell(
             // Tapping the card reveals the translation; disabled once visible.
             onTap: (_wordVisible && !_translationVisible)
                 ? () => setState(() => _translationVisible = true)
@@ -527,10 +530,11 @@ class _WordCardState extends State<_WordCard> {
                 ],
               ),
             ),
-          ),
-        ),
-      ),
-    );
+          ),        // InkWell
+          ),        // Semantics
+        ),          // Card
+      ),            // SingleChildScrollView
+    );              // Center
   }
 }
 
@@ -725,13 +729,15 @@ class _TextInputFieldCardState extends State<_TextInputFieldCard> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final answered = _result != null;
     final isCorrect = _result == true;
 
-    // Tint the card background to reinforce the result.
+    // Brightness-aware green so the tint is visible in both light and dark mode.
+    final correctGreen = isDark ? Colors.green[300]! : Colors.green[700]!;
     final cardColor = answered
         ? (isCorrect
-            ? Colors.green.withValues(alpha: 0.08)
+            ? Colors.green.withValues(alpha: isDark ? 0.2 : 0.08)
             : scheme.errorContainer.withValues(alpha: 0.4))
         : null;
 
@@ -793,12 +799,12 @@ class _TextInputFieldCardState extends State<_TextInputFieldCard> {
               if (isCorrect)
                 Row(children: [
                   Icon(Icons.check_circle_outline,
-                      color: Colors.green[700], size: 20),
+                      color: correctGreen, size: 20),
                   const SizedBox(width: 6),
                   Text(
                     'Correct!',
                     style: TextStyle(
-                        color: Colors.green[700],
+                        color: correctGreen,
                         fontWeight: FontWeight.bold),
                   ),
                 ])
@@ -931,11 +937,12 @@ class _OptionButton extends StatelessWidget {
     final Color border;
     final Color fg;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     switch (state) {
       case _OptionState.correct:
-        bg = Colors.green.withValues(alpha: 0.12);
-        border = Colors.green[700]!;
-        fg = Colors.green[800]!;
+        bg = Colors.green.withValues(alpha: isDark ? 0.22 : 0.12);
+        border = isDark ? Colors.green[400]! : Colors.green[700]!;
+        fg = isDark ? Colors.green[300]! : Colors.green[800]!;
       case _OptionState.incorrect:
         bg = scheme.errorContainer.withValues(alpha: 0.5);
         border = scheme.error;
@@ -946,24 +953,34 @@ class _OptionButton extends StatelessWidget {
         fg = scheme.onSurface;
     }
 
+    // Announce the result state to screen readers when it changes.
+    final stateLabel = switch (state) {
+      _OptionState.correct => ', correct',
+      _OptionState.incorrect => ', incorrect',
+      _OptionState.neutral => '',
+    };
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: SizedBox(
-        width: double.infinity,
-        child: OutlinedButton(
-          onPressed: onTap,
-          style: OutlinedButton.styleFrom(
-            backgroundColor: bg,
-            side: BorderSide(color: border),
-            foregroundColor: fg,
-            // Override disabled colours so the result highlight stays visible.
-            disabledForegroundColor: fg,
-            disabledBackgroundColor: bg,
-            alignment: Alignment.centerLeft,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Semantics(
+        label: '$label$stateLabel',
+        child: SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: onTap,
+            style: OutlinedButton.styleFrom(
+              backgroundColor: bg,
+              side: BorderSide(color: border),
+              foregroundColor: fg,
+              // Override disabled colours so the result highlight stays visible.
+              disabledForegroundColor: fg,
+              disabledBackgroundColor: bg,
+              alignment: Alignment.centerLeft,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            child: Text(label),
           ),
-          child: Text(label),
         ),
       ),
     );
@@ -1002,6 +1019,7 @@ class _NavigationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLast = currentIndex == total - 1;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 4, 8, 24),
@@ -1023,7 +1041,7 @@ class _NavigationBar extends StatelessWidget {
                 icon: Icons.flag_outlined,
                 activeIcon: Icons.flag,
                 isActive: isMarkedReview,
-                activeColor: Colors.green[700]!,
+                activeColor: isDark ? Colors.green[300]! : Colors.green[700]!,
                 onTap: canMark ? onReview : null,
               ),
               const SizedBox(width: 32),
@@ -1032,7 +1050,7 @@ class _NavigationBar extends StatelessWidget {
                 icon: Icons.check_circle_outline,
                 activeIcon: Icons.check_circle,
                 isActive: isMarkedSkip,
-                activeColor: Colors.amber[700]!,
+                activeColor: isDark ? Colors.amber[300]! : Colors.amber[700]!,
                 onTap: canMark ? onSkip : null,
               ),
             ],
@@ -1048,10 +1066,16 @@ class _NavigationBar extends StatelessWidget {
                 onPressed: currentIndex > 0 ? onPrevious : null,
               ),
               Expanded(
-                child: Text(
-                  '${currentIndex + 1} / $total',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyLarge,
+                // Semantic label reads as "Card X of Y" rather than "X / Y".
+                child: Semantics(
+                  label: 'Card ${currentIndex + 1} of $total',
+                  child: ExcludeSemantics(
+                    child: Text(
+                      '${currentIndex + 1} / $total',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ),
                 ),
               ),
               IconButton(
@@ -1112,7 +1136,10 @@ class _MarkButtonState extends State<_MarkButton> {
 
     // Listener fires at pointer level without competing with TextButton's
     // gesture recogniser — used only for the press-scale visual.
-    return Listener(
+    // Semantics.toggled announces the active/inactive state to screen readers.
+    return Semantics(
+      toggled: widget.isActive,
+      child: Listener(
       onPointerDown: (_) {
         if (widget.onTap != null) setState(() => _pressed = true);
       },
@@ -1133,7 +1160,8 @@ class _MarkButtonState extends State<_MarkButton> {
           label: Text(widget.label, style: TextStyle(color: color)),
         ),
       ),
-    );
+    ),    // Listener
+    );    // Semantics
   }
 }
 

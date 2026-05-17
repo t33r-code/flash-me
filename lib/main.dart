@@ -5,9 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'theme/app_theme.dart';
 import 'providers/auth_provider.dart';
+import 'providers/theme_provider.dart';
 import 'screens/auth_screen.dart';
 import 'screens/main_screen.dart';
 import 'utils/constants.dart';
@@ -36,7 +38,13 @@ void main() {
       }
     }
     AppLogger.success('App initialized');
-    runApp(const ProviderScope(child: MyApp()));
+    // Load prefs before runApp so themeModeProvider can read synchronously —
+    // no async gap means no theme flash on first frame.
+    final prefs = await SharedPreferences.getInstance();
+    runApp(ProviderScope(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      child: const MyApp(),
+    ));
   }, (error, stack) {
     AppLogger.error('Unhandled error: $error', stack);
   });
@@ -53,7 +61,7 @@ class MyApp extends ConsumerWidget {
       title: AppConstants.appName,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: ref.watch(themeModeProvider),
       debugShowCheckedModeBanner: false,
       // authStateProvider now emits a uid String? — null means signed out.
       home: authState.when(

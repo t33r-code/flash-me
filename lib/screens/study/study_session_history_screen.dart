@@ -105,11 +105,16 @@ class _SessionHistoryTile extends StatelessWidget {
                   labelStyle: TextStyle(
                     fontSize: 11,
                     color: isCompleted
-                        ? Colors.green[800]
+                        ? (Theme.of(context).brightness == Brightness.dark
+                            ? Colors.green[300]
+                            : Colors.green[800])
                         : scheme.onSurfaceVariant,
                   ),
                   backgroundColor: isCompleted
-                      ? Colors.green.withValues(alpha: 0.15)
+                      ? Colors.green.withValues(
+                          alpha: Theme.of(context).brightness == Brightness.dark
+                              ? 0.25
+                              : 0.15)
                       : scheme.surfaceContainerHighest,
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,

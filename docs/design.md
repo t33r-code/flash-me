@@ -264,6 +264,142 @@ Each card (and each set) carries an optional language pair: **`nativeLanguage`**
 
 ---
 
+## Workbook Cards
+
+### Overview
+
+Workbook Cards are a second card type alongside Flash Cards. Where a Flash Card centres on a single vocabulary item (word → translation reveal), a Workbook Card presents a descriptive prompt followed by one or more structured questions — similar to a short exercise in a language workbook or a DuoLingo challenge. A single workbook card can test multiple related concepts in one interaction.
+
+Workbook Cards live in a separate Firestore collection (`workbookCards/`) and have their own data model. Sets can contain a mix of Flash Cards and Workbook Cards.
+
+---
+
+### Card Structure
+
+A Workbook Card has two visible sections during study:
+
+1. **Prompt** — a plain-text block describing the task (e.g. *"Read the sentence and answer the questions below"*). Shown alone on first view. The user taps **Next** to skip the card entirely, or **More** to expand the questions.
+
+2. **Questions** — all revealed at once when **More** is tapped. Users can work through them in any order and revisit earlier ones. Three question types are supported.
+
+---
+
+### Question Types
+
+#### 1. Text Input
+
+User types a free-text answer, taps **Check**, and receives correct/incorrect feedback. Accepted answers are an ordered list; any match is a pass.
+
+Content fields: `correctAnswers: List<String>`, `hint: String?`, `exactMatch: bool` (default false = case-insensitive).
+
+Identical validation semantics to the `text_input` field on Flash Cards.
+
+---
+
+#### 2. Multiple Choice
+
+User selects one option and taps **Check**. Two display modes let the card author choose between readability and compactness:
+
+| Mode | When to use |
+|---|---|
+| `list` | Full-width vertical buttons — best for longer option text |
+| `chips` | Wrapping chip row — best for short options (single words, short phrases) |
+
+Content fields: `options: List<String>`, `correctIndex: int`, `displayMode: 'list' \| 'chips'`, `explanation: String?`.
+
+---
+
+#### 3. Word Order *(new)*
+
+User assembles an answer by tapping word tiles from a bank. Tapping a tile moves it to an answer row above the bank; tapping a placed tile returns it to the bank. When the user taps **Check**, the assembled sequence is compared against `correctOrder`.
+
+**Word bank design:** The author populates `wordBank` with all available tiles. This can be exactly the words needed (simpler) or include distractor words (harder). The subset of tiles that forms the correct answer is `correctOrder`.
+
+**Prompt:** An optional per-question instruction string (e.g. *"Put these words in the correct order"*) displayed above the bank. Plain text only — inline blank-slot rendering where tiles slot into the prompt text is a future enhancement deferred until user feedback warrants it.
+
+**Evaluation:** Exact sequence match of assembled tiles against `correctOrder`. Case-sensitive (consistent with existing `exactMatch: true` behaviour; a future option can relax this per-question).
+
+Content fields: `wordBank: List<String>`, `correctOrder: List<String>` (non-empty subset of `wordBank`).
+
+---
+
+### Study Flow
+
+1. The study session screen detects card type from `cardTypeMap` (see Session Integration below).
+2. For a Workbook Card, the primary view shows only the **prompt** — there is no word/translation reveal.
+3. **More** reveals all questions simultaneously. Users can answer in any order.
+4. **Skip / Review** marks work identically to Flash Cards — one mark per card for the whole card.
+5. Per-question pass/fail is tracked in `questionResults` using the same `{cardId}_{questionId}` key pattern used for Flash Card fields.
+
+---
+
+### Data Model (Firestore)
+
+```
+workbookCards/{cardId}
+  prompt: string                  ← task description shown before questions expand
+  questions: array                ← ordered list of WorkbookQuestion maps
+    questionId: string            ← client-generated unique ID (same pattern as fieldId)
+    type: string                  ← 'text_input' | 'multiple_choice' | 'word_order'
+    prompt: string?               ← optional per-question label / instruction
+    content: map                  ← shape varies by type (see below)
+  tags: string[]
+  nativeLanguage: string?         ← ISO 639-1 code
+  targetLanguage: string?         ← ISO 639-1 code
+  createdAt: timestamp
+  updatedAt: timestamp
+  createdBy: userId
+```
+
+**`content` shapes by question type:**
+
+```
+text_input:
+  correctAnswers: string[]        ← one or more accepted answers
+  hint: string?                   ← shown before the user answers
+  exactMatch: bool                ← false = case-insensitive (default)
+
+multiple_choice:
+  options: string[]               ← option strings
+  correctIndex: int               ← index of the correct option
+  displayMode: string             ← 'list' | 'chips'
+  explanation: string?            ← revealed after answering
+
+word_order:
+  wordBank: string[]              ← all available tiles (correct + optional distractors)
+  correctOrder: string[]          ← expected answer; ordered subset of wordBank
+```
+
+---
+
+### Set Membership and Mixed Sets
+
+The `setCards` join document gains a `cardType` field (`'flashcard'` | `'workbook'`) so the study engine and set-detail screen know which Firestore collection to load each card from. Existing `setCards` documents without this field are treated as `'flashcard'` (backward compatible — no migration required).
+
+---
+
+### Session Integration
+
+`StudySession` gains an optional `cardTypeMap: Map<String, String>` field (cardId → `'flashcard'` | `'workbook'`). Sessions without this field treat all cards as `'flashcard'` (backward compatible). All existing session fields — `cardSequence`, `cardProgress`, `cardMarks`, statistics — are unchanged.
+
+---
+
+### Implementation Notes
+
+- `WorkbookQuestion` uses the same sealed-class pattern as `CardFieldContent`: adding a new question type means adding one subclass and updating `fromJson`/`toJson`; no other code changes required.
+- The word order interaction (tile bank + answer row) is a self-contained stateful widget; the check/feedback cycle follows the same pattern as `_OptionButton` in the existing study screen.
+- Multiple choice chips mode reuses the existing options data; `displayMode` is a rendering hint only — no change to validation logic.
+- Workbook Cards do not have `primaryWord` / `translation` fields. They cannot be created from a card template (templates are Flash Card structures). A future "workbook template" concept is possible but not planned for MVP.
+- Media attachments (images, audio) on a Workbook Card are not supported in the initial implementation. The prompt and question prompts are plain text.
+
+---
+
+### Implementation Plan
+
+See **Phase 3e — Workbook Cards** in the implementation roadmap.
+
+---
+
 ## Groupings of Flash Cards (Card Sets)
 
 ### Overview

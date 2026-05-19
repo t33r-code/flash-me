@@ -121,6 +121,41 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] Applying a template pre-populates fields (config carried over, answers blank)
 - [x] Confirmation dialog when replacing existing fields
 
+#### Phase 3e — Workbook Cards
+
+**Goal**: Add a second card type — prompt + structured questions — alongside Flash Cards. See `docs/design.md § Workbook Cards` for the full specification.
+
+**Data layer**
+- [ ] `WorkbookCard` model: `fromFirestore` / `toFirestore` / `toJson`
+- [ ] `WorkbookQuestion` sealed class hierarchy: `TextInputQuestion`, `MultipleChoiceQuestion`, `WordOrderQuestion`
+- [ ] `MultipleChoiceDisplayMode` enum (`list` | `chips`)
+- [ ] `WorkbookCardRepository` abstract interface + `FirebaseWorkbookCardRepository`
+- [ ] `workbookCardRepositoryProvider`, `userWorkbookCardsProvider`
+- [ ] Extend `SetCard` model with `cardType: String` (`'flashcard'` | `'workbook'`); update `FirebaseCardSetRepository` writes to include it (existing docs without the field default to `'flashcard'`)
+- [ ] Extend `StudySession` with `cardTypeMap: Map<String, String>`; update session repository reads/writes (absent field defaults to all `'flashcard'`)
+- [ ] Firestore security rules for `workbookCards/` (owner-only, same pattern as `cards/`)
+- [ ] Firestore indexes: `workbookCards` by `createdBy + createdAt`; deploy both
+
+**UI — creation / editing**
+- [ ] `WorkbookCardFormScreen`: prompt text field + ordered question list with add / remove / reorder
+- [ ] Inline question editors for all three types (expand in-place; no separate screen)
+- [ ] Word bank editor: chip-add input for individual tiles; tap-to-sequence correct-order builder
+- [ ] Display-mode toggle (`list` / `chips`) in the multiple choice question editor
+- [ ] My Cards screen FAB: card-type chooser bottom sheet (Flash Card / Workbook Card)
+- [ ] Set detail screen add-card flow: same card-type chooser
+
+**UI — study**
+- [ ] Study session screen: read `cardTypeMap` from session; branch to `_WorkbookCardView` vs existing `_FlashCardView`
+- [ ] `_WorkbookCardView`: prompt block + all questions revealed on More tap
+- [ ] Text input and multiple choice question widgets (reuse logic from existing field widgets; adapt layout for workbook context)
+- [ ] `_WordOrderWidget`: word bank chip row + answer chip row; tap-to-place / tap-to-return; Check button + feedback
+- [ ] Chips display mode for multiple choice questions
+- [ ] Question result tracking for workbook questions (same `{cardId}_{questionId}` pattern)
+
+**Firestore / deploy**
+- [ ] Deploy updated Firestore rules
+- [ ] Deploy updated Firestore indexes
+
 #### Flash Cards (remaining / deferred)
 - [ ] Add card metadata display (createdAt, updatedAt, createdBy)
 - [ ] Implement field type icons/indicators

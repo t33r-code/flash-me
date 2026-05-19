@@ -71,8 +71,8 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] Set up proper error handling and exception types (AppException)
 - [x] Wire Riverpod providers for all services and streams
 - [ ] Create validation logic for all models (deferred to Phase 3 with UI)
-- [ ] Test data models with unit tests (deferred to Phase 7)
-- [ ] Test Firestore operations with integration tests (deferred to Phase 7)
+- [x] Test data models with unit tests *(covered in Phase 7 unit-tests pass)*
+- [ ] Test Firestore operations with integration tests (deferred — requires Firebase emulator setup)
 
 **Deliverable**: Complete data layer with working Firestore integration.
 
@@ -285,8 +285,8 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] Bulk export UI on Data screen: set list with checkboxes + select-all
 - [x] Multi-set ZIP format: `{ "version": "1.0", "exportDate": "...", "sets": [...] }`
 - [x] Shared `media/` folder across all sets in the archive (no duplication)
-- [ ] Add unit tests for validation and diff logic (deferred to Phase 7)
-- [ ] Test full round-trip (export → import → verify data integrity) (deferred to Phase 7)
+- [x] Add unit tests for validation and diff logic *(covered in Phase 7 unit-tests pass)*
+- [ ] Test full round-trip (export → import → verify data integrity) (deferred — requires Firebase emulator setup)
 
 **Deliverable**: Account-level Data screen with bulk import/export; full round-trip for single and multi-set ZIPs covering all field types and media.
 
@@ -334,14 +334,14 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [ ] Test on various device sizes (phones, tablets, desktops) *(deferred — tablet/desktop testing blocked on Web Dashboard phase)*
 
 #### Comprehensive Testing
-- [ ] Unit tests for all services and models
-- [ ] Widget/UI tests for all screens
-- [ ] Integration tests for core workflows
-- [ ] Cross-platform testing (iOS, Android, Web, Windows, macOS, Linux)
-- [ ] Test on real devices and emulators
-- [ ] Performance testing and optimization
-- [ ] Memory leak detection and fixing
-- [ ] Battery usage optimization (for mobile)
+- [x] Unit tests for models (`CardField`, `FlashCard`, `ImportSetDiff`, `ImportAnalysis`) and import service logic (`_parseCard`, `_buildChanges`, `_fieldsChanged`, new-card routing) — 47 tests, all passing
+- [ ] Widget/UI tests for all screens *(deferred — lower ROI at this stage; revisit once screens stabilise post-MVP)*
+- [ ] Integration tests for core workflows *(deferred — requires Firebase Local Emulator Suite; scheduled alongside Firebase emulator setup)*
+- [ ] Cross-platform testing (iOS, Android, Web, Windows, macOS, Linux) *(deferred — desktop/web testing blocked on Web Dashboard phase; mobile covered by manual QA)*
+- [ ] Test on real devices and emulators *(deferred — covered by manual QA during feature development)*
+- [ ] Performance testing and optimization *(deferred — post-MVP once usage patterns are known)*
+- [ ] Memory leak detection and fixing *(deferred — post-MVP)*
+- [ ] Battery usage optimization (for mobile) *(deferred — post-MVP)*
 
 #### Phase 7d — Accessibility & Localization
 - [x] Audit for accessibility issues (colour contrast, touch target sizes, semantic labels on custom widgets)

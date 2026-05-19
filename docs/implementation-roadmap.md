@@ -335,13 +335,13 @@ The implementation is divided into 7 phases, starting with foundational setup an
 
 #### Comprehensive Testing
 - [x] Unit tests for models (`CardField`, `FlashCard`, `ImportSetDiff`, `ImportAnalysis`) and import service logic (`_parseCard`, `_buildChanges`, `_fieldsChanged`, new-card routing) — 47 tests, all passing
-- [ ] Widget/UI tests for all screens
-- [ ] Integration tests for core workflows
-- [ ] Cross-platform testing (iOS, Android, Web, Windows, macOS, Linux)
-- [ ] Test on real devices and emulators
-- [ ] Performance testing and optimization
-- [ ] Memory leak detection and fixing
-- [ ] Battery usage optimization (for mobile)
+- [ ] Widget/UI tests for all screens *(deferred — lower ROI at this stage; revisit once screens stabilise post-MVP)*
+- [ ] Integration tests for core workflows *(deferred — requires Firebase Local Emulator Suite; scheduled alongside Firebase emulator setup)*
+- [ ] Cross-platform testing (iOS, Android, Web, Windows, macOS, Linux) *(deferred — desktop/web testing blocked on Web Dashboard phase; mobile covered by manual QA)*
+- [ ] Test on real devices and emulators *(deferred — covered by manual QA during feature development)*
+- [ ] Performance testing and optimization *(deferred — post-MVP once usage patterns are known)*
+- [ ] Memory leak detection and fixing *(deferred — post-MVP)*
+- [ ] Battery usage optimization (for mobile) *(deferred — post-MVP)*
 
 #### Phase 7d — Accessibility & Localization
 - [x] Audit for accessibility issues (colour contrast, touch target sizes, semantic labels on custom widgets)

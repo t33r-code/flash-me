@@ -52,8 +52,10 @@ devtools_options.yaml
 # Claude Code local session state
 .claude/
 
-# One-off scripts and their dependencies / credentials (never commit credentials)
-scripts/
+# Credentials and dependencies inside scripts/ — never commit these
+scripts/serviceAccountKey.json
+scripts/node_modules/
+scripts/package-lock.json
 
 # Firebase config files are intentionally tracked.
 # API keys are client-restricted by platform bundle ID; Firebase security rules

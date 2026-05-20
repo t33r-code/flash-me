@@ -155,8 +155,8 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] Study setup screen: populate `cardTypeMap` via `watchSetCards` when creating a new session
 
 **Firestore / deploy**
-- [ ] Deploy updated Firestore rules
-- [ ] Deploy updated Firestore indexes
+- [x] Deploy updated Firestore rules
+- [x] Deploy updated Firestore indexes
 
 #### Flash Cards (remaining / deferred)
 - [ ] Add card metadata display (createdAt, updatedAt, createdBy)

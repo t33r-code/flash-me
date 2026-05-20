@@ -40,11 +40,13 @@ service cloud.firestore {
           request.resource.data.userId == request.auth.uid;
     }
 
-    // Cards are private to the user who created them.
-    // .get() with request.auth.uid as default handles legacy documents that
-    // were created before the createdBy field was added to the schema.
+    // Cards are readable by any authenticated user — card IDs are not
+    // guessable and future sharing / marketplace features require that a
+    // user who has legitimately obtained a card ID (e.g. from a shared set)
+    // can read it.  Write operations remain restricted to the creator.
     match /cards/{cardId} {
-      allow read, update, delete: if isAuth() &&
+      allow read: if isAuth();
+      allow update, delete: if isAuth() &&
           resource.data.get('createdBy', request.auth.uid) == request.auth.uid;
       allow create: if isAuth() &&
           request.resource.data.createdBy == request.auth.uid;
@@ -66,10 +68,10 @@ service cloud.firestore {
           request.resource.data.createdBy == request.auth.uid;
     }
 
-    // Workbook cards are private to the user who created them.
-    // Same .get() fallback as cards above for legacy documents.
+    // Workbook cards follow the same read policy as flash cards above.
     match /workbookCards/{cardId} {
-      allow read, update, delete: if isAuth() &&
+      allow read: if isAuth();
+      allow update, delete: if isAuth() &&
           resource.data.get('createdBy', request.auth.uid) == request.auth.uid;
       allow create: if isAuth() &&
           request.resource.data.createdBy == request.auth.uid;

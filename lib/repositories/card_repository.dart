@@ -12,7 +12,9 @@ abstract class CardRepository {
   Stream<List<FlashCard>> watchUserCards(String userId);
 
   // Fetch multiple cards by ID in a single (possibly batched) operation.
-  Future<List<FlashCard>> getCardsByIds(List<String> cardIds);
+  // userId is required so the query includes a createdBy constraint that
+  // Firestore can evaluate at query time (plain __name__-whereIn is denied).
+  Future<List<FlashCard>> getCardsByIds(List<String> cardIds, String userId);
 
   // Overwrite all mutable fields on an existing card.
   Future<void> updateCard(FlashCard card);

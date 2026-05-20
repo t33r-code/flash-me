@@ -233,16 +233,21 @@ class FirebaseCardSetRepository implements CardSetRepository {
       if (snapshot.docs.isEmpty) return <FlashCard>[];
       final cardIds =
           snapshot.docs.map((d) => d.data()['cardId'] as String).toList();
-      return _fetchCardsByIds(cardIds);
+      return _fetchCardsByIds(cardIds, userId);
     });
   }
 
-  Future<List<FlashCard>> _fetchCardsByIds(List<String> cardIds) async {
+  // userId must be included so Firestore can verify the createdBy rule at
+  // query time — a whereIn on __name__ alone is denied without a matching
+  // field constraint that the rule can evaluate statically.
+  Future<List<FlashCard>> _fetchCardsByIds(
+      List<String> cardIds, String userId) async {
     final cards = <FlashCard>[];
     for (var i = 0; i < cardIds.length; i += 30) {
       final chunk = cardIds.sublist(i, min(i + 30, cardIds.length));
       final snapshot = await _firestore
           .collection(AppConstants.cardsCollection)
+          .where('createdBy', isEqualTo: userId)
           .where(FieldPath.documentId, whereIn: chunk)
           .get();
       cards.addAll(snapshot.docs.map(FlashCard.fromFirestore));

@@ -82,9 +82,10 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
       return;
     }
     try {
+      final uid = ref.read(authStateProvider).asData?.value ?? '';
       final cards = await ref
           .read(workbookCardRepositoryProvider)
-          .getCardsByIds(workbookIds);
+          .getCardsByIds(workbookIds, uid);
       if (mounted) {
         setState(() {
           _workbookCardsMap = {for (final c in cards) c.id: c};

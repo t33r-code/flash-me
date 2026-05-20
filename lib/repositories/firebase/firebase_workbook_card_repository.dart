@@ -56,8 +56,10 @@ class FirebaseWorkbookCardRepository implements WorkbookCardRepository {
   }
 
   // Firestore whereIn is limited to 30 values per query; batch accordingly.
+  // createdBy filter is required for Firestore rule evaluation at query time.
   @override
-  Future<List<WorkbookCard>> getCardsByIds(List<String> cardIds) async {
+  Future<List<WorkbookCard>> getCardsByIds(
+      List<String> cardIds, String userId) async {
     if (cardIds.isEmpty) return [];
     try {
       final cards = <WorkbookCard>[];
@@ -65,6 +67,7 @@ class FirebaseWorkbookCardRepository implements WorkbookCardRepository {
         final chunk = cardIds.sublist(i, min(i + 30, cardIds.length));
         final snapshot = await _firestore
             .collection(AppConstants.workbookCardsCollection)
+            .where('createdBy', isEqualTo: userId)
             .where(FieldPath.documentId, whereIn: chunk)
             .get();
         cards.addAll(snapshot.docs.map(WorkbookCard.fromFirestore));

@@ -53,8 +53,10 @@ class FirebaseCardRepository implements CardRepository {
   }
 
   // Fetch cards by ID list; batches into groups of 30 (Firestore whereIn limit).
+  // createdBy filter is required for Firestore rule evaluation at query time.
   @override
-  Future<List<FlashCard>> getCardsByIds(List<String> cardIds) async {
+  Future<List<FlashCard>> getCardsByIds(
+      List<String> cardIds, String userId) async {
     if (cardIds.isEmpty) return [];
     try {
       final cards = <FlashCard>[];
@@ -62,6 +64,7 @@ class FirebaseCardRepository implements CardRepository {
         final chunk = cardIds.sublist(i, min(i + 30, cardIds.length));
         final snapshot = await _firestore
             .collection(AppConstants.cardsCollection)
+            .where('createdBy', isEqualTo: userId)
             .where(FieldPath.documentId, whereIn: chunk)
             .get();
         cards.addAll(snapshot.docs.map(FlashCard.fromFirestore));

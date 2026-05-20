@@ -14,7 +14,9 @@ abstract class WorkbookCardRepository {
   Stream<List<WorkbookCard>> watchUserCards(String userId);
 
   // Fetch multiple cards by ID in one batched operation.
-  Future<List<WorkbookCard>> getCardsByIds(List<String> cardIds);
+  // userId is required so the query includes a createdBy constraint that
+  // Firestore can evaluate at query time (plain __name__-whereIn is denied).
+  Future<List<WorkbookCard>> getCardsByIds(List<String> cardIds, String userId);
 
   // Overwrite all mutable fields on an existing card.
   Future<void> updateCard(WorkbookCard card);

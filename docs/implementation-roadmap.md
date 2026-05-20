@@ -143,7 +143,7 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] Word bank editor: chip-add input for individual tiles; correct-order chip builder
 - [x] Display-mode toggle (`list` / `chips`) in the multiple choice question editor
 - [x] My Cards screen FAB: card-type chooser bottom sheet (Flash Card / Workbook Card)
-- [ ] Set detail screen add-card flow: same card-type chooser (deferred to Phase 4 set-detail work)
+- [ ] Set detail screen: add-card picker shows both flash cards and workbook cards; passes correct `cardType` to `addCardToSet` (Phase 4 set-detail work)
 
 **UI — study**
 - [x] Study session screen: read `cardTypeMap` from session; branch to `_WorkbookCardView` vs existing flash card view
@@ -155,8 +155,8 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] Study setup screen: populate `cardTypeMap` via `watchSetCards` when creating a new session
 
 **Firestore / deploy**
-- [ ] Deploy updated Firestore rules
-- [ ] Deploy updated Firestore indexes
+- [x] Deploy updated Firestore rules
+- [x] Deploy updated Firestore indexes
 
 #### Flash Cards (remaining / deferred)
 - [ ] Add card metadata display (createdAt, updatedAt, createdBy)

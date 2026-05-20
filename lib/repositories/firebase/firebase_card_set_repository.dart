@@ -237,17 +237,25 @@ class FirebaseCardSetRepository implements CardSetRepository {
     });
   }
 
-  // Fetches each card individually rather than using a whereIn query.
-  // Firestore can't evaluate list-query rules when whereIn is on __name__
-  // combined with a field filter; individual doc reads are evaluated
-  // per-document so the createdBy rule works correctly.
+  // Fetches each card individually so Firestore evaluates rules per-document.
+  // Per-Future error handling ensures one inaccessible card doesn't abort
+  // the whole fetch (the card is silently skipped).
   Future<List<FlashCard>> _fetchCardsByIds(
       List<String> cardIds, String userId) async {
     if (cardIds.isEmpty) return [];
     final col = _firestore.collection(AppConstants.cardsCollection);
-    final snaps = await Future.wait(cardIds.map((id) => col.doc(id).get()));
+    final snaps = await Future.wait(
+      cardIds.map((id) async {
+        try {
+          return await col.doc(id).get();
+        } catch (_) {
+          return null;
+        }
+      }),
+    );
     return snaps
-        .where((s) => s.exists && s.data()?['createdBy'] == userId)
+        .whereType<DocumentSnapshot<Map<String, dynamic>>>()
+        .where((s) => s.exists)
         .map(FlashCard.fromFirestore)
         .toList();
   }

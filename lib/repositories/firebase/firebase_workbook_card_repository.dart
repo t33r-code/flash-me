@@ -54,18 +54,26 @@ class FirebaseWorkbookCardRepository implements WorkbookCardRepository {
         .map((s) => s.docs.map(WorkbookCard.fromFirestore).toList());
   }
 
-  // Fetch cards by ID; uses individual doc reads rather than whereIn to avoid
-  // Firestore's inability to evaluate list-query rules when __name__ whereIn
-  // is combined with a field filter.
+  // Fetch cards by ID; individual doc reads so Firestore evaluates rules
+  // per-document. Per-Future error handling skips inaccessible cards.
   @override
   Future<List<WorkbookCard>> getCardsByIds(
       List<String> cardIds, String userId) async {
     if (cardIds.isEmpty) return [];
     try {
       final col = _firestore.collection(AppConstants.workbookCardsCollection);
-      final snaps = await Future.wait(cardIds.map((id) => col.doc(id).get()));
+      final snaps = await Future.wait(
+        cardIds.map((id) async {
+          try {
+            return await col.doc(id).get();
+          } catch (_) {
+            return null;
+          }
+        }),
+      );
       return snaps
-          .where((s) => s.exists && s.data()?['createdBy'] == userId)
+          .whereType<DocumentSnapshot<Map<String, dynamic>>>()
+          .where((s) => s.exists)
           .map(WorkbookCard.fromFirestore)
           .toList();
     } catch (e) {

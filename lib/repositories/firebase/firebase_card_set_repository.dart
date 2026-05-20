@@ -237,22 +237,19 @@ class FirebaseCardSetRepository implements CardSetRepository {
     });
   }
 
-  // userId must be included so Firestore can verify the createdBy rule at
-  // query time — a whereIn on __name__ alone is denied without a matching
-  // field constraint that the rule can evaluate statically.
+  // Fetches each card individually rather than using a whereIn query.
+  // Firestore can't evaluate list-query rules when whereIn is on __name__
+  // combined with a field filter; individual doc reads are evaluated
+  // per-document so the createdBy rule works correctly.
   Future<List<FlashCard>> _fetchCardsByIds(
       List<String> cardIds, String userId) async {
-    final cards = <FlashCard>[];
-    for (var i = 0; i < cardIds.length; i += 30) {
-      final chunk = cardIds.sublist(i, min(i + 30, cardIds.length));
-      final snapshot = await _firestore
-          .collection(AppConstants.cardsCollection)
-          .where('createdBy', isEqualTo: userId)
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-      cards.addAll(snapshot.docs.map(FlashCard.fromFirestore));
-    }
-    return cards;
+    if (cardIds.isEmpty) return [];
+    final col = _firestore.collection(AppConstants.cardsCollection);
+    final snaps = await Future.wait(cardIds.map((id) => col.doc(id).get()));
+    return snaps
+        .where((s) => s.exists && s.data()?['createdBy'] == userId)
+        .map(FlashCard.fromFirestore)
+        .toList();
   }
 
   @override

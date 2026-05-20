@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:logger/logger.dart';
 import 'package:flash_me/models/workbook_card.dart';
@@ -55,24 +54,20 @@ class FirebaseWorkbookCardRepository implements WorkbookCardRepository {
         .map((s) => s.docs.map(WorkbookCard.fromFirestore).toList());
   }
 
-  // Firestore whereIn is limited to 30 values per query; batch accordingly.
-  // createdBy filter is required for Firestore rule evaluation at query time.
+  // Fetch cards by ID; uses individual doc reads rather than whereIn to avoid
+  // Firestore's inability to evaluate list-query rules when __name__ whereIn
+  // is combined with a field filter.
   @override
   Future<List<WorkbookCard>> getCardsByIds(
       List<String> cardIds, String userId) async {
     if (cardIds.isEmpty) return [];
     try {
-      final cards = <WorkbookCard>[];
-      for (var i = 0; i < cardIds.length; i += 30) {
-        final chunk = cardIds.sublist(i, min(i + 30, cardIds.length));
-        final snapshot = await _firestore
-            .collection(AppConstants.workbookCardsCollection)
-            .where('createdBy', isEqualTo: userId)
-            .where(FieldPath.documentId, whereIn: chunk)
-            .get();
-        cards.addAll(snapshot.docs.map(WorkbookCard.fromFirestore));
-      }
-      return cards;
+      final col = _firestore.collection(AppConstants.workbookCardsCollection);
+      final snaps = await Future.wait(cardIds.map((id) => col.doc(id).get()));
+      return snaps
+          .where((s) => s.exists && s.data()?['createdBy'] == userId)
+          .map(WorkbookCard.fromFirestore)
+          .toList();
     } catch (e) {
       _logger.e('Failed to fetch workbook cards by IDs: $e');
       throw AppException('Failed to load cards', code: 'get-cards-failed');

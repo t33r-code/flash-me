@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:logger/logger.dart';
@@ -52,24 +51,20 @@ class FirebaseCardRepository implements CardRepository {
         .map((s) => s.docs.map(FlashCard.fromFirestore).toList());
   }
 
-  // Fetch cards by ID list; batches into groups of 30 (Firestore whereIn limit).
-  // createdBy filter is required for Firestore rule evaluation at query time.
+  // Fetch cards by ID; uses individual doc reads rather than whereIn to avoid
+  // Firestore's inability to evaluate list-query rules when __name__ whereIn
+  // is combined with a field filter.
   @override
   Future<List<FlashCard>> getCardsByIds(
       List<String> cardIds, String userId) async {
     if (cardIds.isEmpty) return [];
     try {
-      final cards = <FlashCard>[];
-      for (var i = 0; i < cardIds.length; i += 30) {
-        final chunk = cardIds.sublist(i, min(i + 30, cardIds.length));
-        final snapshot = await _firestore
-            .collection(AppConstants.cardsCollection)
-            .where('createdBy', isEqualTo: userId)
-            .where(FieldPath.documentId, whereIn: chunk)
-            .get();
-        cards.addAll(snapshot.docs.map(FlashCard.fromFirestore));
-      }
-      return cards;
+      final col = _firestore.collection(AppConstants.cardsCollection);
+      final snaps = await Future.wait(cardIds.map((id) => col.doc(id).get()));
+      return snaps
+          .where((s) => s.exists && s.data()?['createdBy'] == userId)
+          .map(FlashCard.fromFirestore)
+          .toList();
     } catch (e) {
       _logger.e('Failed to fetch cards by IDs: $e');
       throw AppException('Failed to load cards', code: 'get-cards-failed');

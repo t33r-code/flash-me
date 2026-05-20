@@ -126,15 +126,16 @@ The implementation is divided into 7 phases, starting with foundational setup an
 **Goal**: Add a second card type — prompt + structured questions — alongside Flash Cards. See `docs/design.md § Workbook Cards` for the full specification.
 
 **Data layer**
-- [ ] `WorkbookCard` model: `fromFirestore` / `toFirestore` / `toJson`
-- [ ] `WorkbookQuestion` sealed class hierarchy: `TextInputQuestion`, `MultipleChoiceQuestion`, `WordOrderQuestion`
-- [ ] `MultipleChoiceDisplayMode` enum (`list` | `chips`)
-- [ ] `WorkbookCardRepository` abstract interface + `FirebaseWorkbookCardRepository`
-- [ ] `workbookCardRepositoryProvider`, `userWorkbookCardsProvider`
-- [ ] Extend `SetCard` model with `cardType: String` (`'flashcard'` | `'workbook'`); update `FirebaseCardSetRepository` writes to include it (existing docs without the field default to `'flashcard'`)
-- [ ] Extend `StudySession` with `cardTypeMap: Map<String, String>`; update session repository reads/writes (absent field defaults to all `'flashcard'`)
-- [ ] Firestore security rules for `workbookCards/` (owner-only, same pattern as `cards/`)
-- [ ] Firestore indexes: `workbookCards` by `createdBy + createdAt`; deploy both
+- [x] `WorkbookCard` model: `fromFirestore` / `toFirestore` / `toJson`
+- [x] `WorkbookQuestion` sealed class hierarchy: `TextInputQuestion`, `MultipleChoiceQuestion`, `WordOrderQuestion`
+- [x] `MultipleChoiceDisplayMode` enum (`list` | `chips`)
+- [x] `WorkbookCardRepository` abstract interface + `FirebaseWorkbookCardRepository`
+- [x] `workbookCardRepositoryProvider`, `userWorkbookCardsProvider`
+- [x] Extend `SetCard` model with `cardType: String` (`'flashcard'` | `'workbook'`); update `FirebaseCardSetRepository` writes to include it (existing docs without the field default to `'flashcard'`)
+- [x] `CardSetRepository.watchSetCards` — streams raw `SetCard` join objects with `cardType` for mixed-set session building
+- [x] Extend `StudySession` with `cardTypeMap: Map<String, String>`; update session repository reads/writes (absent field defaults to all `'flashcard'`)
+- [x] Firestore security rules for `workbookCards/` (owner-only, same pattern as `cards/`)
+- [x] Firestore indexes: `workbookCards` by `createdBy + createdAt`; deploy both
 
 **UI — creation / editing**
 - [ ] `WorkbookCardFormScreen`: prompt text field + ordered question list with add / remove / reorder

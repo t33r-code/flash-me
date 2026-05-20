@@ -25,10 +25,22 @@ class AppConstants {
   // Rolling window size for question results.
   static const int questionResultsWindowSize = 5;
 
-  // Field types
+  // Field types (flash card fields)
   static const String fieldTypeReveal = 'reveal';
   static const String fieldTypeTextInput = 'text_input';
   static const String fieldTypeMultipleChoice = 'multiple_choice';
+
+  // Workbook card question types.
+  // text_input and multiple_choice reuse the same string values as field types;
+  // word_order is new and only exists on workbook cards.
+  static const String questionTypeWordOrder = 'word_order';
+
+  // Card type discriminator stored on setCards join documents.
+  static const String cardTypeFlashcard = 'flashcard';
+  static const String cardTypeWorkbook = 'workbook';
+
+  // Firestore collection for workbook cards (parallel to cards/).
+  static const String workbookCardsCollection = 'workbookCards';
 
   // Session status
   static const String sessionStatusInProgress = 'in_progress';

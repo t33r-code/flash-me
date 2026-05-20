@@ -106,6 +106,7 @@ class FirebaseCardSetRepository implements CardSetRepository {
     required String setId,
     required String cardId,
     required String userId,
+    String cardType = AppConstants.cardTypeFlashcard,
   }) async {
     try {
       final linkRef =
@@ -116,6 +117,7 @@ class FirebaseCardSetRepository implements CardSetRepository {
         cardId: cardId,
         userId: userId,
         addedAt: DateTime.now(),
+        cardType: cardType,
       );
       final batch = _firestore.batch();
       batch.set(linkRef, link.toFirestore());
@@ -170,6 +172,7 @@ class FirebaseCardSetRepository implements CardSetRepository {
     required String setId,
     required List<String> cardIds,
     required String userId,
+    String cardType = AppConstants.cardTypeFlashcard,
   }) async {
     if (cardIds.isEmpty) return;
     try {
@@ -185,6 +188,7 @@ class FirebaseCardSetRepository implements CardSetRepository {
             'cardId': cardId,
             'userId': userId,
             'addedAt': Timestamp.now(),
+            'cardType': cardType,
           });
         }
         batch.update(
@@ -260,6 +264,19 @@ class FirebaseCardSetRepository implements CardSetRepository {
     } catch (e) {
       throw AppException('Failed to look up set by name: $e');
     }
+  }
+
+  // Stream all SetCard join documents for a set, preserving addedAt order.
+  // Includes cardType so callers can dispatch to the right card collection.
+  @override
+  Stream<List<SetCard>> watchSetCards(String setId, String userId) {
+    return _firestore
+        .collection(AppConstants.setCardsCollection)
+        .where('setId', isEqualTo: setId)
+        .where('userId', isEqualTo: userId)
+        .orderBy('addedAt')
+        .snapshots()
+        .map((s) => s.docs.map(SetCard.fromFirestore).toList());
   }
 
   @override

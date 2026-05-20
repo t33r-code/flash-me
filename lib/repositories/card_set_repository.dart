@@ -1,5 +1,7 @@
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/flash_card.dart';
+import 'package:flash_me/models/set_card.dart';
+import 'package:flash_me/utils/constants.dart';
 
 // Provider-agnostic contract for card-set persistence and card membership.
 abstract class CardSetRepository {
@@ -17,10 +19,12 @@ abstract class CardSetRepository {
   // --- Card membership -------------------------------------------------------
 
   // Add one card to a set; increments the set's cardCount.
+  // cardType defaults to 'flashcard'; pass AppConstants.cardTypeWorkbook for workbook cards.
   Future<void> addCardToSet({
     required String setId,
     required String cardId,
     required String userId,
+    String cardType = AppConstants.cardTypeFlashcard,
   });
 
   // Remove one card from a set; decrements the set's cardCount.
@@ -31,20 +35,25 @@ abstract class CardSetRepository {
     required String userId,
   });
 
-  // Bulk-add multiple cards; batched internally to stay within write limits.
+  // Bulk-add multiple cards of the same type; batched internally.
   Future<void> addCardsToSet({
     required String setId,
     required List<String> cardIds,
     required String userId,
+    String cardType = AppConstants.cardTypeFlashcard,
   });
 
   // Stream the ordered card IDs in a set (lightweight — no card data).
   // userId is required so the setCards query satisfies Firestore list rules.
   Stream<List<String>> watchCardIdsInSet(String setId, String userId);
 
-  // Stream the full FlashCard objects for all cards in a set.
+  // Stream the full FlashCard objects for flash cards in a set.
   // userId is required so the setCards query satisfies Firestore list rules.
   Stream<List<FlashCard>> watchCardsInSet(String setId, String userId);
+
+  // Stream all SetCard join documents for a set, including cardType.
+  // Used by the study session builder to construct cardTypeMap for mixed sets.
+  Stream<List<SetCard>> watchSetCards(String setId, String userId);
 
   // Find a set owned by [userId] whose name exactly matches [name].
   // Returns null if no such set exists.

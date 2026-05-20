@@ -126,31 +126,33 @@ The implementation is divided into 7 phases, starting with foundational setup an
 **Goal**: Add a second card type — prompt + structured questions — alongside Flash Cards. See `docs/design.md § Workbook Cards` for the full specification.
 
 **Data layer**
-- [ ] `WorkbookCard` model: `fromFirestore` / `toFirestore` / `toJson`
-- [ ] `WorkbookQuestion` sealed class hierarchy: `TextInputQuestion`, `MultipleChoiceQuestion`, `WordOrderQuestion`
-- [ ] `MultipleChoiceDisplayMode` enum (`list` | `chips`)
-- [ ] `WorkbookCardRepository` abstract interface + `FirebaseWorkbookCardRepository`
-- [ ] `workbookCardRepositoryProvider`, `userWorkbookCardsProvider`
-- [ ] Extend `SetCard` model with `cardType: String` (`'flashcard'` | `'workbook'`); update `FirebaseCardSetRepository` writes to include it (existing docs without the field default to `'flashcard'`)
-- [ ] Extend `StudySession` with `cardTypeMap: Map<String, String>`; update session repository reads/writes (absent field defaults to all `'flashcard'`)
-- [ ] Firestore security rules for `workbookCards/` (owner-only, same pattern as `cards/`)
-- [ ] Firestore indexes: `workbookCards` by `createdBy + createdAt`; deploy both
+- [x] `WorkbookCard` model: `fromFirestore` / `toFirestore` / `toJson`
+- [x] `WorkbookQuestion` sealed class hierarchy: `TextInputQuestion`, `MultipleChoiceQuestion`, `WordOrderQuestion`
+- [x] `MultipleChoiceDisplayMode` enum (`list` | `chips`)
+- [x] `WorkbookCardRepository` abstract interface + `FirebaseWorkbookCardRepository`
+- [x] `workbookCardRepositoryProvider`, `userWorkbookCardsProvider`
+- [x] Extend `SetCard` model with `cardType: String` (`'flashcard'` | `'workbook'`); update `FirebaseCardSetRepository` writes to include it (existing docs without the field default to `'flashcard'`)
+- [x] `CardSetRepository.watchSetCards` — streams raw `SetCard` join objects with `cardType` for mixed-set session building
+- [x] Extend `StudySession` with `cardTypeMap: Map<String, String>`; update session repository reads/writes (absent field defaults to all `'flashcard'`)
+- [x] Firestore security rules for `workbookCards/` (owner-only, same pattern as `cards/`)
+- [x] Firestore indexes: `workbookCards` by `createdBy + createdAt`; deploy both
 
 **UI — creation / editing**
-- [ ] `WorkbookCardFormScreen`: prompt text field + ordered question list with add / remove / reorder
-- [ ] Inline question editors for all three types (expand in-place; no separate screen)
-- [ ] Word bank editor: chip-add input for individual tiles; tap-to-sequence correct-order builder
-- [ ] Display-mode toggle (`list` / `chips`) in the multiple choice question editor
-- [ ] My Cards screen FAB: card-type chooser bottom sheet (Flash Card / Workbook Card)
-- [ ] Set detail screen add-card flow: same card-type chooser
+- [x] `WorkbookCardFormScreen`: prompt text field + ordered question list with add / remove / reorder
+- [x] Inline question editors for all three types (expand in-place; no separate screen)
+- [x] Word bank editor: chip-add input for individual tiles; correct-order chip builder
+- [x] Display-mode toggle (`list` / `chips`) in the multiple choice question editor
+- [x] My Cards screen FAB: card-type chooser bottom sheet (Flash Card / Workbook Card)
+- [ ] Set detail screen add-card flow: same card-type chooser (deferred to Phase 4 set-detail work)
 
 **UI — study**
-- [ ] Study session screen: read `cardTypeMap` from session; branch to `_WorkbookCardView` vs existing `_FlashCardView`
-- [ ] `_WorkbookCardView`: prompt block + all questions revealed on More tap
-- [ ] Text input and multiple choice question widgets (reuse logic from existing field widgets; adapt layout for workbook context)
-- [ ] `_WordOrderWidget`: word bank chip row + answer chip row; tap-to-place / tap-to-return; Check button + feedback
-- [ ] Chips display mode for multiple choice questions
-- [ ] Question result tracking for workbook questions (same `{cardId}_{questionId}` pattern)
+- [x] Study session screen: read `cardTypeMap` from session; branch to `_WorkbookCardView` vs existing flash card view
+- [x] `_WorkbookCardView`: prompt block + all questions revealed on More tap
+- [x] Text input and multiple choice question widgets (`_WorkbookTextInputCard`, `_WorkbookMultipleChoiceCard`)
+- [x] `_WordOrderCard`: word bank chip row + answer chip row; tap-to-place / tap-to-return; Check + feedback
+- [x] Chips display mode for multiple choice questions
+- [x] Question result tracking for workbook questions (`{cardId}_{questionId}` pattern)
+- [x] Study setup screen: populate `cardTypeMap` via `watchSetCards` when creating a new session
 
 **Firestore / deploy**
 - [ ] Deploy updated Firestore rules

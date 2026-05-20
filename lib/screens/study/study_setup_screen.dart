@@ -11,6 +11,7 @@ import 'package:flash_me/screens/study/study_session_screen.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/transitions.dart';
 
+
 // ---------------------------------------------------------------------------
 // StudySetupScreen — entry point for studying a set.
 //
@@ -63,6 +64,14 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
     try {
       final uid = ref.read(authStateProvider).asData?.value ?? '';
 
+      // Fetch setCard join docs to build the cardTypeMap (cardId → type).
+      // This allows the study session to dispatch flash vs workbook cards.
+      final setCards = await ref
+          .read(cardSetRepositoryProvider)
+          .watchSetCards(widget.cardSet.id, uid)
+          .first;
+      final cardTypeMap = {for (final sc in setCards) sc.cardId: sc.cardType};
+
       // Build card order — optionally shuffled via Fisher-Yates.
       final sequence = List<String>.from(cardIds);
       if (_shuffle) {
@@ -94,6 +103,7 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
               cardsUnknown: 0,
               sessionStats: const SessionStats(),
               shuffled: _shuffle,
+              cardTypeMap: cardTypeMap,
             ),
             uid,
           );

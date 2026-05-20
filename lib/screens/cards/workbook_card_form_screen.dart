@@ -315,15 +315,22 @@ class _WorkbookCardFormScreenState
     });
   }
 
-  void _addCorrectOrderWord(int qIdx, String word) {
-    final w = word.trim();
-    if (w.isEmpty) return;
-    setState(() => _questions[qIdx].correctOrder.add(w));
-    _questions[qIdx].correctOrderInputController.clear();
-  }
-
   void _removeCorrectOrderWord(int qIdx, int idx) =>
       setState(() => _questions[qIdx].correctOrder.removeAt(idx));
+
+  // Returns word bank tiles not yet consumed by the current correct order,
+  // preserving multiplicity so the same word can appear multiple times.
+  List<String> _availableForCorrectOrder(int qIdx) {
+    final q = _questions[qIdx];
+    final remaining = List<String>.from(q.wordBank);
+    for (final word in q.correctOrder) {
+      remaining.remove(word); // removes first occurrence — multiset semantics
+    }
+    return remaining;
+  }
+
+  void _placeCorrectOrderWord(int qIdx, String word) =>
+      setState(() => _questions[qIdx].correctOrder.add(word));
 
   // --- Save / Delete --------------------------------------------------------
 
@@ -592,19 +599,20 @@ class _WorkbookCardFormScreenState
   }
 
   Widget _buildWordOrderContent(_QuestionState q, int qIdx) {
+    final scheme = Theme.of(context).colorScheme;
     final muted = Theme.of(context)
         .textTheme
         .bodySmall
-        ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant);
+        ?.copyWith(color: scheme.onSurfaceVariant);
+    final available = _availableForCorrectOrder(qIdx);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // -- Word Bank ---
+        // -- Word Bank -------------------------------------------------
         Text('Word Bank *', style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 2),
-        Text('Add all word tiles (correct words + optional distractors)',
-            style: muted),
+        Text('Add all tiles — correct words plus any distractors', style: muted),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -644,51 +652,75 @@ class _WorkbookCardFormScreenState
                 .toList(),
           ),
         ],
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
 
-        // -- Correct Order ---
-        Text('Correct Order *', style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 2),
-        Text('Add the expected answer words in sequence', style: muted),
-        const SizedBox(height: 8),
+        // -- Correct Order (tap tiles to build sequence) ---------------
         Row(
           children: [
-            Expanded(
-              child: TextField(
-                controller: q.correctOrderInputController,
-                decoration: const InputDecoration(
-                  hintText: 'Next word in answer',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-                textInputAction: TextInputAction.done,
-                onSubmitted: (v) => _addCorrectOrderWord(qIdx, v),
+            Text('Correct Order *',
+                style: Theme.of(context).textTheme.bodySmall),
+            const Spacer(),
+            if (q.correctOrder.isNotEmpty)
+              TextButton(
+                onPressed: () => setState(() => q.correctOrder.clear()),
+                style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact),
+                child: const Text('Clear'),
               ),
-            ),
-            const SizedBox(width: 8),
-            FilledButton(
-              onPressed: () => _addCorrectOrderWord(
-                  qIdx, q.correctOrderInputController.text),
-              child: const Text('Add'),
-            ),
           ],
         ),
-        if (q.correctOrder.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 4,
-            children: q.correctOrder
-                .asMap()
-                .entries
-                .map((e) => Chip(
+        const SizedBox(height: 2),
+        Text('Tap tiles from the word bank to build the answer in order',
+            style: muted),
+        const SizedBox(height: 8),
+
+        // Answer sequence — placed tiles with sequence numbers.
+        // Tap the × to return a tile to the available pool.
+        Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            border: Border.all(color: scheme.outlineVariant),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: q.correctOrder.isEmpty
+              ? Text(
+                  q.wordBank.isEmpty
+                      ? 'Add tiles to the word bank first'
+                      : 'Tap tiles below to set the answer order',
+                  style: muted,
+                )
+              : Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: q.correctOrder.asMap().entries.map((e) {
+                    return Chip(
                       label: Text('${e.key + 1}. ${e.value}'),
                       onDeleted: () => _removeCorrectOrderWord(qIdx, e.key),
                       visualDensity: VisualDensity.compact,
+                    );
+                  }).toList(),
+                ),
+        ),
+        const SizedBox(height: 8),
+
+        // Available tiles — derived from word bank minus already placed.
+        if (available.isNotEmpty)
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: available
+                .map((word) => ActionChip(
+                      label: Text(word),
+                      onPressed: () => _placeCorrectOrderWord(qIdx, word),
+                      visualDensity: VisualDensity.compact,
+                      avatar: const Icon(Icons.add, size: 16),
                     ))
                 .toList(),
-          ),
-        ],
+          )
+        else if (q.wordBank.isNotEmpty)
+          Text('All tiles placed', style: muted),
       ],
     );
   }

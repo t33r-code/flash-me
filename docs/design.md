@@ -49,7 +49,7 @@ Users must be able to create accounts, log in, and manage their sessions securel
 
 **Google OAuth Registration via Firebase:**
 - User taps "Sign up with Google" button
-- Trigger Google Sign-In via `GoogleSignIn().signIn()`
+- Trigger Google Sign-In via `GoogleSignIn.instance.authenticate()` (v7 API; `GoogleSignIn.instance.initialize()` called once at app startup in `main.dart`)
 - Firebase automatically creates user account on first sign-in
 - Firebase links email to user identity
 - Firestore document created/updated with user profile data
@@ -81,23 +81,6 @@ Users must be able to create accounts, log in, and manage their sessions securel
 - Leverage Firebase security rules for data access control
 - Handle token refresh automatically via Firebase SDK
 - Plan for account linking flow and user experience
-
-### Implementation Plan
-- [ ] Set up Firebase project and enable Authentication methods (Email/Password, Google)
-- [ ] Install and configure `firebase_auth`, `google_sign_in`, and `cloud_firestore` packages
-- [ ] Set up Firestore collection schema for user profiles (`users/{userId}`)
-- [ ] Implement local registration screen with email/password validation
-- [ ] Implement `createUserWithEmailAndPassword()` Firebase call
-- [ ] Implement optional email verification flow
-- [ ] Implement Google Sign-In button and flow
-- [ ] Handle first-time Google Sign-In user creation
-- [ ] Implement account linking logic for multiple auth providers
-- [ ] Create Firestore user document on successful registration
-- [ ] Implement auto-login after registration
-- [ ] Implement logout functionality
-- [ ] Test both registration flows (local and Google) on all platforms
-- [ ] Add error handling for auth failures (invalid email, weak password, etc.)
-- [ ] Set up Firebase security rules for user data access
 
 ---
 
@@ -166,11 +149,14 @@ cards/{cardId}
   - templateId: string (optional, reference to template used)
   - nativeLanguage: string? (optional, ISO 639-1 code for the user's reading language, e.g. 'en')
   - targetLanguage: string? (optional, ISO 639-1 code for the language being studied, e.g. 'es')
+  - tags: string[] (normalized tag names from the global `tags` collection; default empty)
   - createdAt: timestamp
   - updatedAt: timestamp
   - createdBy: userId
 ```
 Set membership is tracked in `setCards` (see Card-Set Relationship below), not on the card document itself.
+
+**Read permissions:** Card reads are open to any authenticated user. Card IDs are not guessable, and future sharing and marketplace features require that a user who has legitimately obtained a card ID (e.g. from a shared or subscribed set) can read it. Write operations (create, update, delete) remain restricted to the `createdBy` user. The security rule uses `.get('createdBy', request.auth.uid)` as a fallback for legacy documents that predate this field.
 
 **Media lifecycle:** When a card is deleted, `firebase_card_repository` fetches the card document first, deletes both Storage files (if present) via `refFromURL`, then removes all `setCards` links and the card document in a Firestore batch. Deletion errors on Storage files are logged as warnings and do not block the card deletion.
 
@@ -229,8 +215,8 @@ Each card (and each set) carries an optional language pair: **`nativeLanguage`**
 - Save changes to Firestore
 
 **Delete Card:**
-- Soft delete or hard delete (TBD)
-- Remove card from all sets it belongs to (if applicable)
+- Hard delete: Storage files (image, audio) are fetched and deleted first, then all `setCards` join documents are removed and the card document itself is deleted in a Firestore batch
+- Deletion errors on Storage files are logged as warnings and do not block the Firestore deletion
 
 ### Implementation Notes
 - Field type icon/visual indicator on card display during study
@@ -240,27 +226,6 @@ Each card (and each set) carries an optional language pair: **`nativeLanguage`**
 - Template management: CRUD operations on templates
 - Consider providing default/example templates for common languages
 - Cloud Firestore indexes needed for efficient card queries by set and user
-
-### Implementation Plan
-- [ ] Design and implement Firestore schema for cards and templates
-- [ ] Create data models/classes in Dart for Card, Field, Template
-- [ ] Implement template CRUD operations (create, read, update, delete, list)
-- [ ] Create UI for template creation and management
-- [ ] Implement card creation screen with template selection
-- [ ] Build dynamic form builder that generates fields based on template
-- [ ] Implement primary word field (foreign language + translation reveal)
-- [ ] Implement reveal-on-click field type UI and logic
-- [ ] Implement text input field type UI with validation and feedback
-- [ ] Implement multiple choice field type UI with validation and feedback
-- [ ] Implement card update/edit screen
-- [ ] Implement card deletion (with confirmation)
-- [ ] Add card metadata (createdAt, updatedAt, createdBy)
-- [ ] Implement field type icons/indicators for visual distinction
-- [ ] Create Firestore queries for efficient card retrieval by set
-- [ ] Add optional field randomization for multiple choice
-- [ ] Test all three field types in creation, editing, and study modes
-- [ ] Create default/example templates (optional)
-- [ ] Set up Firestore indexes for card queries
 
 ---
 
@@ -394,9 +359,7 @@ The `setCards` join document gains a `cardType` field (`'flashcard'` | `'workboo
 
 ---
 
-### Implementation Plan
-
-See **Phase 3e — Workbook Cards** in the implementation roadmap.
+See [implementation roadmap — Phase 3e](implementation-roadmap.md) for the full task breakdown.
 
 ---
 
@@ -448,6 +411,7 @@ setCards/{linkId}                 ← many-to-many join collection
   - setId: string
   - cardId: string
   - userId: string                ← owner; used in security rules
+  - cardType: string              ← 'flashcard' | 'workbook'; legacy documents without this field are treated as 'flashcard'
   - addedAt: timestamp
 ```
 
@@ -476,22 +440,21 @@ setCards/{linkId}                 ← many-to-many join collection
 - UpdatedAt timestamp updated on save
 
 **Add Cards to Set:**
-- User selects one or more existing cards
-- Add their cardIds to the set's `cardIds` array
-- Update `cardCount` counter
+- User selects one or more existing cards (Flash Cards and/or Workbook Cards)
+- Create a `setCards` join document for each card (`{setId, cardId, userId, cardType, addedAt}`)
+- Increment the `cardCount` counter on the set document
 - Cards can be added from: create card flow, card browser, or bulk operations
 
 **Remove Cards from Set:**
 - User selects card(s) to remove
-- Remove cardId from set's `cardIds` array
-- Update `cardCount` counter
+- Delete the corresponding `setCards` join document(s)
+- Decrement the `cardCount` counter on the set document
 - Card itself is not deleted, just removed from this set
 
 **Delete Set:**
 - User confirms deletion
-- Delete set document from Firestore
-- Cards remain intact (only removed from set relationship)
-- Soft delete option: mark `isDeleted: true` for future recovery
+- Hard delete: all `setCards` join documents for this set are removed first, then the set document is deleted
+- Cards remain intact — individual cards are unaffected; only the set membership is removed
 
 #### User Workflows
 
@@ -525,33 +488,10 @@ setCards/{linkId}                 ← many-to-many join collection
 
 ### Implementation Notes
 - Use Firestore batch operations when adding/removing multiple cards from a set
-- Denormalize cardCount for quick display without counting array
+- Denormalize `cardCount` for quick display without a collection count query
 - Index on `userId + createdAt` for efficient "My Sets" queries
 - Consider pagination for users with many sets
-- UI should show set icon/thumbnail and last modified indicator
-- For future scaling: if cardIds array becomes too large (>5000 items), migrate to subcollection approach
-
-### Implementation Plan
-- [ ] Design and implement Firestore schema for card sets
-- [ ] Create CardSet data model/class in Dart
-- [ ] Implement set creation with name and optional description
-- [ ] Create "My Sets" dashboard/list view
-- [ ] Display set metadata: name, description, card count, last modified
-- [ ] Implement set update functionality (name, description, tags, color)
-- [ ] Implement delete set with confirmation dialog
-- [ ] Implement add cards to set (from existing cards)
-- [ ] Implement remove cards from set
-- [ ] Create set detail view showing all cards in set
-- [ ] Implement card browser for selecting cards to add to sets
-- [ ] Add tags/categorization support for sets
-- [ ] Add color coding functionality for sets
-- [ ] Implement set search/filtering
-- [ ] Implement set sorting (by name, date, card count)
-- [ ] Create Firestore queries for efficient set retrieval by user
-- [ ] Implement batch operations for adding/removing multiple cards
-- [ ] Set up Firestore indexes for set queries
-- [ ] Add set modification timestamps to UI
-- [ ] Test set CRUD operations on all platforms
+- UI shows set colour accent, tags, and relative last-modified date
 
 ### Future Capabilities
 
@@ -784,26 +724,7 @@ The ZIP export format stores tags in their normalized form in `cards.json`:
 
 On import, each tag is run through the "adding a tag" flow above — either creating a new global tag document or incrementing an existing one. This means importing a set from another user propagates their tags into the global pool, which is the desired behaviour for marketplace content sharing.
 
-### Implementation Plan (deferred to Phase 4d, after Phase 5)
-
-See [implementation roadmap](implementation-roadmap.md) for sequencing rationale.
-
-- [ ] Create `tags` Firestore collection and deploy security rules
-- [ ] Add Firestore indexes for prefix queries and array-contains filters
-- [ ] Implement `TagRepository` with: `upsertTag`, `decrementTag`, `searchTags` (prefix query)
-- [ ] Add `tagRepositoryProvider` to the provider layer
-- [ ] Implement normalization utility function (`AppHelpers.normalizeTag`)
-- [ ] Build shared `TagInputField` widget with debounced autocomplete
-- [ ] Wire `TagInputField` into `CardFormScreen` (replace current chip-input)
-- [ ] Wire `TagInputField` into `SetFormScreen` (replace current chip-input)
-- [ ] Update card save/edit to compute tag diffs and call upsert/decrement accordingly
-- [ ] Update set save/edit similarly
-- [ ] Update card delete to decrement all tags on the deleted card
-- [ ] Update set delete to decrement all tags on the deleted set
-- [ ] Update import flow to run upsert for every imported tag
-- [ ] Deploy updated Firestore rules and indexes
-- [ ] Wire tag filter into My Cards screen (Phase 4c)
-- [ ] Wire tag filter into My Sets screen (Phase 4c)
+See [implementation roadmap — Phase 4d](implementation-roadmap.md) for the full task breakdown. This phase is deferred to after Phase 5 (Study Mode).
 
 ---
 
@@ -953,6 +874,23 @@ spanish-verbs-export.zip
 | Duplicate set name in import | Append suffix or allow user to rename |
 | Special characters in content | Preserve and encode properly |
 
+#### Workbook Card Support
+
+Both single-set and bulk ZIP exports include Workbook Cards alongside Flash Cards. The `cards.json` format uses the same top-level structure; Flash Cards and Workbook Cards are stored in separate arrays within each set object:
+
+```json
+{
+  "version": "1.0",
+  "set": {
+    "name": "...",
+    "cards": [ ... ],
+    "workbookCards": [ ... ]
+  }
+}
+```
+
+On import, cards in `workbookCards` are written to the `workbookCards/` Firestore collection with `createdBy` set to the importing user. All validation and diff logic applies to workbook cards using `prompt` as the identity key (equivalent to `primaryWord` for Flash Cards).
+
 ### Implementation Notes
 - Use `archive` package for ZIP creation/extraction in Dart
 - Validate JSON schema against expected structure before processing
@@ -960,9 +898,7 @@ spanish-verbs-export.zip
 - Display detailed import report showing what was imported and any issues
 - Archive/backup integration: users can schedule automatic exports (future)
 
-### Implementation Plan
-
-See [implementation roadmap — Phase 6](implementation-roadmap.md#phase-6-importexport-weeks-8-9) for the full task breakdown (6a export, 6b import core, 6c merge/bulk/polish).
+See [implementation roadmap — Phase 6](implementation-roadmap.md) for the full task breakdown (6a export, 6b import core, 6c bulk export).
 
 ---
 
@@ -1047,6 +983,7 @@ users/{userId}/studySessions/{sessionId}
     - correctAnswers: integer
     - incorrectAnswers: integer
     - skipped: integer
+  - cardTypeMap: map<cardId, string> (cardId → 'flashcard' | 'workbook'; absent for sessions created before Workbook Card support — missing entries default to 'flashcard')
 ```
 
 #### Study Session Flow
@@ -1234,57 +1171,14 @@ The primary field reveal is a three-step progression that keeps the word visuall
 - Session can be resumed on same or different device
 
 ### Implementation Notes
-- Use Provider or Riverpod for state management during study session
-- Implement auto-save to Firestore after each significant action
-- Consider debouncing saves to avoid excessive database writes
-- Text input validation: case-insensitive by default (user preference toggleable)
-- Multiple choice: Consider randomizing option order each time card is studied
-- Implement haptic feedback (vibration) on correct/incorrect answers
-- Consider accessibility features: text size adjustment, high contrast mode
-- Session history queries: Index on userId + setId + startTime
-- Offline support: Cache session data locally, sync when connection restored
-- Consider spaced repetition algorithm in future (prioritize unknowns)
-- Performance: Preload next/previous cards for smooth scrolling
+- Riverpod for state management during study session
+- Auto-save to Firestore after each navigation action (debounced ~1 s to reduce write volume)
+- Text input validation: case-insensitive by default; respect `exactMatch` flag per field
+- Multiple choice: option order as authored (randomization is a future option)
+- Session history queries: index on `userId + setId + startTime`
+- Offline support: deferred post-MVP
 
-### Implementation Plan
-- [ ] Design and implement Firestore schema for study sessions
-- [ ] Create StudySession data model/class in Dart
-- [ ] Create CardSessionData model for tracking individual card progress
-- [ ] Implement study session selection UI ("Resume" vs "Start New" logic)
-- [ ] Implement study session configuration (shuffle, filters, etc.)
-- [ ] Create study session initialization and start logic
-- [ ] Build primary field display with click-to-reveal translation
-- [ ] Build reveal-on-click field type UI and interaction
-- [ ] Build text input field UI with answer checking and feedback
-- [ ] Build multiple choice field UI with selection and feedback
-- [ ] Implement text input validation (case-insensitive by default)
-- [ ] Implement feedback messaging (correct, incorrect, partial)
-- [ ] Implement hint display for text input fields (optional)
-- [ ] Build navigation controls (Previous, Next, Know, Don't Know buttons)
-- [ ] Implement navigation logic (prevent going past boundaries)
-- [ ] Build progress indicator (Card X of Y, progress bar)
-- [ ] Implement card shuffling option
-- [ ] Create card session state management (current card, revealed fields, answers)
-- [ ] Implement state persistence to Firestore (auto-save after actions)
-- [ ] Implement session pause functionality
-- [ ] Implement session resume functionality
-- [ ] Implement session completion and statistics calculation
-- [ ] Build session summary/statistics screen
-- [ ] Implement session history storage and retrieval
-- [ ] Create session history UI/list view
-- [ ] Implement offline support with local caching
-- [ ] Add haptic feedback for answer feedback (correct/incorrect)
-- [ ] Implement text size adjustment for accessibility
-- [ ] Implement high contrast mode option
-- [ ] Add keyboard shortcuts (arrow keys for navigation, Enter to check)
-- [ ] Create Firestore indexes for efficient session queries
-- [ ] Implement preloading of adjacent cards for smooth performance
-- [ ] Test all field types during study mode
-- [ ] Test navigation and state persistence
-- [ ] Test resume functionality across sessions
-- [ ] Test offline study with sync on reconnect
-- [ ] Performance testing with large card sets (1000+ cards)
-- [ ] Accessibility testing (screen readers, text size)
+See [implementation roadmap — Phase 5](implementation-roadmap.md) for the full task breakdown.
 
 ---
 

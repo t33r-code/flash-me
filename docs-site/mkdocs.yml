@@ -1,0 +1,37 @@
+site_name: Flash Me Help
+site_description: Help and documentation for the Flash Me flashcard app
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.top
+    - toc.integrate
+
+markdown_extensions:
+  - attr_list
+  - toc:
+      permalink: true
+
+nav:
+  - Getting Started: index.md
+  - Cards: cards.md
+  - Sets: sets.md
+  - Study Mode: study.md
+  - Import & Export: import-export.md
+  - Account & Settings: account.md

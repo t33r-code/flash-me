@@ -8,7 +8,7 @@ Flash Me is a flashcard app for language learning. Create cards with words and p
 
 1. Open the app — you'll land on the sign-in screen.
 2. Tap **Create an account**.
-3. Enter your **email address**, choose a **password** (at least 8 characters), and enter a **display name**.
+3. Enter your **email address** and choose a **password**.
 4. Tap **Create Account**.
 
 You'll be signed in automatically and taken to your (empty) Sets screen.

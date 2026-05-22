@@ -1,37 +1,55 @@
 # Account & Settings { #account }
 
+Account settings and app preferences live in the **Profile** tab (:material-account-circle-outline:).
+
 ---
 
 ## Signing In { #sign-in }
 
 ### Email & Password { #sign-in-email }
 
-_Content coming soon._
+Enter your email address and password on the sign-in screen, then tap **Sign In**.
+
+**Forgot your password?** Tap **Forgot Password?** below the sign-in form. Enter your email address and tap **Send Reset Email** — you'll receive a link to set a new password.
 
 ### Google Sign-In { #sign-in-google }
 
-_Content coming soon._
+Tap **Sign in with Google** on the sign-in screen and choose your Google account. If it's your first time, your Flash Me account is created automatically.
 
 ---
 
 ## Signing Out { #sign-out }
 
-_Content coming soon._
+Tap the **Profile** tab (:material-account-circle-outline:) and scroll to the bottom of the screen. Tap **Sign Out**. Your data is stored in the cloud and will be waiting when you sign back in.
 
 ---
 
 ## Display Name { #display-name }
 
-_Content coming soon._
+Your display name is shown on your profile screen.
+
+1. Tap the **Profile** tab (:material-account-circle-outline:).
+2. Tap the pencil icon next to your name at the top of the screen.
+3. Edit your name and tap **Save**.
 
 ---
 
-## Dark Mode { #dark-mode }
+## Theme { #dark-mode }
 
-_Content coming soon._
+Flash Me supports light, dark, and system-default themes.
+
+1. Tap the **Profile** tab (:material-account-circle-outline:).
+2. Under **Theme**, tap one of the three options:
+    - **System** — follows your device's system-wide light/dark setting.
+    - **Light** — always light.
+    - **Dark** — always dark.
+
+Your choice is saved to the device and persists across sessions.
 
 ---
 
 ## Your Data { #data-management }
 
-_Content coming soon._
+All your cards, sets, templates, and study history are stored in the cloud and tied to your account. They're available on any device you sign in to.
+
+To export or import your data as ZIP files, tap **Import & Export** in the Profile screen. See [Import & Export](import-export.md) for full details.

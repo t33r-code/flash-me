@@ -7,6 +7,14 @@ Full feature specifications: `docs/design.md`
 Implementation progress: `docs/implementation-roadmap.md`
 
 > **Documentation discipline:** Whenever implementation diverges from or extends the original design — new fields, changed behaviour, renamed concepts, new data models — update **both** `docs/design.md` and `docs/implementation-roadmap.md` in the same branch and commit as the code change. The two documents must stay in sync with each other and with the codebase at all times.
+>
+> **Help site discipline:** Whenever a change affects something user-visible — new screens, new features, renamed UI elements, changed flows, removed functionality — update the relevant page(s) in `docs-site/docs/` in the same branch and commit. This does not apply to internal refactors, bug fixes that don't change observable behaviour, or backend-only changes. The help site pages and their stable anchor IDs are:
+> - `docs-site/docs/index.md` — Getting Started
+> - `docs-site/docs/cards.md` — Flash Cards, Templates, Workbook Cards
+> - `docs-site/docs/sets.md` — Card Sets
+> - `docs-site/docs/study.md` — Study Mode
+> - `docs-site/docs/import-export.md` — Import & Export
+> - `docs-site/docs/account.md` — Account & Settings
 
 ---
 

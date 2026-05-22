@@ -6,7 +6,7 @@ Sets are collections of cards that you study together. A card can belong to mult
 
 ## Creating a Set { #create-set }
 
-1. Tap the **Sets** tab (:material-library-books-outline:).
+1. Tap the **Sets** tab (:material-book-multiple-outline:).
 2. Tap the **+** button.
 3. Enter a **Set name** (required) and an optional **Description**.
 4. Choose a [colour](#set-details) and add any [tags](#set-details) if you like.

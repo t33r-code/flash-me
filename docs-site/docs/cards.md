@@ -13,7 +13,7 @@ Both types can be added to sets and studied in the same session.
 
 ### Creating a Flash Card { #create-flash-card }
 
-1. Tap the **Cards** tab (:material-style-outline:).
+1. Tap the **Cards** tab (:material-cards-outline:).
 2. Tap the **+** button and choose **Flash Card**.
 3. Enter the **Foreign word** (e.g. *hablar*) and its **Translation** (e.g. *to speak*).
 4. Optionally add [fields](#card-fields), [languages](#card-languages), or [tags](#card-tags).
@@ -70,7 +70,7 @@ A template defines a reusable field structure — the set of extra fields a card
 
 ### Creating a Template { #create-template }
 
-1. Tap the **Templates** tab (:material-copy-all-outline:).
+1. Tap the **Templates** tab (:material-file-multiple-outline:).
 2. Tap **+** and give the template a **name** and optional **description**.
 3. Add fields the same way as on a card — the field structure is defined here, but answers are left blank.
 4. Tap **Save**.
@@ -99,7 +99,7 @@ If you've already built a card with the right field structure, you can turn it i
 
 ### Creating a Workbook Card { #create-workbook-card }
 
-1. Tap the **Cards** tab (:material-style-outline:).
+1. Tap the **Cards** tab (:material-cards-outline:).
 2. Tap **+** and choose **Workbook Card**.
 3. Enter a **Prompt** — the text or instruction the learner reads before answering (e.g. *Read the passage and answer the questions below.*).
 4. Tap **Add question** to add your first question.

@@ -34,17 +34,17 @@ After signing in you'll see five tabs at the bottom of the screen:
 
 | Tab | Icon | What it's for |
 |---|---|---|
-| **Sets** | :material-library-books-outline: | Your card sets — the main starting point |
-| **Cards** | :material-style-outline: | All your cards, across every set |
+| **Sets** | :material-book-multiple-outline: | Your card sets — the main starting point |
+| **Cards** | :material-cards-outline: | All your cards, across every set |
 | **Study** | :material-school-outline: | Start or resume a study session |
-| **Templates** | :material-copy-all-outline: | Reusable card structures |
+| **Templates** | :material-file-multiple-outline: | Reusable card structures |
 | **Profile** | :material-account-circle-outline: | Your account and app settings |
 
 ---
 
 ## Create Your First Card { #first-card }
 
-1. Tap the **Cards** tab (:material-style-outline:).
+1. Tap the **Cards** tab (:material-cards-outline:).
 2. Tap the **+** button in the bottom-right corner.
 3. Choose **Flash Card** from the menu that appears.
 4. Enter a **word or phrase** in the *Primary Word* field (e.g. *hacer*) and its **translation** (e.g. *to do / to make*).
@@ -58,7 +58,7 @@ That's the simplest card — just a word and its translation. You can add extra 
 
 Cards are studied in sets, so let's make one and add your card to it.
 
-1. Tap the **Sets** tab (:material-library-books-outline:).
+1. Tap the **Sets** tab (:material-book-multiple-outline:).
 2. Tap the **+** button.
 3. Give your set a name (e.g. *Spanish Verbs*) and tap **Save**.
 4. You'll land on the set's detail screen. Tap the **+** button to open the card picker.

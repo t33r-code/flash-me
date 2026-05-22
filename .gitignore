@@ -52,6 +52,9 @@ devtools_options.yaml
 # Claude Code local session state
 .claude/
 
+# Firebase CLI local deployment cache (machine-specific, auto-regenerated)
+.firebase/
+
 # Python virtual environment
 .venv/
 

@@ -536,9 +536,7 @@ class _WordCardState extends State<_WordCard> {
   @override
   void initState() {
     super.initState();
-    // For image cards the cue word is always shown (the image provides context);
-    // primaryWordHidden only applies to text-only cards.
-    _wordVisible = _isImageCard || !widget.card.primaryWordHidden;
+    _wordVisible = !widget.card.primaryWordHidden;
   }
 
   @override
@@ -598,7 +596,8 @@ class _WordCardState extends State<_WordCard> {
                       onPressed: () =>
                           setState(() => _wordVisible = true),
                       icon: const Icon(Icons.visibility_outlined),
-                      label: const Text('Show Word'),
+                      // Image cards hide the native-word hint; text cards hide the foreign word.
+                      label: Text(_isImageCard ? 'Show Hint' : 'Show Word'),
                     ),
                   ] else ...[
                     // Cue word stays fixed; only the section below animates.

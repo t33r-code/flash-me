@@ -461,6 +461,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
   // Uploads pending media and deletes removed media; returns the final URLs.
   Future<({String? imageUrl, String? audioUrl})> _resolveMediaUrls() async {
     final storage = ref.read(storageRepositoryProvider);
+    final uid = ref.read(authStateProvider).asData?.value ?? '';
     final cardId = _pendingCardId;
 
     String? imageUrl = widget.card?.primaryImageUrl;
@@ -470,7 +471,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
     } else if (_pendingImageBytes != null) {
       if (imageUrl != null) await storage.deleteFileByUrl(imageUrl);
       imageUrl = await storage.uploadFile(
-        path: 'cards/$cardId/image.$_pendingImageExt',
+        path: 'users/$uid/cards/$cardId/image.$_pendingImageExt',
         bytes: _pendingImageBytes!,
         contentType: _mimeForExt(_pendingImageExt!),
       );
@@ -483,7 +484,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
     } else if (_pendingAudioBytes != null) {
       if (audioUrl != null) await storage.deleteFileByUrl(audioUrl);
       audioUrl = await storage.uploadFile(
-        path: 'cards/$cardId/audio.$_pendingAudioExt',
+        path: 'users/$uid/cards/$cardId/audio.$_pendingAudioExt',
         bytes: _pendingAudioBytes!,
         contentType: _mimeForExt(_pendingAudioExt!),
       );

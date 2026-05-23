@@ -838,13 +838,15 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
             decoration: BoxDecoration(
               border: Border.all(color: Theme.of(context).colorScheme.outline),
               borderRadius: BorderRadius.circular(8),
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              color: Colors.white,
             ),
             clipBehavior: Clip.antiAlias,
             child: hasImage
                 ? (_pendingImageBytes != null
-                    ? Image.memory(_pendingImageBytes!, fit: BoxFit.cover)
-                    : Image.network(existingUrl!, fit: BoxFit.cover,
+                    ? Image.memory(_pendingImageBytes!,
+                        width: 96, height: 96, fit: BoxFit.contain)
+                    : Image.network(existingUrl!,
+                        width: 96, height: 96, fit: BoxFit.contain,
                         errorBuilder: (_, _, _) =>
                             const Icon(Icons.broken_image_outlined)))
                 : const Icon(Icons.image_outlined, size: 36),
@@ -852,6 +854,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
         ),
         const SizedBox(width: 12),
         Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextButton.icon(

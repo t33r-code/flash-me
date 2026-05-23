@@ -557,19 +557,22 @@ class _WordCardState extends State<_WordCard> {
                   if (card.primaryImageUrl != null) ...[
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        card.primaryImageUrl!,
-                        height: 180,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (ctx, _, _) => SizedBox(
-                          height: 80,
-                          child: Center(
-                            child: Icon(Icons.broken_image_outlined,
-                                size: 40,
-                                color: Theme.of(ctx)
-                                    .colorScheme
-                                    .onSurfaceVariant),
+                      child: ColoredBox(
+                        color: Colors.white,
+                        child: Image.network(
+                          card.primaryImageUrl!,
+                          height: 180,
+                          width: double.infinity,
+                          fit: BoxFit.contain,
+                          errorBuilder: (ctx, _, _) => SizedBox(
+                            height: 80,
+                            child: Center(
+                              child: Icon(Icons.broken_image_outlined,
+                                  size: 40,
+                                  color: Theme.of(ctx)
+                                      .colorScheme
+                                      .onSurfaceVariant),
+                            ),
                           ),
                         ),
                       ),
@@ -685,19 +688,22 @@ class _PrimaryFieldCard extends StatelessWidget {
             if (card.primaryImageUrl != null) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  card.primaryImageUrl!,
-                  height: 140,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (ctx, _, _) => SizedBox(
-                    height: 60,
-                    child: Center(
-                      child: Icon(Icons.broken_image_outlined,
-                          size: 32,
-                          color: Theme.of(ctx)
-                              .colorScheme
-                              .onSurfaceVariant),
+                child: ColoredBox(
+                  color: Colors.white,
+                  child: Image.network(
+                    card.primaryImageUrl!,
+                    height: 140,
+                    width: double.infinity,
+                    fit: BoxFit.contain,
+                    errorBuilder: (ctx, _, _) => SizedBox(
+                      height: 60,
+                      child: Center(
+                        child: Icon(Icons.broken_image_outlined,
+                            size: 32,
+                            color: Theme.of(ctx)
+                                .colorScheme
+                                .onSurfaceVariant),
+                      ),
                     ),
                   ),
                 ),

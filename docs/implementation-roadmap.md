@@ -423,6 +423,9 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 
 Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a public release or are technically blocked on other work in this block (e.g. Phase 4c requires Phase 4d).
 
+### Known Defects
+- [ ] Display Skip / Review indication on card revisit — when navigating back to a card already marked in this session, the current mark (skip/review) is not shown on the card
+
 ### Auth & Account
 - [ ] Implement account linking logic for multiple auth providers
 - [ ] Test both registration flows (local and Google) on all platforms
@@ -436,6 +439,7 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [ ] Implement field type icons/indicators
 - [ ] Add field randomization for multiple choice
 - [ ] Create default/example templates
+- [ ] Question templates — reusable single-question structures applicable to both Flash Cards and Workbook Cards; appending a question template does not affect existing questions on the card; consider unifying the Flash Card additional-field model and Workbook Card question model as part of this work
 - [ ] Bulk card creation via JSON import (keyboard-focused grid UI — see Web Dashboard in Beta 0.1)
 
 ### Global Tag System (Phase 4d)
@@ -467,6 +471,9 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [ ] Search / filter on My Cards screen (search bar already stubbed)
 - [ ] Wire tag filter into My Cards and My Sets screens
 
+### Study Enhancements
+- [ ] Set summary results improvement — richer breakdown on the session summary screen (e.g. per-field question results, time-per-card)
+
 ### Advanced Study Features
 - [ ] Offline support with local caching
 - [ ] Haptic feedback for answer results
@@ -474,6 +481,7 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [ ] Card preloading for smooth performance
 
 ### Import/Export
+- [ ] CSV → card import (development / bulk-seeding tool; not user-facing)
 - [ ] Run tag upsert for every imported tag
 - [ ] Test full round-trip (export → import → verify data integrity) (requires Firebase emulator setup)
 

@@ -93,6 +93,14 @@ class _StudySessionSummaryScreenState
           ref.read(cardIdsInSetProvider(widget.cardSet.id)).asData?.value ?? [];
       if (cardIds.isEmpty) return;
 
+      // Fetch setCard join docs to rebuild cardTypeMap (flash vs workbook).
+      // Without this, workbook cards are not recognised in the new session.
+      final setCards = await ref
+          .read(cardSetRepositoryProvider)
+          .watchSetCards(widget.cardSet.id, _uid)
+          .first;
+      final cardTypeMap = {for (final sc in setCards) sc.cardId: sc.cardType};
+
       // Always shuffle on Study Again — the user has already seen the cards
       // in their previous order, so variety is the point.
       final sequence = List<String>.from(cardIds);
@@ -122,6 +130,7 @@ class _StudySessionSummaryScreenState
                   cardsUnknown: 0,
                   sessionStats: const SessionStats(),
                   shuffled: widget.session.shuffled,
+                  cardTypeMap: cardTypeMap,
                 ),
                 _uid,
               );

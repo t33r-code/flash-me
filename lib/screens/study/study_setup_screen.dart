@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/study_session.dart';
 import 'package:flash_me/providers/auth_provider.dart';
+import 'package:flash_me/providers/card_mark_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/study_session_provider.dart';
 import 'package:flash_me/screens/study/study_session_history_screen.dart';
@@ -84,8 +85,18 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
         }
       }
 
-      // Blank per-card progress for every card in the sequence.
-      final progress = {for (final id in sequence) id: const CardSessionData()};
+      // Load persistent marks so Skip/Review state carries over from previous sessions.
+      final marks = await ref.read(cardMarkRepositoryProvider).watchMarks(uid).first;
+      final marksMap = {for (final m in marks) m.cardId: m.mark};
+
+      // Per-card progress — pre-populated with any existing marks.
+      final progress = {
+        for (final id in sequence)
+          id: CardSessionData(
+            markedKnown: marksMap[id] == AppConstants.markSkip,
+            markedUnknown: marksMap[id] == AppConstants.markReview,
+          ),
+      };
 
       final now = DateTime.now();
       final session = await ref.read(studySessionRepositoryProvider).createSession(

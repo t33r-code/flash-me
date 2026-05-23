@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/study_session.dart';
 import 'package:flash_me/providers/auth_provider.dart';
+import 'package:flash_me/providers/card_mark_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/study_session_provider.dart';
 import 'package:flash_me/screens/study/study_session_screen.dart';
@@ -101,6 +102,10 @@ class _StudySessionSummaryScreenState
           .first;
       final cardTypeMap = {for (final sc in setCards) sc.cardId: sc.cardType};
 
+      // Load persistent marks so Skip/Review state carries over into the new session.
+      final marks = await ref.read(cardMarkRepositoryProvider).watchMarks(_uid).first;
+      final marksMap = {for (final m in marks) m.cardId: m.mark};
+
       // Always shuffle on Study Again — the user has already seen the cards
       // in their previous order, so variety is the point.
       final sequence = List<String>.from(cardIds);
@@ -112,7 +117,14 @@ class _StudySessionSummaryScreenState
         sequence[j] = tmp;
       }
 
-      final progress = {for (final id in sequence) id: const CardSessionData()};
+      // Per-card progress — pre-populated with any existing marks.
+      final progress = {
+        for (final id in sequence)
+          id: CardSessionData(
+            markedKnown: marksMap[id] == AppConstants.markSkip,
+            markedUnknown: marksMap[id] == AppConstants.markReview,
+          ),
+      };
       final now = DateTime.now();
       final newSession =
           await ref.read(studySessionRepositoryProvider).createSession(

@@ -148,7 +148,6 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   // The mark is also persisted to users/{uid}/cardMarks/{cardId} for use
   // by future filtered study modes.
   void _updateCardMark({required bool markSkip}) {
-    if (!_fullyRevealed) return;
     final data = _currentCardData;
     final wasActive = markSkip ? data.markedKnown : data.markedUnknown;
 
@@ -390,8 +389,6 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
             onReview: () => _updateCardMark(markSkip: false),
             isMarkedSkip: _currentCardData.markedKnown,
             isMarkedReview: _currentCardData.markedUnknown,
-            // Know/Don't Know only enabled in the fully-revealed phase.
-            canMark: _fullyRevealed,
           ),
         ],
       ),
@@ -525,6 +522,14 @@ class _WordCardState extends State<_WordCard> {
   late bool _wordVisible;
   bool _translationVisible = false;
 
+  // Image cards reverse the study direction: the image + native word is the
+  // cue, and the foreign word is what the user is trying to recall.
+  bool get _isImageCard => widget.card.primaryImageUrl != null;
+  String get _cueWord =>
+      _isImageCard ? widget.card.translation : widget.card.primaryWord;
+  String get _revealWord =>
+      _isImageCard ? widget.card.primaryWord : widget.card.translation;
+
   @override
   void initState() {
     super.initState();
@@ -542,13 +547,19 @@ class _WordCardState extends State<_WordCard> {
         child: Card(
           clipBehavior: Clip.antiAlias,
           child: Semantics(
-            // Hint tells screen readers what the tap action does.
-            onTapHint: (!_wordVisible || _translationVisible) ? null : 'reveal translation',
+            onTapHint: _translationVisible
+                ? null
+                : _isImageCard ? 'reveal foreign word' : 'reveal translation',
             child: InkWell(
-            // Tapping the card reveals the translation; disabled once visible.
-            onTap: (_wordVisible && !_translationVisible)
-                ? () => setState(() => _translationVisible = true)
-                : null,
+            // Tapping always reveals everything — even from the hidden state,
+            // skipping the "Show Hint" step. Show Hint still works as a
+            // halfway step if the user wants it.
+            onTap: _translationVisible
+                ? null
+                : () => setState(() {
+                    _wordVisible = true;
+                    _translationVisible = true;
+                  }),
             child: Padding(
               padding: const EdgeInsets.all(32),
               child: Column(
@@ -557,19 +568,22 @@ class _WordCardState extends State<_WordCard> {
                   if (card.primaryImageUrl != null) ...[
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        card.primaryImageUrl!,
-                        height: 180,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (ctx, _, _) => SizedBox(
-                          height: 80,
-                          child: Center(
-                            child: Icon(Icons.broken_image_outlined,
-                                size: 40,
-                                color: Theme.of(ctx)
-                                    .colorScheme
-                                    .onSurfaceVariant),
+                      child: ColoredBox(
+                        color: Colors.white,
+                        child: Image.network(
+                          card.primaryImageUrl!,
+                          height: 180,
+                          width: double.infinity,
+                          fit: BoxFit.contain,
+                          errorBuilder: (ctx, _, _) => SizedBox(
+                            height: 80,
+                            child: Center(
+                              child: Icon(Icons.broken_image_outlined,
+                                  size: 40,
+                                  color: Theme.of(ctx)
+                                      .colorScheme
+                                      .onSurfaceVariant),
+                            ),
                           ),
                         ),
                       ),
@@ -585,17 +599,18 @@ class _WordCardState extends State<_WordCard> {
                       onPressed: () =>
                           setState(() => _wordVisible = true),
                       icon: const Icon(Icons.visibility_outlined),
-                      label: const Text('Show Word'),
+                      // Image cards hide the native-word hint; text cards hide the foreign word.
+                      label: Text(_isImageCard ? 'Show Hint' : 'Show Word'),
                     ),
                   ] else ...[
-                    // Word stays fixed; only the section below it animates.
+                    // Cue word stays fixed; only the section below animates.
                     Text(
-                      card.primaryWord,
+                      _cueWord,
                       style: Theme.of(context).textTheme.headlineLarge,
                       textAlign: TextAlign.center,
                     ),
 
-                    // "Tap to reveal" hint fades out; translation + buttons fade in.
+                    // "Tap to reveal" fades out; revealed word + buttons fade in.
                     AnimatedCrossFade(
                       duration: const Duration(milliseconds: 220),
                       sizeCurve: Curves.easeOut,
@@ -621,7 +636,7 @@ class _WordCardState extends State<_WordCard> {
                         children: [
                           const Divider(height: 32),
                           Text(
-                            card.translation,
+                            _revealWord,
                             style: Theme.of(context)
                                 .textTheme
                                 .headlineMedium
@@ -674,6 +689,10 @@ class _PrimaryFieldCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // Image cards: cue = translation (native), answer = primaryWord (foreign).
+    final hasImage = card.primaryImageUrl != null;
+    final topWord = hasImage ? card.translation : card.primaryWord;
+    final bottomWord = hasImage ? card.primaryWord : card.translation;
 
     return Card(
       margin: const EdgeInsets.all(8),
@@ -685,19 +704,22 @@ class _PrimaryFieldCard extends StatelessWidget {
             if (card.primaryImageUrl != null) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  card.primaryImageUrl!,
-                  height: 140,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (ctx, _, _) => SizedBox(
-                    height: 60,
-                    child: Center(
-                      child: Icon(Icons.broken_image_outlined,
-                          size: 32,
-                          color: Theme.of(ctx)
-                              .colorScheme
-                              .onSurfaceVariant),
+                child: ColoredBox(
+                  color: Colors.white,
+                  child: Image.network(
+                    card.primaryImageUrl!,
+                    height: 140,
+                    width: double.infinity,
+                    fit: BoxFit.contain,
+                    errorBuilder: (ctx, _, _) => SizedBox(
+                      height: 60,
+                      child: Center(
+                        child: Icon(Icons.broken_image_outlined,
+                            size: 32,
+                            color: Theme.of(ctx)
+                                .colorScheme
+                                .onSurfaceVariant),
+                      ),
                     ),
                   ),
                 ),
@@ -705,13 +727,13 @@ class _PrimaryFieldCard extends StatelessWidget {
               const SizedBox(height: 12),
             ],
             Text(
-              card.primaryWord,
+              topWord,
               style: Theme.of(context).textTheme.titleLarge,
               textAlign: TextAlign.center,
             ),
             const Divider(height: 24),
             Text(
-              card.translation,
+              bottomWord,
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
@@ -1125,8 +1147,6 @@ class _NavigationBar extends StatelessWidget {
   final VoidCallback onReview;
   final bool isMarkedSkip;
   final bool isMarkedReview;
-  // Marking is disabled until the card has been fully revealed.
-  final bool canMark;
 
   const _NavigationBar({
     required this.currentIndex,
@@ -1137,7 +1157,6 @@ class _NavigationBar extends StatelessWidget {
     required this.onReview,
     required this.isMarkedSkip,
     required this.isMarkedReview,
-    required this.canMark,
   });
 
   @override
@@ -1166,7 +1185,7 @@ class _NavigationBar extends StatelessWidget {
                 activeIcon: Icons.flag,
                 isActive: isMarkedReview,
                 activeColor: isDark ? Colors.green[300]! : Colors.green[700]!,
-                onTap: canMark ? onReview : null,
+                onTap: onReview,
               ),
               const SizedBox(width: 32),
               _MarkButton(
@@ -1175,7 +1194,7 @@ class _NavigationBar extends StatelessWidget {
                 activeIcon: Icons.check_circle,
                 isActive: isMarkedSkip,
                 activeColor: isDark ? Colors.amber[300]! : Colors.amber[700]!,
-                onTap: canMark ? onSkip : null,
+                onTap: onSkip,
               ),
             ],
           ),

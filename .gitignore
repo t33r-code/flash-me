@@ -66,6 +66,10 @@ scripts/serviceAccountKey.json
 scripts/node_modules/
 scripts/package-lock.json
 
+# Root-level node_modules / lock file (accidental npm runs in project root)
+/node_modules/
+/package-lock.json
+
 # Firebase config files are intentionally tracked.
 # API keys are client-restricted by platform bundle ID; Firebase security rules
 # are the real access control layer. Review before making this repo public.

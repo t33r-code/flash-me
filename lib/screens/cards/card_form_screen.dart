@@ -231,6 +231,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
   final List<_FieldState> _fields = [];
   String? _nativeLanguage;
   String? _targetLanguage;
+  bool _primaryWordHidden = false;
   bool _isSaving = false;
 
   // Pre-generated Firestore ID used as the Storage path prefix for new cards.
@@ -263,9 +264,9 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
     _tags = List.from(card?.tags ?? []);
     if (card != null) {
       _fields.addAll(card.fields.map(_FieldState.fromCardField));
-      // Edit mode: use the card's existing language pair.
       _nativeLanguage = card.nativeLanguage;
       _targetLanguage = card.targetLanguage;
+      _primaryWordHidden = card.primaryWordHidden;
     } else if (widget.parentSet != null) {
       // Creating inside a set: inherit the set's language pair.
       _nativeLanguage = widget.parentSet!.nativeLanguage;
@@ -528,6 +529,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
                 translation: _translationController.text.trim(),
                 primaryImageUrl: media.imageUrl,
                 primaryAudioUrl: media.audioUrl,
+                primaryWordHidden: _primaryWordHidden,
                 fields: fields,
                 tags: _tags,
                 nativeLanguage: _nativeLanguage,
@@ -548,6 +550,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
                 translation: _translationController.text.trim(),
                 primaryImageUrl: media.imageUrl,
                 primaryAudioUrl: media.audioUrl,
+                primaryWordHidden: _primaryWordHidden,
                 fields: fields,
                 tags: _tags,
                 nativeLanguage: _nativeLanguage,
@@ -978,6 +981,16 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
                 validator: (v) => v?.trim().isEmpty ?? true
                     ? 'Translation is required'
                     : null,
+              ),
+              const SizedBox(height: 4),
+              SwitchListTile(
+                title: const Text('Hide hint word during study'),
+                subtitle: const Text(
+                    'Show only the image/audio at first; reveal the text hint on demand'),
+                value: _primaryWordHidden,
+                onChanged: (v) => setState(() => _primaryWordHidden = v),
+                contentPadding: EdgeInsets.zero,
+                dense: true,
               ),
 
               // --- Media ---

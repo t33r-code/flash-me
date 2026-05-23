@@ -148,7 +148,6 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   // The mark is also persisted to users/{uid}/cardMarks/{cardId} for use
   // by future filtered study modes.
   void _updateCardMark({required bool markSkip}) {
-    if (!_fullyRevealed) return;
     final data = _currentCardData;
     final wasActive = markSkip ? data.markedKnown : data.markedUnknown;
 
@@ -390,8 +389,6 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
             onReview: () => _updateCardMark(markSkip: false),
             isMarkedSkip: _currentCardData.markedKnown,
             isMarkedReview: _currentCardData.markedUnknown,
-            // Know/Don't Know only enabled in the fully-revealed phase.
-            canMark: _fullyRevealed,
           ),
         ],
       ),
@@ -1150,8 +1147,6 @@ class _NavigationBar extends StatelessWidget {
   final VoidCallback onReview;
   final bool isMarkedSkip;
   final bool isMarkedReview;
-  // Marking is disabled until the card has been fully revealed.
-  final bool canMark;
 
   const _NavigationBar({
     required this.currentIndex,
@@ -1162,7 +1157,6 @@ class _NavigationBar extends StatelessWidget {
     required this.onReview,
     required this.isMarkedSkip,
     required this.isMarkedReview,
-    required this.canMark,
   });
 
   @override
@@ -1191,7 +1185,7 @@ class _NavigationBar extends StatelessWidget {
                 activeIcon: Icons.flag,
                 isActive: isMarkedReview,
                 activeColor: isDark ? Colors.green[300]! : Colors.green[700]!,
-                onTap: canMark ? onReview : null,
+                onTap: onReview,
               ),
               const SizedBox(width: 32),
               _MarkButton(
@@ -1200,7 +1194,7 @@ class _NavigationBar extends StatelessWidget {
                 activeIcon: Icons.check_circle,
                 isActive: isMarkedSkip,
                 activeColor: isDark ? Colors.amber[300]! : Colors.amber[700]!,
-                onTap: canMark ? onSkip : null,
+                onTap: onSkip,
               ),
             ],
           ),

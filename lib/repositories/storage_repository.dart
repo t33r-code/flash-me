@@ -15,6 +15,9 @@ abstract class StorageRepository {
   // Delete the file at [path]. No-ops silently if the file does not exist.
   Future<void> deleteFile(String path);
 
+  // Delete a file using its full download URL (e.g. a URL stored on a card document).
+  Future<void> deleteFileByUrl(String url);
+
   // Return the download URL for an existing file at [path].
   Future<String> getDownloadUrl(String path);
 }

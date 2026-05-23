@@ -2,7 +2,11 @@ import 'package:flash_me/models/flash_card.dart';
 
 // Provider-agnostic contract for flash card persistence.
 abstract class CardRepository {
-  // Create a new card; returns the saved card with its generated ID.
+  // Generate a new unique card ID without writing to Firestore.
+  // Used by the form screen to pre-generate an ID for Storage paths before save.
+  String generateId();
+
+  // Create a new card; uses card.id if non-empty, otherwise generates one.
   Future<FlashCard> createCard(FlashCard card);
 
   // Fetch a single card; returns null if not found.

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_field.dart';
@@ -7,6 +9,7 @@ import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_provider.dart';
 import 'package:flash_me/providers/language_provider.dart';
+import 'package:flash_me/providers/storage_provider.dart';
 import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/screens/templates/template_form_screen.dart';
@@ -230,12 +233,29 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
   String? _targetLanguage;
   bool _isSaving = false;
 
+  // Pre-generated Firestore ID used as the Storage path prefix for new cards.
+  late final String _pendingCardId;
+
+  // Pending media picked but not yet uploaded.
+  Uint8List? _pendingImageBytes;
+  String? _pendingImageExt;
+  Uint8List? _pendingAudioBytes;
+  String? _pendingAudioExt;
+
+  // True when the user has tapped the clear button for existing media.
+  bool _clearImage = false;
+  bool _clearAudio = false;
+
   bool get _isEditing => widget.card != null;
 
   @override
   void initState() {
     super.initState();
     final card = widget.card;
+    // Pre-generate a Firestore ID so Storage paths can be set before the doc exists.
+    _pendingCardId = card?.id.isNotEmpty == true
+        ? card!.id
+        : ref.read(cardRepositoryProvider).generateId();
     _primaryWordController =
         TextEditingController(text: card?.primaryWord ?? '');
     _translationController =
@@ -374,6 +394,104 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
 
   void _removeTag(String tag) => setState(() => _tags.remove(tag));
 
+  // Returns the MIME type string for a file extension.
+  String _mimeForExt(String ext) => switch (ext.toLowerCase()) {
+        'jpg' || 'jpeg' => 'image/jpeg',
+        'png' => 'image/png',
+        'webp' => 'image/webp',
+        'gif' => 'image/gif',
+        'mp3' => 'audio/mpeg',
+        'm4a' => 'audio/mp4',
+        'aac' => 'audio/aac',
+        'wav' => 'audio/wav',
+        'ogg' => 'audio/ogg',
+        _ => 'application/octet-stream',
+      };
+
+  Future<void> _pickImage() async {
+    final result = await FilePicker.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    final bytes = file.bytes;
+    if (bytes == null) return;
+    final ext = (file.extension ?? 'jpg').toLowerCase();
+    setState(() {
+      _pendingImageBytes = bytes;
+      _pendingImageExt = ext;
+      _clearImage = false;
+    });
+  }
+
+  void _removeImageMedia() {
+    setState(() {
+      _pendingImageBytes = null;
+      _pendingImageExt = null;
+      _clearImage = true;
+    });
+  }
+
+  Future<void> _pickAudio() async {
+    final result = await FilePicker.pickFiles(
+      type: FileType.audio,
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    final bytes = file.bytes;
+    if (bytes == null) return;
+    final ext = (file.extension ?? 'mp3').toLowerCase();
+    setState(() {
+      _pendingAudioBytes = bytes;
+      _pendingAudioExt = ext;
+      _clearAudio = false;
+    });
+  }
+
+  void _removeAudioMedia() {
+    setState(() {
+      _pendingAudioBytes = null;
+      _pendingAudioExt = null;
+      _clearAudio = true;
+    });
+  }
+
+  // Uploads pending media and deletes removed media; returns the final URLs.
+  Future<({String? imageUrl, String? audioUrl})> _resolveMediaUrls() async {
+    final storage = ref.read(storageRepositoryProvider);
+    final cardId = _pendingCardId;
+
+    String? imageUrl = widget.card?.primaryImageUrl;
+    if (_clearImage) {
+      if (imageUrl != null) await storage.deleteFileByUrl(imageUrl);
+      imageUrl = null;
+    } else if (_pendingImageBytes != null) {
+      if (imageUrl != null) await storage.deleteFileByUrl(imageUrl);
+      imageUrl = await storage.uploadFile(
+        path: 'cards/$cardId/image.$_pendingImageExt',
+        bytes: _pendingImageBytes!,
+        contentType: _mimeForExt(_pendingImageExt!),
+      );
+    }
+
+    String? audioUrl = widget.card?.primaryAudioUrl;
+    if (_clearAudio) {
+      if (audioUrl != null) await storage.deleteFileByUrl(audioUrl);
+      audioUrl = null;
+    } else if (_pendingAudioBytes != null) {
+      if (audioUrl != null) await storage.deleteFileByUrl(audioUrl);
+      audioUrl = await storage.uploadFile(
+        path: 'cards/$cardId/audio.$_pendingAudioExt',
+        bytes: _pendingAudioBytes!,
+        contentType: _mimeForExt(_pendingAudioExt!),
+      );
+    }
+
+    return (imageUrl: imageUrl, audioUrl: audioUrl);
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -399,13 +517,16 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
     try {
       final uid = ref.read(authStateProvider).asData?.value ?? '';
       final fields = _fields.map((f) => f.toCardField()).toList();
+      final media = await _resolveMediaUrls();
 
       if (!_isEditing) {
         await ref.read(cardRepositoryProvider).createCard(
               FlashCard(
-                id: '',
+                id: _pendingCardId,
                 primaryWord: _primaryWordController.text.trim(),
                 translation: _translationController.text.trim(),
+                primaryImageUrl: media.imageUrl,
+                primaryAudioUrl: media.audioUrl,
                 fields: fields,
                 tags: _tags,
                 nativeLanguage: _nativeLanguage,
@@ -424,6 +545,8 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
               widget.card!.copyWith(
                 primaryWord: _primaryWordController.text.trim(),
                 translation: _translationController.text.trim(),
+                primaryImageUrl: media.imageUrl,
+                primaryAudioUrl: media.audioUrl,
                 fields: fields,
                 tags: _tags,
                 nativeLanguage: _nativeLanguage,
@@ -695,6 +818,98 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
     );
   }
 
+  // --- media pickers --------------------------------------------------------
+
+  Widget _buildImagePicker(BuildContext context) {
+    final existingUrl = widget.card?.primaryImageUrl;
+    final hasImage = _pendingImageBytes != null ||
+        (existingUrl != null && !_clearImage);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Thumbnail or empty-state tap target.
+        GestureDetector(
+          onTap: _isSaving ? null : _pickImage,
+          child: Container(
+            width: 96,
+            height: 96,
+            decoration: BoxDecoration(
+              border: Border.all(color: Theme.of(context).colorScheme.outline),
+              borderRadius: BorderRadius.circular(8),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: hasImage
+                ? (_pendingImageBytes != null
+                    ? Image.memory(_pendingImageBytes!, fit: BoxFit.cover)
+                    : Image.network(existingUrl!, fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) =>
+                            const Icon(Icons.broken_image_outlined)))
+                : const Icon(Icons.image_outlined, size: 36),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextButton.icon(
+              onPressed: _isSaving ? null : _pickImage,
+              icon: const Icon(Icons.upload_outlined),
+              label: Text(hasImage ? 'Replace image' : 'Add image'),
+            ),
+            if (hasImage)
+              TextButton.icon(
+                onPressed: _isSaving ? null : _removeImageMedia,
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('Remove'),
+                style: TextButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAudioPicker(BuildContext context) {
+    final existingUrl = widget.card?.primaryAudioUrl;
+    final hasAudio = _pendingAudioBytes != null ||
+        (existingUrl != null && !_clearAudio);
+    final label = _pendingAudioBytes != null
+        ? 'New audio clip selected'
+        : (hasAudio ? 'Audio clip attached' : null);
+
+    return Row(
+      children: [
+        Icon(
+          hasAudio ? Icons.audio_file : Icons.audio_file_outlined,
+          color: hasAudio
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.outline,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label ?? 'No audio clip',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
+        TextButton(
+          onPressed: _isSaving ? null : _pickAudio,
+          child: Text(hasAudio ? 'Replace' : 'Add audio'),
+        ),
+        if (hasAudio)
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            color: Theme.of(context).colorScheme.error,
+            tooltip: 'Remove audio',
+            onPressed: _isSaving ? null : _removeAudioMedia,
+          ),
+      ],
+    );
+  }
+
   // --- main build -----------------------------------------------------------
 
   @override
@@ -763,6 +978,17 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
                     ? 'Translation is required'
                     : null,
               ),
+
+              // --- Media ---
+              const SizedBox(height: 24),
+              Text('Media', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text('Optional image and audio for the primary field.',
+                  style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 12),
+              _buildImagePicker(context),
+              const SizedBox(height: 12),
+              _buildAudioPicker(context),
 
               // --- Languages ---
               const SizedBox(height: 24),

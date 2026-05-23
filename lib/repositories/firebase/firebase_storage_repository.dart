@@ -37,9 +37,20 @@ class FirebaseStorageRepository implements StorageRepository {
       await _storage.ref(path).delete();
       _logger.i('Deleted file at $path');
     } on FirebaseException catch (e) {
-      // Treat "object not found" as a no-op — already deleted.
       if (e.code == 'object-not-found') return;
       _logger.e('Delete failed for $path: $e');
+      throw AppException('Failed to delete file', code: 'delete-failed');
+    }
+  }
+
+  @override
+  Future<void> deleteFileByUrl(String url) async {
+    try {
+      await _storage.refFromURL(url).delete();
+      _logger.i('Deleted file at $url');
+    } on FirebaseException catch (e) {
+      if (e.code == 'object-not-found') return;
+      _logger.e('Delete by URL failed for $url: $e');
       throw AppException('Failed to delete file', code: 'delete-failed');
     }
   }

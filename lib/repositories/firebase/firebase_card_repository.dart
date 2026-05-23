@@ -13,9 +13,16 @@ class FirebaseCardRepository implements CardRepository {
   final Logger _logger = Logger();
 
   @override
+  String generateId() =>
+      _firestore.collection(AppConstants.cardsCollection).doc().id;
+
+  @override
   Future<FlashCard> createCard(FlashCard card) async {
     try {
-      final docRef = _firestore.collection(AppConstants.cardsCollection).doc();
+      // Use a caller-supplied ID (for pre-generating Storage paths) or generate one.
+      final docRef = card.id.isNotEmpty
+          ? _firestore.collection(AppConstants.cardsCollection).doc(card.id)
+          : _firestore.collection(AppConstants.cardsCollection).doc();
       final now = DateTime.now();
       final newCard = card.copyWith(id: docRef.id, createdAt: now, updatedAt: now);
       await docRef.set(newCard.toFirestore());

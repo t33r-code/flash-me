@@ -525,10 +525,20 @@ class _WordCardState extends State<_WordCard> {
   late bool _wordVisible;
   bool _translationVisible = false;
 
+  // Image cards reverse the study direction: the image + native word is the
+  // cue, and the foreign word is what the user is trying to recall.
+  bool get _isImageCard => widget.card.primaryImageUrl != null;
+  String get _cueWord =>
+      _isImageCard ? widget.card.translation : widget.card.primaryWord;
+  String get _revealWord =>
+      _isImageCard ? widget.card.primaryWord : widget.card.translation;
+
   @override
   void initState() {
     super.initState();
-    _wordVisible = !widget.card.primaryWordHidden;
+    // For image cards the cue word is always shown (the image provides context);
+    // primaryWordHidden only applies to text-only cards.
+    _wordVisible = _isImageCard || !widget.card.primaryWordHidden;
   }
 
   @override
@@ -542,10 +552,10 @@ class _WordCardState extends State<_WordCard> {
         child: Card(
           clipBehavior: Clip.antiAlias,
           child: Semantics(
-            // Hint tells screen readers what the tap action does.
-            onTapHint: (!_wordVisible || _translationVisible) ? null : 'reveal translation',
+            onTapHint: (!_wordVisible || _translationVisible)
+                ? null
+                : _isImageCard ? 'reveal foreign word' : 'reveal translation',
             child: InkWell(
-            // Tapping the card reveals the translation; disabled once visible.
             onTap: (_wordVisible && !_translationVisible)
                 ? () => setState(() => _translationVisible = true)
                 : null,
@@ -557,19 +567,22 @@ class _WordCardState extends State<_WordCard> {
                   if (card.primaryImageUrl != null) ...[
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        card.primaryImageUrl!,
-                        height: 180,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (ctx, _, _) => SizedBox(
-                          height: 80,
-                          child: Center(
-                            child: Icon(Icons.broken_image_outlined,
-                                size: 40,
-                                color: Theme.of(ctx)
-                                    .colorScheme
-                                    .onSurfaceVariant),
+                      child: ColoredBox(
+                        color: Colors.white,
+                        child: Image.network(
+                          card.primaryImageUrl!,
+                          height: 180,
+                          width: double.infinity,
+                          fit: BoxFit.contain,
+                          errorBuilder: (ctx, _, _) => SizedBox(
+                            height: 80,
+                            child: Center(
+                              child: Icon(Icons.broken_image_outlined,
+                                  size: 40,
+                                  color: Theme.of(ctx)
+                                      .colorScheme
+                                      .onSurfaceVariant),
+                            ),
                           ),
                         ),
                       ),
@@ -588,14 +601,14 @@ class _WordCardState extends State<_WordCard> {
                       label: const Text('Show Word'),
                     ),
                   ] else ...[
-                    // Word stays fixed; only the section below it animates.
+                    // Cue word stays fixed; only the section below animates.
                     Text(
-                      card.primaryWord,
+                      _cueWord,
                       style: Theme.of(context).textTheme.headlineLarge,
                       textAlign: TextAlign.center,
                     ),
 
-                    // "Tap to reveal" hint fades out; translation + buttons fade in.
+                    // "Tap to reveal" fades out; revealed word + buttons fade in.
                     AnimatedCrossFade(
                       duration: const Duration(milliseconds: 220),
                       sizeCurve: Curves.easeOut,
@@ -621,7 +634,7 @@ class _WordCardState extends State<_WordCard> {
                         children: [
                           const Divider(height: 32),
                           Text(
-                            card.translation,
+                            _revealWord,
                             style: Theme.of(context)
                                 .textTheme
                                 .headlineMedium
@@ -674,6 +687,10 @@ class _PrimaryFieldCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // Image cards: cue = translation (native), answer = primaryWord (foreign).
+    final hasImage = card.primaryImageUrl != null;
+    final topWord = hasImage ? card.translation : card.primaryWord;
+    final bottomWord = hasImage ? card.primaryWord : card.translation;
 
     return Card(
       margin: const EdgeInsets.all(8),
@@ -685,19 +702,22 @@ class _PrimaryFieldCard extends StatelessWidget {
             if (card.primaryImageUrl != null) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  card.primaryImageUrl!,
-                  height: 140,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (ctx, _, _) => SizedBox(
-                    height: 60,
-                    child: Center(
-                      child: Icon(Icons.broken_image_outlined,
-                          size: 32,
-                          color: Theme.of(ctx)
-                              .colorScheme
-                              .onSurfaceVariant),
+                child: ColoredBox(
+                  color: Colors.white,
+                  child: Image.network(
+                    card.primaryImageUrl!,
+                    height: 140,
+                    width: double.infinity,
+                    fit: BoxFit.contain,
+                    errorBuilder: (ctx, _, _) => SizedBox(
+                      height: 60,
+                      child: Center(
+                        child: Icon(Icons.broken_image_outlined,
+                            size: 32,
+                            color: Theme.of(ctx)
+                                .colorScheme
+                                .onSurfaceVariant),
+                      ),
                     ),
                   ),
                 ),
@@ -705,13 +725,13 @@ class _PrimaryFieldCard extends StatelessWidget {
               const SizedBox(height: 12),
             ],
             Text(
-              card.primaryWord,
+              topWord,
               style: Theme.of(context).textTheme.titleLarge,
               textAlign: TextAlign.center,
             ),
             const Divider(height: 24),
             Text(
-              card.translation,
+              bottomWord,
               style: Theme.of(context)
                   .textTheme
                   .titleMedium

@@ -187,7 +187,7 @@ class _SetTile extends StatelessWidget {
               // Uses spaceBetween so the date is always pushed to the bottom of
               // the tile regardless of how many lines the left content has.
               Padding(
-                padding: const EdgeInsets.fromLTRB(0, 12, 8, 10),
+                padding: const EdgeInsets.fromLTRB(0, 8, 8, 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

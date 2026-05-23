@@ -550,13 +550,19 @@ class _WordCardState extends State<_WordCard> {
         child: Card(
           clipBehavior: Clip.antiAlias,
           child: Semantics(
-            onTapHint: (!_wordVisible || _translationVisible)
+            onTapHint: _translationVisible
                 ? null
                 : _isImageCard ? 'reveal foreign word' : 'reveal translation',
             child: InkWell(
-            onTap: (_wordVisible && !_translationVisible)
-                ? () => setState(() => _translationVisible = true)
-                : null,
+            // Tapping always reveals everything — even from the hidden state,
+            // skipping the "Show Hint" step. Show Hint still works as a
+            // halfway step if the user wants it.
+            onTap: _translationVisible
+                ? null
+                : () => setState(() {
+                    _wordVisible = true;
+                    _translationVisible = true;
+                  }),
             child: Padding(
               padding: const EdgeInsets.all(32),
               child: Column(

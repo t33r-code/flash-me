@@ -159,6 +159,7 @@ The implementation is divided into 7 phases, starting with foundational setup an
 - [x] Deploy updated Firestore indexes
 
 #### Flash Cards (remaining / deferred)
+- [x] Image and audio attachment on Flash Cards — picker UI in CardFormScreen; upload to Firebase Storage on save; replace/clear deletes old file; thumbnail/audio indicator shown in form
 - [ ] Add card metadata display (createdAt, updatedAt, createdBy)
 - [ ] Implement field type icons/indicators
 - [ ] Add field randomization for multiple choice (optional)

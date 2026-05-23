@@ -46,6 +46,16 @@ The learner picks from a list of options.
 - **Field name** — the question or prompt (e.g. *Noun gender*).
 - **Options** — add each choice; tap the tick on one option to mark it as correct.
 
+### Image & Audio { #card-media }
+
+A Flash Card can have an optional image and audio clip attached to the primary field. These are shown during study alongside (or instead of) the foreign word.
+
+- **Image** — tap the image area or **Add image** to pick an image file from your device. A thumbnail is shown in the form. Tap **Replace image** to swap it, or **Remove** to clear it.
+- **Audio clip** — tap **Add audio** to pick an audio file. The form shows whether a clip is attached. Tap **Replace** or the delete icon to change or remove it.
+
+!!! tip "Hide the word"
+    When a card has media, you can configure a template with **Hide primary word by default** so that the word stays hidden until the learner taps *Show Word* — useful for listening or image-recognition drills. Apply the template to the card to inherit this behaviour.
+
 ### Languages { #card-languages }
 
 Tap the **Native language** or **Target language** pickers to tag a card with its language pair (e.g. English → Spanish). When creating a card inside a set, the language pair is inherited from the set automatically.

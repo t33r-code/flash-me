@@ -424,7 +424,7 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a public release or are technically blocked on other work in this block (e.g. Phase 4c requires Phase 4d).
 
 ### Known Defects
-- [ ] Display Skip / Review indication on card revisit — when navigating back to a card already marked in this session, the current mark (skip/review) is not shown on the card
+- [x] Display Skip / Review indication on card revisit — when navigating back to a card already marked in this session, the current mark (skip/review) is not shown on the card
 
 ### Auth & Account
 - [ ] Implement account linking logic for multiple auth providers

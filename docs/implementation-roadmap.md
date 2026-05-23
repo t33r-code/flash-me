@@ -6,9 +6,9 @@ This document tracks the phased implementation of Flash Me, organised into three
 
 | Block | Scope | Status |
 |---|---|---|
-| Alpha 0.1 | Phases 1–7: auth, cards, sets, study, import/export, basic polish | Largely complete |
-| Alpha 0.2 | Deferred items from Alpha 0.1: tags, search, testing infra, docs, deployment | Planned |
-| Beta 0.1 | Marketplace, Lessons, Web Dashboard, sharing | Long-term |
+| [Alpha 0.1](#alpha-01--foundation-to-launch) | Phases 1–7: auth, cards, sets, study, import/export, basic polish | Largely complete |
+| [Alpha 0.2](#alpha-02--completeness--polish) | Deferred items from Alpha 0.1: tags, search, testing infra, docs, deployment | Planned |
+| [Beta 0.1](#beta-01--marketplace--platform) | Marketplace, Lessons, Web Dashboard, sharing | Long-term |
 
 ---
 

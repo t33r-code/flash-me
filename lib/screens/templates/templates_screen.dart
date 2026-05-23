@@ -76,8 +76,8 @@ class _TemplateTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fieldCount = template.fields.length;
-    final fieldLabel = '$fieldCount field${fieldCount == 1 ? '' : 's'}';
+    final fieldCount = template.questions.length;
+    final fieldLabel = '$fieldCount question${fieldCount == 1 ? '' : 's'}';
     // Subtitle: description when available, otherwise fall back to field count.
     // Field count is not shown in trailing to avoid duplication when no description.
     final subtitle = template.description != null

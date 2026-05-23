@@ -53,7 +53,7 @@ class _QuestionState {
 
   // Blank question defaulting to text_input type.
   factory _QuestionState.empty() => _QuestionState(
-        questionId: WorkbookQuestion.generateId(),
+        questionId: CardQuestion.generateId(),
         type: AppConstants.fieldTypeTextInput,
         promptController: TextEditingController(),
         answersController: TextEditingController(),
@@ -66,8 +66,8 @@ class _QuestionState {
         correctOrderInputController: TextEditingController(),
       );
 
-  // Populate controllers from an existing WorkbookQuestion (edit mode).
-  factory _QuestionState.fromQuestion(WorkbookQuestion q) {
+  // Populate controllers from an existing CardQuestion (edit mode).
+  factory _QuestionState.fromQuestion(CardQuestion q) {
     switch (q) {
       case TextInputQuestion q:
         return _QuestionState(
@@ -75,7 +75,7 @@ class _QuestionState {
           type: AppConstants.fieldTypeTextInput,
           promptController: TextEditingController(text: q.prompt ?? ''),
           answersController:
-              TextEditingController(text: q.correctAnswers.join(', ')),
+              TextEditingController(text: (q.correctAnswers ?? []).join(', ')),
           hintController: TextEditingController(text: q.hint ?? ''),
           exactMatch: q.exactMatch,
           optionControllers: [
@@ -89,11 +89,10 @@ class _QuestionState {
           correctOrderInputController: TextEditingController(),
         );
       case MultipleChoiceQuestion q:
-        final optCtls = q.options.isEmpty
+        final opts = q.options ?? [];
+        final optCtls = opts.isEmpty
             ? [TextEditingController(), TextEditingController()]
-            : q.options
-                .map((o) => TextEditingController(text: o))
-                .toList();
+            : opts.map((o) => TextEditingController(text: o)).toList();
         while (optCtls.length < 2) {
           optCtls.add(TextEditingController());
         }
@@ -125,16 +124,16 @@ class _QuestionState {
             TextEditingController(),
           ],
           explanationController: TextEditingController(),
-          wordBank: List.from(q.wordBank),
-          correctOrder: List.from(q.correctOrder),
+          wordBank: List.from(q.wordBank ?? []),
+          correctOrder: List.from(q.correctOrder ?? []),
           wordBankInputController: TextEditingController(),
           correctOrderInputController: TextEditingController(),
         );
     }
   }
 
-  // Build a WorkbookQuestion from the current state of all controllers.
-  WorkbookQuestion toQuestion() {
+  // Build a CardQuestion from the current state of all controllers.
+  CardQuestion toQuestion() {
     final promptText = promptController.text.trim();
     final prompt = promptText.isEmpty ? null : promptText;
 

@@ -54,25 +54,20 @@ class SessionStats {
 // ---------------------------------------------------------------------------
 // CardSessionData — per-card progress within one study session.
 // Stored as a nested map inside the StudySession document.
+//
+// Intentionally minimal: per-question answer state (which answers were
+// typed, which options were selected) is tracked in the questionResults
+// subcollection, not duplicated here.
 // ---------------------------------------------------------------------------
 class CardSessionData {
   // One of AppConstants.cardStatus* — tracks where the user is with this card.
   final String status;
-  // Which reveal-type fields the user has clicked to reveal.
-  final List<String> revealedFields;
-  // fieldId → answer text the user typed (for text_input fields).
-  final Map<String, String> textInputAnswers;
-  // fieldId → selected option index (for multiple_choice fields).
-  final Map<String, int> multipleChoiceAnswers;
-  final bool markedKnown;
-  final bool markedUnknown;
-  final int attempts; // how many times the user has tried to answer this card
+  final bool markedKnown;   // true = user tapped Skip for this card
+  final bool markedUnknown; // true = user tapped Review for this card
+  final int attempts;       // how many times the user has tried to answer this card
 
   const CardSessionData({
     this.status = AppConstants.cardStatusNotStarted,
-    this.revealedFields = const [],
-    this.textInputAnswers = const {},
-    this.multipleChoiceAnswers = const {},
     this.markedKnown = false,
     this.markedUnknown = false,
     this.attempts = 0,
@@ -81,13 +76,6 @@ class CardSessionData {
   factory CardSessionData.fromJson(Map<String, dynamic> json) =>
       CardSessionData(
         status: json['status'] as String? ?? AppConstants.cardStatusNotStarted,
-        revealedFields:
-            List<String>.from(json['revealedFields'] as List? ?? []),
-        textInputAnswers: Map<String, String>.from(
-            json['textInputAnswers'] as Map? ?? {}),
-        // Firestore stores numbers as int, but JSON decode may give dynamic.
-        multipleChoiceAnswers: (json['multipleChoiceAnswers'] as Map? ?? {})
-            .map((k, v) => MapEntry(k as String, v as int)),
         markedKnown: json['markedKnown'] as bool? ?? false,
         markedUnknown: json['markedUnknown'] as bool? ?? false,
         attempts: json['attempts'] as int? ?? 0,
@@ -95,9 +83,6 @@ class CardSessionData {
 
   Map<String, dynamic> toJson() => {
         'status': status,
-        'revealedFields': revealedFields,
-        'textInputAnswers': textInputAnswers,
-        'multipleChoiceAnswers': multipleChoiceAnswers,
         'markedKnown': markedKnown,
         'markedUnknown': markedUnknown,
         'attempts': attempts,
@@ -105,19 +90,12 @@ class CardSessionData {
 
   CardSessionData copyWith({
     String? status,
-    List<String>? revealedFields,
-    Map<String, String>? textInputAnswers,
-    Map<String, int>? multipleChoiceAnswers,
     bool? markedKnown,
     bool? markedUnknown,
     int? attempts,
   }) =>
       CardSessionData(
         status: status ?? this.status,
-        revealedFields: revealedFields ?? this.revealedFields,
-        textInputAnswers: textInputAnswers ?? this.textInputAnswers,
-        multipleChoiceAnswers:
-            multipleChoiceAnswers ?? this.multipleChoiceAnswers,
         markedKnown: markedKnown ?? this.markedKnown,
         markedUnknown: markedUnknown ?? this.markedUnknown,
         attempts: attempts ?? this.attempts,

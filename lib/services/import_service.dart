@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flash_me/models/card_field.dart';
+import 'package:flash_me/models/card_question.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/models/import_diff.dart';
@@ -112,7 +112,7 @@ class ImportService {
           primaryWordHidden: entry.data.primaryWordHidden,
           primaryImageUrl: imageUrl,
           primaryAudioUrl: audioUrl,
-          fields: _buildFields(entry.data.rawFields),
+          questions: _buildQuestions(entry.data.rawFields),
           templateId: entry.data.templateId,
           tags: entry.data.tags,
           createdAt: DateTime.now(),
@@ -151,7 +151,7 @@ class ImportService {
             primaryWordHidden: entry.incoming.primaryWordHidden,
             primaryImageUrl: imageUrl,
             primaryAudioUrl: audioUrl,
-            fields: _buildFields(entry.incoming.rawFields),
+            questions: _buildQuestions(entry.incoming.rawFields),
             templateId: entry.incoming.templateId,
             tags: entry.incoming.tags,
             updatedAt: DateTime.now(),
@@ -254,13 +254,16 @@ class ImportService {
     if (word.isEmpty) throw AppException('A card is missing primaryWord.');
     if (translation.isEmpty) throw AppException('Card "$word" is missing translation.');
 
-    final rawFields = (raw['fields'] as List? ?? [])
+    // Accept both 'questions' (new format) and 'fields' (legacy ZIP export).
+    final rawFields = ((raw['questions'] ?? raw['fields']) as List? ?? [])
         .cast<Map<String, dynamic>>();
 
-    // Basic field validation.
+    // Basic question validation — name/prompt interchangeable; content required.
     for (final f in rawFields) {
-      if (f['name'] == null || f['type'] == null || f['content'] == null) {
-        throw AppException('Card "$word" has a malformed field entry.');
+      if ((f['name'] == null && f['prompt'] == null) ||
+          f['type'] == null ||
+          f['content'] == null) {
+        throw AppException('Card "$word" has a malformed question entry.');
       }
     }
 
@@ -300,40 +303,44 @@ class ImportService {
         newValue: incoming.tags.isEmpty ? '(none)' : incoming.tags.join(', '),
       ));
     }
-    if (_fieldsChanged(existing.fields, incoming.rawFields)) {
-      // Match fields by name to produce per-field old→new content entries.
-      final existingByName = {for (final f in existing.fields) f.name: f};
-      final incomingByName = {
-        for (final r in incoming.rawFields) (r['name'] as String? ?? ''): r,
+    if (_questionsChanged(existing.questions, incoming.rawFields)) {
+      // Match questions by prompt (label) to produce per-question old→new entries.
+      final existingByPrompt = {
+        for (final q in existing.questions) (q.prompt ?? ''): q,
       };
-      // Preserve existing order, then append any newly added field names.
-      final allNames = [
-        ...existing.fields.map((f) => f.name),
+      final incomingByPrompt = {
+        for (final r in incoming.rawFields)
+          ((r['prompt'] ?? r['name']) as String? ?? ''): r,
+      };
+      // Preserve existing order, then append any newly added prompts.
+      final allPrompts = [
+        ...existing.questions.map((q) => q.prompt ?? ''),
         ...incoming.rawFields
-            .map((r) => r['name'] as String? ?? '')
-            .where((n) => !existingByName.containsKey(n)),
+            .map((r) => (r['prompt'] ?? r['name']) as String? ?? '')
+            .where((n) => !existingByPrompt.containsKey(n)),
       ];
-      for (final name in allNames) {
-        final ef = existingByName[name];
-        final ir = incomingByName[name];
-        if (ef == null) {
+      for (final prompt in allPrompts) {
+        final eq = existingByPrompt[prompt];
+        final ir = incomingByPrompt[prompt];
+        final eqType = eq != null ? (eq.toJson()['type'] as String) : null;
+        if (eq == null) {
           changes.add(FieldChange(
-            label: name,
+            label: prompt,
             oldValue: '(not present)',
-            newValue: _fieldContentSummary(ir!),
+            newValue: _questionContentSummary(ir!),
           ));
         } else if (ir == null) {
           changes.add(FieldChange(
-            label: name,
-            oldValue: _fieldContentSummary(ef),
+            label: prompt,
+            oldValue: _questionContentSummary(eq),
             newValue: '(removed)',
           ));
-        } else if (ef.type != ir['type'] ||
-            jsonEncode(ef.content.toJson()) != jsonEncode(ir['content'])) {
+        } else if (eqType != ir['type'] ||
+            jsonEncode(eq.toJson()['content']) != jsonEncode(ir['content'])) {
           changes.add(FieldChange(
-            label: name,
-            oldValue: _fieldContentSummary(ef),
-            newValue: _fieldContentSummary(ir),
+            label: prompt,
+            oldValue: _questionContentSummary(eq),
+            newValue: _questionContentSummary(ir),
           ));
         }
       }
@@ -356,33 +363,30 @@ class ImportService {
     return changes;
   }
 
-  // Return a short human-readable summary of a field's answer content.
-  // Accepts either a typed [CardField] (existing card) or a raw
+  // Return a short human-readable summary of a question's answer content.
+  // Accepts either a typed [CardQuestion] (existing card) or a raw
   // [Map<String,dynamic>] (incoming from the ZIP).
-  String _fieldContentSummary(Object field) {
-    if (field is CardField) {
-      final c = field.content;
-      if (c is RevealContent) return c.answer ?? '(blank)';
-      if (c is TextInputContent) {
-        final a = c.correctAnswers;
-        return (a == null || a.isEmpty) ? '(any)' : a.join(' / ');
-      }
-      if (c is MultipleChoiceContent) {
-        final opts = c.options;
-        final idx = c.correctIndex;
-        if (idx != null && opts != null && idx >= 0 && idx < opts.length) {
-          return opts[idx];
-        }
-        return opts?.join(' / ') ?? '(no options)';
-      }
-      return '';
+  String _questionContentSummary(Object question) {
+    if (question is CardQuestion) {
+      return switch (question) {
+        TextInputQuestion q => (q.correctAnswers == null || q.correctAnswers!.isEmpty)
+            ? '(any)'
+            : q.correctAnswers!.join(' / '),
+        MultipleChoiceQuestion q => () {
+            final opts = q.options;
+            final idx = q.correctIndex;
+            if (idx != null && opts != null && idx >= 0 && idx < opts.length) {
+              return opts[idx];
+            }
+            return opts?.join(' / ') ?? '(no options)';
+          }(),
+        WordOrderQuestion q =>
+            q.correctOrder?.join(' → ') ?? '(no order)',
+      };
     }
-    if (field is Map<String, dynamic>) {
-      final type = field['type'] as String? ?? '';
-      final content = field['content'] as Map<String, dynamic>? ?? {};
-      if (type == AppConstants.fieldTypeReveal) {
-        return (content['answer'] as String?) ?? '(blank)';
-      }
+    if (question is Map<String, dynamic>) {
+      final type = question['type'] as String? ?? '';
+      final content = question['content'] as Map<String, dynamic>? ?? {};
       if (type == AppConstants.fieldTypeTextInput) {
         final answers = (content['correctAnswers'] as List?)?.cast<String>();
         return (answers == null || answers.isEmpty) ? '(any)' : answers.join(' / ');
@@ -394,6 +398,10 @@ class ImportService {
           return opts[idx];
         }
         return opts?.join(' / ') ?? '(no options)';
+      }
+      if (type == AppConstants.questionTypeWordOrder) {
+        final order = (content['correctOrder'] as List?)?.cast<String>();
+        return order?.join(' → ') ?? '(no order)';
       }
     }
     return '';
@@ -407,38 +415,44 @@ class ImportService {
     return true;
   }
 
-  // Compare fields by serialising to JSON (without fieldId — already stripped
-  // by the exporter). Two fields are considered equal if their name, type, and
-  // content are identical.
-  bool _fieldsChanged(
-    List<CardField> existing,
+  // Compare questions by prompt, type, and content. Questions are considered
+  // equal if all three match positionally (order matters).
+  bool _questionsChanged(
+    List<CardQuestion> existing,
     List<Map<String, dynamic>> incoming,
   ) {
     if (existing.length != incoming.length) return true;
     for (var i = 0; i < existing.length; i++) {
       final e = existing[i];
       final imp = incoming[i];
-      if (e.name != imp['name'] ||
-          e.type != imp['type'] ||
-          jsonEncode(e.content.toJson()) != jsonEncode(imp['content'])) {
+      final eJson = e.toJson();
+      final ePrompt = e.prompt ?? '';
+      final impPrompt = (imp['prompt'] ?? imp['name']) as String? ?? '';
+      if (ePrompt != impPrompt ||
+          eJson['type'] != imp['type'] ||
+          jsonEncode(eJson['content']) != jsonEncode(imp['content'])) {
         return true;
       }
     }
     return false;
   }
 
-  // Build CardField list from raw JSON maps, generating fresh fieldIds.
-  List<CardField> _buildFields(List<Map<String, dynamic>> rawFields) =>
-      rawFields.map((f) {
-        final type = f['type'] as String;
-        return CardField(
-          fieldId: CardField.generateId(),
-          name: f['name'] as String,
-          type: type,
-          content: CardFieldContent.fromJson(
-              type, f['content'] as Map<String, dynamic>),
-        );
-      }).toList();
+  // Build a CardQuestion list from raw ZIP JSON maps, generating fresh IDs.
+  // Unknown types (e.g. legacy 'reveal') are silently skipped.
+  List<CardQuestion> _buildQuestions(List<Map<String, dynamic>> rawFields) {
+    final questions = <CardQuestion>[];
+    for (final f in rawFields) {
+      try {
+        questions.add(CardQuestion.fromJson({
+          ...f,
+          'questionId': CardQuestion.generateId(),
+        }));
+      } on ArgumentError {
+        // skip unsupported types
+      }
+    }
+    return questions;
+  }
 
   // Upload a media file from the archive to Firebase Storage.
   // Returns the storage URL, or null if [path] is null or the file is missing.

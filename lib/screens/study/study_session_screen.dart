@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flash_me/models/card_field.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/models/study_session.dart';
@@ -361,8 +360,8 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
                           child: Column(
                             children: [
                               _PrimaryFieldCard(card: flashCard),
-                              for (final field in flashCard.fields)
-                                _buildField(field),
+                              for (final q in flashCard.questions)
+                                _buildQuestion(q),
                               const SizedBox(height: 16),
                             ],
                           ),
@@ -395,38 +394,9 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     );
   }
 
-  // Persists a success/fail outcome for an interactive field — fire-and-forget.
-  void _recordFieldResult(CardField field, bool correct) {
-    ref.read(questionResultRepositoryProvider).recordResult(
-      userId: _uid,
-      cardId: _currentCardId,
-      fieldId: field.fieldId,
-      fieldName: field.name,
-      fieldType: field.type,
-      outcome: correct ? AppConstants.resultSuccess : AppConstants.resultFail,
-    ).ignore();
-  }
-
-  // Dispatch each field to its typed widget using Dart's sealed class switch.
-  // Only text_input and multiple_choice get an onResult callback — reveal
-  // fields are passive and have no checkable outcome.
-  Widget _buildField(CardField field) => switch (field.content) {
-        RevealContent c => _RevealFieldCard(field: field, content: c),
-        TextInputContent c => _TextInputFieldCard(
-            field: field,
-            content: c,
-            onResult: (correct) => _recordFieldResult(field, correct),
-          ),
-        MultipleChoiceContent c => _MultipleChoiceFieldCard(
-            field: field,
-            content: c,
-            onResult: (correct) => _recordFieldResult(field, correct),
-          ),
-      };
-
-  // Persists a success/fail outcome for a workbook question — fire-and-forget.
-  // Uses '{cardId}_{questionId}' as the unique field key.
-  void _recordWorkbookQuestionResult(WorkbookQuestion question, bool correct) {
+  // Persists a success/fail outcome for a question — fire-and-forget.
+  // Key format: '{cardId}_{questionId}' — consistent across flash and workbook cards.
+  void _recordQuestionResult(CardQuestion question, bool correct) {
     ref.read(questionResultRepositoryProvider).recordResult(
       userId: _uid,
       cardId: _currentCardId,
@@ -465,7 +435,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
                 children: [
                   _WorkbookPromptHeader(card: card),
                   for (final q in card.questions)
-                    _buildWorkbookQuestion(q),
+                    _buildQuestion(q),
                   const SizedBox(height: 16),
                 ],
               ),
@@ -479,22 +449,20 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     );
   }
 
-  // Dispatch each workbook question to its typed study widget.
-  Widget _buildWorkbookQuestion(WorkbookQuestion q) => switch (q) {
+  // Dispatch each question to its typed study widget — used for both flash
+  // card questions and workbook card questions since they share CardQuestion.
+  Widget _buildQuestion(CardQuestion q) => switch (q) {
         TextInputQuestion q => _WorkbookTextInputCard(
             question: q,
-            onResult: (correct) =>
-                _recordWorkbookQuestionResult(q, correct),
+            onResult: (correct) => _recordQuestionResult(q, correct),
           ),
         MultipleChoiceQuestion q => _WorkbookMultipleChoiceCard(
             question: q,
-            onResult: (correct) =>
-                _recordWorkbookQuestionResult(q, correct),
+            onResult: (correct) => _recordQuestionResult(q, correct),
           ),
         WordOrderQuestion q => _WordOrderCard(
             question: q,
-            onResult: (correct) =>
-                _recordWorkbookQuestionResult(q, correct),
+            onResult: (correct) => _recordQuestionResult(q, correct),
           ),
       };
 }
@@ -747,323 +715,6 @@ class _PrimaryFieldCard extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// _RevealFieldCard — shows a field label and hides the answer behind a tap.
-// ---------------------------------------------------------------------------
-class _RevealFieldCard extends StatefulWidget {
-  final CardField field;
-  final RevealContent content;
-  const _RevealFieldCard({required this.field, required this.content});
-
-  @override
-  State<_RevealFieldCard> createState() => _RevealFieldCardState();
-}
-
-class _RevealFieldCardState extends State<_RevealFieldCard> {
-  bool _revealed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: _revealed ? null : () => setState(() => _revealed = true),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _FieldLabel(name: widget.field.name),
-              const SizedBox(height: 8),
-              // Both states are always laid out so the card height is
-              // determined by the answer text before the tap, eliminating
-              // the height jump on reveal.  Only one state is painted at
-              // a time via maintainSize visibility toggling.
-              Stack(
-                children: [
-                  Visibility(
-                    visible: _revealed,
-                    maintainSize: true,
-                    maintainAnimation: true,
-                    maintainState: true,
-                    child: Text(
-                      widget.content.answer ?? '',
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                  ),
-                  Visibility(
-                    visible: !_revealed,
-                    maintainSize: true,
-                    maintainAnimation: true,
-                    maintainState: true,
-                    child: Row(children: [
-                      Icon(Icons.visibility_outlined,
-                          size: 18, color: scheme.onSurfaceVariant),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Tap to reveal',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(color: scheme.onSurfaceVariant),
-                      ),
-                    ]),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// _TextInputFieldCard — user types a free-text answer, validated against
-// correctAnswers.  Supports case-insensitive (default) or exact matching.
-// Shows correct/incorrect feedback and a Try Again button on wrong answers.
-// ---------------------------------------------------------------------------
-class _TextInputFieldCard extends StatefulWidget {
-  final CardField field;
-  final TextInputContent content;
-  // Called once when the answer is checked — null on cards without tracking.
-  final void Function(bool correct)? onResult;
-  const _TextInputFieldCard(
-      {required this.field, required this.content, this.onResult});
-
-  @override
-  State<_TextInputFieldCard> createState() => _TextInputFieldCardState();
-}
-
-class _TextInputFieldCardState extends State<_TextInputFieldCard> {
-  final _controller = TextEditingController();
-  final _focusNode = FocusNode();
-  // null = not yet checked; true = correct; false = incorrect
-  bool? _result;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  void _check() {
-    final input = _controller.text.trim();
-    if (input.isEmpty) return;
-    final answers = widget.content.correctAnswers ?? [];
-    // Always case-insensitive; exactMatch (case-sensitive) to be wired
-    // up in a future iteration when the option is added to the UI.
-    final correct =
-        answers.any((a) => a.toLowerCase() == input.toLowerCase());
-    setState(() => _result = correct);
-    widget.onResult?.call(correct);
-  }
-
-  void _tryAgain() {
-    setState(() {
-      _controller.clear();
-      _result = null;
-    });
-    _focusNode.requestFocus();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final answered = _result != null;
-    final isCorrect = _result == true;
-
-    // Brightness-aware green so the tint is visible in both light and dark mode.
-    final correctGreen = isDark ? Colors.green[300]! : Colors.green[700]!;
-    final cardColor = answered
-        ? (isCorrect
-            ? Colors.green.withValues(alpha: isDark ? 0.2 : 0.08)
-            : scheme.errorContainer.withValues(alpha: 0.4))
-        : null;
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: cardColor,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _FieldLabel(name: widget.field.name),
-
-            // Optional hint.
-            if (widget.content.hint != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                widget.content.hint!,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: scheme.onSurfaceVariant),
-              ),
-            ],
-
-            const SizedBox(height: 12),
-
-            // Text field + Check button (side by side).
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    focusNode: _focusNode,
-                    enabled: !answered,
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: answered ? null : (_) => _check(),
-                    decoration: const InputDecoration(
-                      hintText: 'Type your answer',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                  ),
-                ),
-                if (!answered) ...[
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    onPressed: _check,
-                    child: const Text('Check'),
-                  ),
-                ],
-              ],
-            ),
-
-            // Feedback row — shown after the user submits.
-            if (answered) ...[
-              const SizedBox(height: 10),
-              if (isCorrect)
-                Row(children: [
-                  Icon(Icons.check_circle_outline,
-                      color: correctGreen, size: 20),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Correct!',
-                    style: TextStyle(
-                        color: correctGreen,
-                        fontWeight: FontWeight.bold),
-                  ),
-                ])
-              else ...[
-                Row(
-                  children: [
-                    Icon(Icons.cancel_outlined,
-                        color: scheme.error, size: 20),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        'Incorrect',
-                        style: TextStyle(
-                            color: scheme.error,
-                            fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    TextButton(
-                        onPressed: _tryAgain,
-                        child: const Text('Try Again')),
-                  ],
-                ),
-                // Show the expected answer after a wrong attempt.
-                const SizedBox(height: 4),
-                Text(
-                  'Answer: ${widget.content.correctAnswers?.join(' / ') ?? ''}',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: scheme.onSurfaceVariant),
-                ),
-              ],
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// _MultipleChoiceFieldCard — vertical list of option buttons.
-// After selection: correct option turns green, wrong selection turns red.
-// ---------------------------------------------------------------------------
-class _MultipleChoiceFieldCard extends StatefulWidget {
-  final CardField field;
-  final MultipleChoiceContent content;
-  // Called once when the user selects an option — null on cards without tracking.
-  final void Function(bool correct)? onResult;
-  const _MultipleChoiceFieldCard(
-      {required this.field, required this.content, this.onResult});
-
-  @override
-  State<_MultipleChoiceFieldCard> createState() =>
-      _MultipleChoiceFieldCardState();
-}
-
-class _MultipleChoiceFieldCardState
-    extends State<_MultipleChoiceFieldCard> {
-  int? _selectedIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final options = widget.content.options ?? [];
-    final correctIndex = widget.content.correctIndex;
-    final answered = _selectedIndex != null;
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _FieldLabel(name: widget.field.name),
-            const SizedBox(height: 12),
-
-            for (var i = 0; i < options.length; i++)
-              _OptionButton(
-                label: options[i],
-                state: _stateFor(i, correctIndex, answered),
-                onTap: answered
-                    ? null
-                    : () {
-                        setState(() => _selectedIndex = i);
-                        widget.onResult?.call(i == correctIndex);
-                      },
-              ),
-
-            // Optional explanation shown after answering.
-            if (answered && widget.content.explanation != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                widget.content.explanation!,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    fontStyle: FontStyle.italic),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  _OptionState _stateFor(int i, int? correctIndex, bool answered) {
-    if (!answered) return _OptionState.neutral;
-    if (i == correctIndex) return _OptionState.correct;
-    if (i == _selectedIndex) return _OptionState.incorrect;
-    return _OptionState.neutral;
-  }
-}
 
 enum _OptionState { neutral, correct, incorrect }
 
@@ -1448,7 +1099,7 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
   void _check() {
     final input = _controller.text.trim();
     if (input.isEmpty) return;
-    final answers = widget.question.correctAnswers;
+    final answers = widget.question.correctAnswers ?? [];
     final correct = widget.question.exactMatch
         ? answers.any((a) => a == input)
         : answers.any((a) => a.toLowerCase() == input.toLowerCase());
@@ -1552,7 +1203,7 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
                 ]),
                 const SizedBox(height: 4),
                 Text(
-                  'Answer: ${widget.question.correctAnswers.join(' / ')}',
+                  'Answer: ${(widget.question.correctAnswers ?? []).join(' / ')}',
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall
@@ -1588,7 +1239,7 @@ class _WorkbookMultipleChoiceCardState
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final options = widget.question.options;
+    final options = widget.question.options ?? [];
     final correctIndex = widget.question.correctIndex;
     final answered = _selectedIndex != null;
     final prompt = widget.question.prompt;
@@ -1653,7 +1304,7 @@ class _WorkbookMultipleChoiceCardState
     );
   }
 
-  _OptionState _stateFor(int i, int correctIndex, bool answered) {
+  _OptionState _stateFor(int i, int? correctIndex, bool answered) {
     if (!answered) return _OptionState.neutral;
     if (i == correctIndex) return _OptionState.correct;
     if (i == _selectedIndex) return _OptionState.incorrect;
@@ -1683,7 +1334,7 @@ class _WordOrderCardState extends State<_WordOrderCard> {
   @override
   void initState() {
     super.initState();
-    _available = List.from(widget.question.wordBank);
+    _available = List.from(widget.question.wordBank ?? []);
   }
 
   void _placeTile(int index) {
@@ -1697,14 +1348,14 @@ class _WordOrderCardState extends State<_WordOrderCard> {
   }
 
   void _check() {
-    final correct = _ordersEqual(_placed, widget.question.correctOrder);
+    final correct = _ordersEqual(_placed, widget.question.correctOrder ?? []);
     setState(() => _result = correct);
     widget.onResult?.call(correct);
   }
 
   void _tryAgain() {
     setState(() {
-      _available = List.from(widget.question.wordBank);
+      _available = List.from(widget.question.wordBank ?? []);
       _placed.clear();
       _result = null;
     });
@@ -1838,7 +1489,7 @@ class _WordOrderCardState extends State<_WordOrderCard> {
               ]),
               const SizedBox(height: 4),
               Text(
-                'Answer: ${widget.question.correctOrder.join(' ')}',
+                'Answer: ${(widget.question.correctOrder ?? []).join(' ')}',
                 style: Theme.of(context)
                     .textTheme
                     .bodySmall

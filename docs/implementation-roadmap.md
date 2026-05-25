@@ -464,9 +464,9 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [x] Simplify `CardSessionData`: remove `revealedFields`, `textInputAnswers`, `multipleChoiceAnswers`; update `fromJson`/`toJson`
 - [x] Update `FirebaseCardRepository` writes to use `questions` key
 
-#### Step 2 — Firestore data migration
-- [ ] Migration script: for each doc in `cards/`, rename `fields` → `questions`; within each question rename `fieldId` → `questionId`, `name` → `prompt`; delete any questions with `type == 'reveal'`
-- [ ] Migration script: for each doc in `templates/`, same field renames and reveal removal
+#### Step 2 — Firestore data migration ✅
+- [x] Migration script: for each doc in `cards/`, rename `fields` → `questions`; within each question rename `fieldId` → `questionId`, `name` → `prompt`; delete any questions with `type == 'reveal'`
+- [x] Migration script: for each doc in `templates/`, same field renames and reveal removal
 - [ ] Deploy and verify; no session migration needed (unknown keys ignored by `fromJson`)
 
 #### Step 3 — Card form UI ✅

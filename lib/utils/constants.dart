@@ -25,14 +25,10 @@ class AppConstants {
   // Rolling window size for question results.
   static const int questionResultsWindowSize = 5;
 
-  // Field types (flash card fields)
-  static const String fieldTypeReveal = 'reveal';
+  // Question types — shared by FlashCard.questions and WorkbookCard.questions.
   static const String fieldTypeTextInput = 'text_input';
   static const String fieldTypeMultipleChoice = 'multiple_choice';
-
-  // Workbook card question types.
-  // text_input and multiple_choice reuse the same string values as field types;
-  // word_order is new and only exists on workbook cards.
+  // word_order is not available on flash card questions yet (planned for Step 3 UI).
   static const String questionTypeWordOrder = 'word_order';
 
   // Card type discriminator stored on setCards join documents.

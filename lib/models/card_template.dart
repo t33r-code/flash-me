@@ -1,21 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flash_me/models/card_field.dart';
+import 'package:flash_me/models/card_question.dart';
 
-// A reusable field layout stored in Firestore under templates/{templateId}.
+// A reusable question layout stored in Firestore under templates/{templateId}.
 //
-// Templates use the same CardField model as cards, but answer fields are
-// nullable. For example, a "Gender" multiple choice template field stores the
+// Templates use the same CardQuestion model as cards, but answer fields are
+// nullable. For example, a "Gender" multiple choice template question stores the
 // options list but leaves correctIndex null — the user fills that in per card.
 class CardTemplate {
   final String id; // Firestore document ID
   final String createdBy; // uid of the owning user
   final String name; // e.g. "Spanish Verb"
   final String? description;
-  // Fields with the same structure as FlashCard.fields; answers are nullable.
-  final List<CardField> fields;
+  // Questions with the same structure as FlashCard.questions; answers are nullable.
+  // Stored as 'questions' in Firestore; legacy docs may use 'fields' (handled in fromFirestore).
+  final List<CardQuestion> questions;
   // Whether the primary word should be hidden on first display when media is present.
-  // Templates carry this flag as a default for cards created from them.
-  // Unlike FlashCard, templates do NOT store media URLs — those are per-card.
   final bool primaryWordHidden;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -25,22 +24,35 @@ class CardTemplate {
     required this.createdBy,
     required this.name,
     this.description,
-    required this.fields,
+    required this.questions,
     this.primaryWordHidden = false,
     required this.createdAt,
     required this.updatedAt,
   });
 
+  // Reads 'questions' first; falls back to legacy 'fields' key for pre-migration docs.
+  // Unknown question types (e.g. legacy 'reveal') are silently dropped.
   factory CardTemplate.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    final rawQuestions =
+        (data['questions'] ?? data['fields']) as List<dynamic>? ?? [];
+    final questions = rawQuestions
+        .map((q) {
+          try {
+            return CardQuestion.fromJson(q as Map<String, dynamic>);
+          } on ArgumentError {
+            return null; // skip unsupported types (e.g. legacy 'reveal')
+          }
+        })
+        .whereType<CardQuestion>()
+        .toList();
+
     return CardTemplate(
       id: doc.id,
       createdBy: data['createdBy'] as String? ?? '',
       name: data['name'] as String? ?? '',
       description: data['description'] as String?,
-      fields: (data['fields'] as List<dynamic>? ?? [])
-          .map((f) => CardField.fromJson(f as Map<String, dynamic>))
-          .toList(),
+      questions: questions,
       primaryWordHidden: data['primaryWordHidden'] as bool? ?? false,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       updatedAt: (data['updatedAt'] as Timestamp).toDate(),
@@ -51,7 +63,7 @@ class CardTemplate {
         'createdBy': createdBy,
         'name': name,
         'description': description,
-        'fields': fields.map((f) => f.toJson()).toList(),
+        'questions': questions.map((q) => q.toJson()).toList(),
         'primaryWordHidden': primaryWordHidden,
         'createdAt': Timestamp.fromDate(createdAt),
         'updatedAt': Timestamp.fromDate(updatedAt),
@@ -62,7 +74,7 @@ class CardTemplate {
         'createdBy': createdBy,
         'name': name,
         'description': description,
-        'fields': fields.map((f) => f.toJson()).toList(),
+        'questions': questions.map((q) => q.toJson()).toList(),
         'primaryWordHidden': primaryWordHidden,
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
@@ -73,7 +85,7 @@ class CardTemplate {
     String? createdBy,
     String? name,
     String? description,
-    List<CardField>? fields,
+    List<CardQuestion>? questions,
     bool? primaryWordHidden,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -83,7 +95,7 @@ class CardTemplate {
         createdBy: createdBy ?? this.createdBy,
         name: name ?? this.name,
         description: description ?? this.description,
-        fields: fields ?? this.fields,
+        questions: questions ?? this.questions,
         primaryWordHidden: primaryWordHidden ?? this.primaryWordHidden,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,

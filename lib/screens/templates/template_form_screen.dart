@@ -1,84 +1,91 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flash_me/models/card_field.dart';
+import 'package:flash_me/models/card_question.dart';
 import 'package:flash_me/models/card_template.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/utils/constants.dart';
 
 // ---------------------------------------------------------------------------
-// _TplFieldState — mutable holder for one field while the template form is open.
+// _TplQuestionState — mutable holder for one question while the template form
+// is open.
 //
-// Mirrors _FieldState in card_form_screen but deliberately omits answer fields:
-// templates store configuration (options, hints) but not answers.
+// Templates store structure and config (options, hints, exactMatch) but not
+// answers. Answer fields are therefore absent from this state object.
 // ---------------------------------------------------------------------------
-class _TplFieldState {
-  final String fieldId;
+class _TplQuestionState {
+  final String questionId;
   String type;
-  final TextEditingController nameController;
+  final TextEditingController promptController;
   // text_input: optional hint shown to the user during study
   final TextEditingController textHintController;
   bool exactMatch;
   // multiple_choice: options CAN be pre-filled in a template
   final List<TextEditingController> optionControllers;
 
-  _TplFieldState({
-    required this.fieldId,
+  _TplQuestionState({
+    required this.questionId,
     required this.type,
-    required this.nameController,
+    required this.promptController,
     required this.textHintController,
     this.exactMatch = false,
     required this.optionControllers,
   });
 
-  factory _TplFieldState.empty() => _TplFieldState(
-        fieldId: CardField.generateId(),
-        type: AppConstants.fieldTypeReveal,
-        nameController: TextEditingController(),
+  factory _TplQuestionState.empty() => _TplQuestionState(
+        questionId: CardQuestion.generateId(),
+        type: AppConstants.fieldTypeTextInput,
+        promptController: TextEditingController(),
         textHintController: TextEditingController(),
         optionControllers: [TextEditingController(), TextEditingController()],
       );
 
-  // Initialise from an existing CardField — works for both template fields and
-  // card fields (answers are intentionally ignored; only config is read).
-  factory _TplFieldState.fromCardField(CardField field) {
+  // Initialise from an existing CardQuestion — works for both template questions
+  // and card questions (answers are intentionally ignored; only config is read).
+  factory _TplQuestionState.fromQuestion(CardQuestion q) {
     String textHint = '';
     bool exactMatch = false;
     final List<TextEditingController> optionControllers = [];
 
-    switch (field.content) {
-      case RevealContent _:
-        break; // reveal has no config to carry over
-      case TextInputContent c:
-        textHint = c.hint ?? '';
-        exactMatch = c.exactMatch;
-      case MultipleChoiceContent c:
-        for (final opt in c.options ?? []) {
+    switch (q) {
+      case TextInputQuestion q:
+        textHint = q.hint ?? '';
+        exactMatch = q.exactMatch;
+      case MultipleChoiceQuestion q:
+        for (final opt in q.options ?? []) {
           optionControllers.add(TextEditingController(text: opt));
         }
+      case WordOrderQuestion _:
+        break; // word_order not yet supported in template form
     }
 
     while (optionControllers.length < 2) {
       optionControllers.add(TextEditingController());
     }
 
-    return _TplFieldState(
-      fieldId: field.fieldId,
-      type: field.type,
-      nameController: TextEditingController(text: field.name),
+    return _TplQuestionState(
+      questionId: q.questionId,
+      type: switch (q) {
+        TextInputQuestion _ => AppConstants.fieldTypeTextInput,
+        MultipleChoiceQuestion _ => AppConstants.fieldTypeMultipleChoice,
+        WordOrderQuestion _ => AppConstants.fieldTypeTextInput, // fallback
+      },
+      promptController: TextEditingController(text: q.prompt ?? ''),
       textHintController: TextEditingController(text: textHint),
       exactMatch: exactMatch,
       optionControllers: optionControllers,
     );
   }
 
-  // Build a CardField with null answers — correct for template storage.
-  CardField toCardField() {
-    final CardFieldContent content;
-    if (type == AppConstants.fieldTypeReveal) {
-      content = const RevealContent(answer: null);
-    } else if (type == AppConstants.fieldTypeTextInput) {
-      content = TextInputContent(
+  // Build a CardQuestion with null answers — correct for template storage.
+  CardQuestion toQuestion() {
+    final prompt = promptController.text.trim().isEmpty
+        ? null
+        : promptController.text.trim();
+    if (type == AppConstants.fieldTypeTextInput) {
+      return TextInputQuestion(
+        questionId: questionId,
+        prompt: prompt,
         correctAnswers: null,
         hint: textHintController.text.trim().isEmpty
             ? null
@@ -87,21 +94,17 @@ class _TplFieldState {
       );
     } else {
       // multiple_choice
-      content = MultipleChoiceContent(
+      return MultipleChoiceQuestion(
+        questionId: questionId,
+        prompt: prompt,
         options: optionControllers.map((c) => c.text.trim()).toList(),
         correctIndex: null,
       );
     }
-    return CardField(
-      fieldId: fieldId,
-      name: nameController.text.trim(),
-      type: type,
-      content: content,
-    );
   }
 
   void dispose() {
-    nameController.dispose();
+    promptController.dispose();
     textHintController.dispose();
     for (final c in optionControllers) {
       c.dispose();
@@ -113,16 +116,16 @@ class _TplFieldState {
 // TemplateFormScreen — create or edit a CardTemplate.
 //
 // Three entry points:
-//   TemplateFormScreen()                    — blank create from scratch
-//   TemplateFormScreen(template: t)         — edit existing template
-//   TemplateFormScreen(initialFields: f)    — create from card fields
-//     (fields come pre-converted with answers nulled out by the caller)
+//   TemplateFormScreen()                        — blank create from scratch
+//   TemplateFormScreen(template: t)             — edit existing template
+//   TemplateFormScreen(initialQuestions: qs)    — create from card questions
+//     (questions come pre-converted with answers nulled by the caller)
 // ---------------------------------------------------------------------------
 class TemplateFormScreen extends ConsumerStatefulWidget {
   final CardTemplate? template;
-  final List<CardField>? initialFields; // pre-populated from a card's fields
+  final List<CardQuestion>? initialQuestions; // pre-populated from a card's questions
 
-  const TemplateFormScreen({super.key, this.template, this.initialFields});
+  const TemplateFormScreen({super.key, this.template, this.initialQuestions});
 
   @override
   ConsumerState<TemplateFormScreen> createState() => _TemplateFormScreenState();
@@ -132,7 +135,7 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _descController;
-  final List<_TplFieldState> _fields = [];
+  final List<_TplQuestionState> _questions = [];
   bool _primaryWordHidden = false;
   bool _isSaving = false;
 
@@ -147,9 +150,10 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
     _primaryWordHidden = t?.primaryWordHidden ?? false;
 
     if (t != null) {
-      _fields.addAll(t.fields.map(_TplFieldState.fromCardField));
-    } else if (widget.initialFields != null) {
-      _fields.addAll(widget.initialFields!.map(_TplFieldState.fromCardField));
+      _questions.addAll(t.questions.map(_TplQuestionState.fromQuestion));
+    } else if (widget.initialQuestions != null) {
+      _questions
+          .addAll(widget.initialQuestions!.map(_TplQuestionState.fromQuestion));
     }
   }
 
@@ -157,32 +161,32 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
-    for (final f in _fields) {
-      f.dispose();
+    for (final q in _questions) {
+      q.dispose();
     }
     super.dispose();
   }
 
-  void _addField() => setState(() => _fields.add(_TplFieldState.empty()));
+  void _addQuestion() => setState(() => _questions.add(_TplQuestionState.empty()));
 
-  void _removeField(int index) {
+  void _removeQuestion(int index) {
     setState(() {
-      _fields[index].dispose();
-      _fields.removeAt(index);
+      _questions[index].dispose();
+      _questions.removeAt(index);
     });
   }
 
-  void _addOption(int fieldIndex) {
+  void _addOption(int qIndex) {
     setState(() =>
-        _fields[fieldIndex].optionControllers.add(TextEditingController()));
+        _questions[qIndex].optionControllers.add(TextEditingController()));
   }
 
-  void _removeOption(int fieldIndex, int optionIndex) {
-    final field = _fields[fieldIndex];
-    if (field.optionControllers.length <= 2) return;
+  void _removeOption(int qIndex, int optionIndex) {
+    final q = _questions[qIndex];
+    if (q.optionControllers.length <= 2) return;
     setState(() {
-      field.optionControllers[optionIndex].dispose();
-      field.optionControllers.removeAt(optionIndex);
+      q.optionControllers[optionIndex].dispose();
+      q.optionControllers.removeAt(optionIndex);
     });
   }
 
@@ -192,7 +196,7 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
     setState(() => _isSaving = true);
     try {
       final uid = ref.read(authStateProvider).asData?.value ?? '';
-      final fields = _fields.map((f) => f.toCardField()).toList();
+      final questions = _questions.map((q) => q.toQuestion()).toList();
 
       if (!_isEditing) {
         await ref.read(templateRepositoryProvider).createTemplate(
@@ -203,7 +207,7 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
                 description: _descController.text.trim().isEmpty
                     ? null
                     : _descController.text.trim(),
-                fields: fields,
+                questions: questions,
                 primaryWordHidden: _primaryWordHidden,
                 createdAt: DateTime.now(),
                 updatedAt: DateTime.now(),
@@ -216,7 +220,7 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
                 description: _descController.text.trim().isEmpty
                     ? null
                     : _descController.text.trim(),
-                fields: fields,
+                questions: questions,
                 primaryWordHidden: _primaryWordHidden,
               ),
             );
@@ -243,7 +247,7 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
         title: const Text('Delete Template'),
         content: Text(
           'Delete "${widget.template!.name}"? '
-          'Cards created from it keep their fields; this cannot be undone.',
+          'Cards created from it keep their questions; this cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -282,25 +286,14 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
     }
   }
 
-  // --- field content builders -----------------------------------------------
+  // --- question content builders --------------------------------------------
 
-  // Reveal fields have no configurable content in a template.
-  Widget _buildRevealContent() {
-    return Text(
-      'Answer is filled in per card.',
-      style: Theme.of(context)
-          .textTheme
-          .bodySmall
-          ?.copyWith(color: Theme.of(context).colorScheme.outline),
-    );
-  }
-
-  Widget _buildTextInputContent(_TplFieldState field) {
+  Widget _buildTextInputContent(_TplQuestionState q) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TextFormField(
-          controller: field.textHintController,
+          controller: q.textHintController,
           decoration: const InputDecoration(
             labelText: 'Hint (optional)',
             hintText: 'Shown to the user during study',
@@ -311,8 +304,8 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
         SwitchListTile(
           title: const Text('Exact match'),
           subtitle: const Text('Case-sensitive answer check'),
-          value: field.exactMatch,
-          onChanged: (v) => setState(() => field.exactMatch = v),
+          value: q.exactMatch,
+          onChanged: (v) => setState(() => q.exactMatch = v),
           contentPadding: EdgeInsets.zero,
           dense: true,
         ),
@@ -320,21 +313,21 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
     );
   }
 
-  Widget _buildMultipleChoiceContent(_TplFieldState field, int fieldIndex) {
+  Widget _buildMultipleChoiceContent(_TplQuestionState q, int qIndex) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Options (pre-filled for all cards using this template)',
             style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 8),
-        ...List.generate(field.optionControllers.length, (optIdx) {
+        ...List.generate(q.optionControllers.length, (optIdx) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Row(
               children: [
                 Expanded(
                   child: TextFormField(
-                    controller: field.optionControllers[optIdx],
+                    controller: q.optionControllers[optIdx],
                     decoration: InputDecoration(
                       labelText: 'Option ${optIdx + 1}',
                       border: const OutlineInputBorder(),
@@ -344,18 +337,18 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
                         : null,
                   ),
                 ),
-                if (field.optionControllers.length > 2)
+                if (q.optionControllers.length > 2)
                   IconButton(
                     icon: const Icon(Icons.remove_circle_outline),
                     color: Theme.of(context).colorScheme.error,
-                    onPressed: () => _removeOption(fieldIndex, optIdx),
+                    onPressed: () => _removeOption(qIndex, optIdx),
                   ),
               ],
             ),
           );
         }),
         TextButton.icon(
-          onPressed: () => _addOption(fieldIndex),
+          onPressed: () => _addOption(qIndex),
           icon: const Icon(Icons.add),
           label: const Text('Add option'),
         ),
@@ -363,8 +356,8 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
     );
   }
 
-  Widget _buildFieldCard(int index) {
-    final field = _fields[index];
+  Widget _buildQuestionCard(int index) {
+    final q = _questions[index];
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -376,37 +369,31 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
               children: [
                 Expanded(
                   child: TextFormField(
-                    controller: field.nameController,
+                    controller: q.promptController,
                     decoration: const InputDecoration(
-                      labelText: 'Field name *',
+                      labelText: 'Label (optional)',
                       hintText: 'e.g. Gender, Conjugation',
                       border: OutlineInputBorder(),
                     ),
-                    validator: (v) => v?.trim().isEmpty ?? true
-                        ? 'Field name is required'
-                        : null,
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
                   icon: const Icon(Icons.delete_outline),
                   color: Theme.of(context).colorScheme.error,
-                  tooltip: 'Remove field',
-                  onPressed: () => _removeField(index),
+                  tooltip: 'Remove question',
+                  onPressed: () => _removeQuestion(index),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              initialValue: field.type,
+              initialValue: q.type,
               decoration: const InputDecoration(
-                labelText: 'Field type',
+                labelText: 'Question type',
                 border: OutlineInputBorder(),
               ),
               items: const [
-                DropdownMenuItem(
-                    value: AppConstants.fieldTypeReveal,
-                    child: Text('Reveal on click')),
                 DropdownMenuItem(
                     value: AppConstants.fieldTypeTextInput,
                     child: Text('Text input')),
@@ -415,16 +402,14 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
                     child: Text('Multiple choice')),
               ],
               onChanged: (v) {
-                if (v != null) setState(() => field.type = v);
+                if (v != null) setState(() => q.type = v);
               },
             ),
             const SizedBox(height: 12),
-            if (field.type == AppConstants.fieldTypeReveal)
-              _buildRevealContent(),
-            if (field.type == AppConstants.fieldTypeTextInput)
-              _buildTextInputContent(field),
-            if (field.type == AppConstants.fieldTypeMultipleChoice)
-              _buildMultipleChoiceContent(field, index),
+            if (q.type == AppConstants.fieldTypeTextInput)
+              _buildTextInputContent(q),
+            if (q.type == AppConstants.fieldTypeMultipleChoice)
+              _buildMultipleChoiceContent(q, index),
           ],
         ),
       ),
@@ -491,9 +476,9 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
                 dense: true,
               ),
 
-              // --- Fields ---
+              // --- Questions ---
               const SizedBox(height: 24),
-              Text('Fields', style: Theme.of(context).textTheme.titleMedium),
+              Text('Questions', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 4),
               Text(
                 'Define the structure. Answers are filled in per card.',
@@ -503,11 +488,11 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
                     ?.copyWith(color: Theme.of(context).colorScheme.outline),
               ),
               const SizedBox(height: 12),
-              ..._fields.asMap().entries.map((e) => _buildFieldCard(e.key)),
+              ..._questions.asMap().entries.map((e) => _buildQuestionCard(e.key)),
               OutlinedButton.icon(
-                onPressed: _addField,
+                onPressed: _addQuestion,
                 icon: const Icon(Icons.add),
-                label: const Text('Add Field'),
+                label: const Text('Add Question'),
               ),
 
               // --- Save / Cancel ---

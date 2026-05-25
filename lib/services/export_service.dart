@@ -179,10 +179,10 @@ class ExportService {
         'primaryImageUrl': imagePath,
         'primaryAudioUrl': audioPath,
         'primaryWordHidden': card.primaryWordHidden,
-        // Strip fieldId — internal to the source account; importer generates new ones.
-        'fields': card.fields.map((f) {
-          final m = Map<String, dynamic>.from(f.toJson());
-          m.remove('fieldId');
+        // Strip questionId — internal to the source account; importer generates new ones.
+        'questions': card.questions.map((q) {
+          final m = Map<String, dynamic>.from(q.toJson());
+          m.remove('questionId');
           return m;
         }).toList(),
         'templateId': card.templateId,

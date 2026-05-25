@@ -453,38 +453,38 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 
 **Note on `CardSessionData` simplification:** `textInputAnswers`, `multipleChoiceAnswers`, and `revealedFields` are currently write-only — the study screen never reads them back to restore widget state. Removing them has no visible UI impact. Existing Firestore session documents retain these fields but `fromJson` ignores unknown keys; no session migration needed.
 
-#### Step 1 — Unified question model (data layer)
-- [ ] Rename `WorkbookQuestion` → `CardQuestion`; rename `questionId` field (already correct); rename `prompt` field (already correct on workbook side)
-- [ ] Make answer fields nullable on all three subtypes to support templates: `correctAnswers: List<String>?`, `correctIndex: int?`, `correctOrder: List<String>?`
-- [ ] Add `WordOrderQuestion` to the flash card field type set (flash cards can now include word-order questions)
-- [ ] Remove `CardField`, `CardFieldContent`, `RevealContent`, `TextInputContent`, `MultipleChoiceContent` — replaced by `CardQuestion` subtypes
-- [ ] Update `FlashCard` model: replace `fields: List<CardField>` with `questions: List<CardQuestion>`
-- [ ] Update `CardTemplate` model: replace `fields: List<CardField>` with `questions: List<CardQuestion>`
-- [ ] Update `fromFirestore` / `toFirestore` / `fromJson` / `toJson` on `FlashCard` and `CardTemplate`
-- [ ] Simplify `CardSessionData`: remove `revealedFields`, `textInputAnswers`, `multipleChoiceAnswers`; update `fromJson`/`toJson`
-- [ ] Update `FirebaseCardRepository` writes to use `questions` key
+#### Step 1 — Unified question model (data layer) ✅
+- [x] Rename `WorkbookQuestion` → `CardQuestion`; rename `questionId` field (already correct); rename `prompt` field (already correct on workbook side)
+- [x] Make answer fields nullable on all three subtypes to support templates: `correctAnswers: List<String>?`, `correctIndex: int?`, `correctOrder: List<String>?`
+- [x] Add `WordOrderQuestion` to the flash card field type set (flash cards can now include word-order questions)
+- [x] Remove `CardField`, `CardFieldContent`, `RevealContent`, `TextInputContent`, `MultipleChoiceContent` — replaced by `CardQuestion` subtypes
+- [x] Update `FlashCard` model: replace `fields: List<CardField>` with `questions: List<CardQuestion>`
+- [x] Update `CardTemplate` model: replace `fields: List<CardField>` with `questions: List<CardQuestion>`
+- [x] Update `fromFirestore` / `toFirestore` / `fromJson` / `toJson` on `FlashCard` and `CardTemplate`
+- [x] Simplify `CardSessionData`: remove `revealedFields`, `textInputAnswers`, `multipleChoiceAnswers`; update `fromJson`/`toJson`
+- [x] Update `FirebaseCardRepository` writes to use `questions` key
 
 #### Step 2 — Firestore data migration
 - [ ] Migration script: for each doc in `cards/`, rename `fields` → `questions`; within each question rename `fieldId` → `questionId`, `name` → `prompt`; delete any questions with `type == 'reveal'`
 - [ ] Migration script: for each doc in `templates/`, same field renames and reveal removal
 - [ ] Deploy and verify; no session migration needed (unknown keys ignored by `fromJson`)
 
-#### Step 3 — Card form UI
-- [ ] Replace `CardFormScreen` field editors with the workbook question editors (already built: `_TextInputQuestionEditor`, `_MultipleChoiceQuestionEditor`, `_WordOrderQuestionEditor`)
-- [ ] Remove reveal field editor and "Add Reveal Field" option
-- [ ] Update `TemplateFormScreen` similarly
-- [ ] Update "Save as Template" flow to null out answer fields on the unified type
+#### Step 3 — Card form UI ✅
+- [x] Replace `CardFormScreen` field editors with unified `CardQuestion` editors
+- [x] Remove reveal field editor and "Add Reveal Field" option
+- [x] Update `TemplateFormScreen` similarly
+- [x] Update "Save as Template" flow to null out answer fields on the unified type
 
-#### Step 4 — Study screen
-- [ ] Replace flash card `_buildField` / `_RevealFieldCard` / `_TextInputFieldCard` / `_MultipleChoiceFieldCard` with the existing workbook question widgets (`_WorkbookTextInputCard`, `_WorkbookMultipleChoiceCard`, `_WordOrderCard`)
-- [ ] Remove `_RevealFieldCard` entirely
-- [ ] Ensure `_recordFieldResult` is called for flash card questions (already wired for workbook; verify unified path)
-- [ ] Flash card `_PrimaryFieldCard` and two-phase word reveal are unchanged — these are card-level, not question-level
+#### Step 4 — Study screen ✅
+- [x] Replace flash card `_buildField` / `_RevealFieldCard` / `_TextInputFieldCard` / `_MultipleChoiceFieldCard` with unified `_buildQuestion` / workbook question widgets
+- [x] Remove `_RevealFieldCard` entirely
+- [x] Unified `_recordQuestionResult` covers both flash card and workbook card questions
+- [x] Flash card `_PrimaryFieldCard` and two-phase word reveal unchanged
 
-#### Step 5 — Import / export
-- [ ] Update `ExportService` to serialise `questions` (unified type) instead of `fields`
-- [ ] Bump export format version; update `ImportService` parser to handle both old (`fields`) and new (`questions`) formats
-- [ ] Update import validation for unified question types
+#### Step 5 — Import / export ✅
+- [x] Update `ExportService` to serialise `questions` (unified type) instead of `fields`
+- [x] `ImportService` handles both old (`fields`) and new (`questions`) ZIP formats
+- [x] Import validation updated for unified question types
 
 #### Step 6 — Question templates (new feature, depends on Steps 1–3)
 - [ ] `QuestionTemplate` Firestore collection (`questionTemplates/{templateId}`): `createdBy`, `name`, `description`, `question: CardQuestion` (single question, answers nullable)

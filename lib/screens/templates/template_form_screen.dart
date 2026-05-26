@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_question.dart';
 import 'package:flash_me/models/card_template.dart';
+import 'package:flash_me/models/question_template.dart';
 import 'package:flash_me/providers/auth_provider.dart';
+import 'package:flash_me/providers/question_template_provider.dart';
 import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/utils/constants.dart';
 
@@ -113,6 +115,68 @@ class _TplQuestionState {
 }
 
 // ---------------------------------------------------------------------------
+// _QuestionTemplatePickerSheet — simple bottom sheet listing question templates.
+// Returns the selected QuestionTemplate via Navigator.pop.
+// ---------------------------------------------------------------------------
+class _QuestionTemplatePickerSheet extends StatelessWidget {
+  final List<QuestionTemplate> templates;
+  const _QuestionTemplatePickerSheet({required this.templates});
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.5,
+      minChildSize: 0.3,
+      maxChildSize: 0.9,
+      builder: (ctx, scrollController) => Column(
+        children: [
+          const SizedBox(height: 8),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.outlineVariant,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Text('Choose a Question Template',
+                style: Theme.of(context).textTheme.titleMedium),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: ListView.builder(
+              controller: scrollController,
+              itemCount: templates.length,
+              itemBuilder: (_, i) {
+                final t = templates[i];
+                final typeLabel = switch (t.question) {
+                  TextInputQuestion _ => 'Text input',
+                  MultipleChoiceQuestion _ => 'Multiple choice',
+                  WordOrderQuestion _ => 'Word order',
+                };
+                return ListTile(
+                  leading: const Icon(Icons.quiz_outlined),
+                  title: Text(t.name),
+                  subtitle: Text(
+                    t.description ?? typeLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  onTap: () => Navigator.of(ctx).pop(t),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // TemplateFormScreen — create or edit a CardTemplate.
 //
 // Three entry points:
@@ -168,6 +232,33 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
   }
 
   void _addQuestion() => setState(() => _questions.add(_TplQuestionState.empty()));
+
+  // Opens a picker showing the user's question templates; appends the selected
+  // question (with a fresh ID) to this template's question list.
+  Future<void> _showQuestionTemplatePicker() async {
+    final qtemplates =
+        ref.read(userQuestionTemplatesProvider).asData?.value ?? [];
+    if (qtemplates.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('No question templates yet. Create one from the Question Templates tab.')));
+      return;
+    }
+    final selected = await showModalBottomSheet<QuestionTemplate>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _QuestionTemplatePickerSheet(templates: qtemplates),
+    );
+    if (selected == null || !mounted) return;
+    final freshQuestion = switch (selected.question) {
+      TextInputQuestion q =>
+        q.copyWith(questionId: CardQuestion.generateId()),
+      MultipleChoiceQuestion q =>
+        q.copyWith(questionId: CardQuestion.generateId()),
+      WordOrderQuestion q =>
+        q.copyWith(questionId: CardQuestion.generateId()),
+    };
+    setState(() => _questions.add(_TplQuestionState.fromQuestion(freshQuestion)));
+  }
 
   void _removeQuestion(int index) {
     setState(() {
@@ -489,10 +580,24 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
               ),
               const SizedBox(height: 12),
               ..._questions.asMap().entries.map((e) => _buildQuestionCard(e.key)),
-              OutlinedButton.icon(
-                onPressed: _addQuestion,
-                icon: const Icon(Icons.add),
-                label: const Text('Add Question'),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _addQuestion,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add Question'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _showQuestionTemplatePicker,
+                      icon: const Icon(Icons.quiz_outlined),
+                      label: const Text('Use Template'),
+                    ),
+                  ),
+                ],
               ),
 
               // --- Save / Cancel ---

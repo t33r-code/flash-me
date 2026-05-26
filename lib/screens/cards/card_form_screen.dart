@@ -10,29 +10,56 @@ import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_provider.dart';
 import 'package:flash_me/providers/language_provider.dart';
 import 'package:flash_me/providers/storage_provider.dart';
+import 'package:flash_me/providers/question_template_provider.dart';
 import 'package:flash_me/providers/template_provider.dart';
+import 'package:flash_me/models/question_template.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/screens/templates/template_form_screen.dart';
 import 'package:flash_me/widgets/language_picker.dart';
 
 // ---------------------------------------------------------------------------
-// _TemplatePickerSheet — draggable bottom sheet listing the user's templates.
-// Returns the selected CardTemplate via Navigator.pop.
+// _TemplatePickerSheet — two-tab bottom sheet.
+// Tab 0: Card Templates — returns a CardTemplate (replaces all questions).
+// Tab 1: Question Templates — returns a QuestionTemplate (appends one question).
 // ---------------------------------------------------------------------------
-class _TemplatePickerSheet extends StatelessWidget {
-  final List<CardTemplate> templates;
-  const _TemplatePickerSheet({required this.templates});
+class _TemplatePickerSheet extends ConsumerStatefulWidget {
+  final List<CardTemplate> cardTemplates;
+  const _TemplatePickerSheet({required this.cardTemplates});
+
+  @override
+  ConsumerState<_TemplatePickerSheet> createState() =>
+      _TemplatePickerSheetState();
+}
+
+class _TemplatePickerSheetState extends ConsumerState<_TemplatePickerSheet>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final questionTemplates =
+        ref.watch(userQuestionTemplatesProvider).asData?.value ?? [];
+
     return DraggableScrollableSheet(
       expand: false,
-      initialChildSize: 0.5,
-      minChildSize: 0.3,
+      initialChildSize: 0.55,
+      minChildSize: 0.35,
       maxChildSize: 0.9,
-      builder: (ctx, scrollController) => Column(
+      builder: (ctx, _) => Column(
         children: [
-          // Drag handle + title.
+          // Drag handle.
           const SizedBox(height: 8),
           Container(
             width: 40,
@@ -43,38 +70,93 @@ class _TemplatePickerSheet extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Text('Choose a template',
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Text('Use Template',
                 style: Theme.of(context).textTheme.titleMedium),
+          ),
+          TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(text: 'Card Templates'),
+              Tab(text: 'Question Templates'),
+            ],
           ),
           const Divider(height: 1),
           Expanded(
-            child: ListView.builder(
-              controller: scrollController,
-              itemCount: templates.length,
-              itemBuilder: (_, i) {
-                final t = templates[i];
-                final qCount = t.questions.length;
-                final qLabel = '$qCount question${qCount == 1 ? '' : 's'}';
-                return ListTile(
-                  leading: const Icon(Icons.copy_all_outlined),
-                  title: Text(t.name),
-                  subtitle: Text(
-                    t.description != null
-                        ? '${t.description}  ·  $qLabel'
-                        : qLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  onTap: () => Navigator.of(ctx).pop(t),
-                );
-              },
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // Card templates — selecting one replaces all questions.
+                _buildList(
+                  context,
+                  items: widget.cardTemplates,
+                  icon: Icons.copy_all_outlined,
+                  emptyMessage: 'No card templates yet.',
+                  title: (t) => t.name,
+                  subtitle: (t) {
+                    final n = t.questions.length;
+                    final s = '$n question${n == 1 ? '' : 's'}';
+                    return t.description != null
+                        ? '${t.description}  ·  $s'
+                        : s;
+                  },
+                  onTap: (t) => Navigator.of(ctx).pop(t),
+                ),
+                // Question templates — selecting one appends a single question.
+                _buildList(
+                  context,
+                  items: questionTemplates,
+                  icon: Icons.quiz_outlined,
+                  emptyMessage: 'No question templates yet.',
+                  title: (t) => t.name,
+                  subtitle: (t) => t.description ?? _questionTypeLabel(t),
+                  onTap: (t) => Navigator.of(ctx).pop(t),
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+
+  // Generic list builder used for both tabs.
+  Widget _buildList<T>(
+    BuildContext context, {
+    required List<T> items,
+    required IconData icon,
+    required String emptyMessage,
+    required String Function(T) title,
+    required String Function(T) subtitle,
+    required void Function(T) onTap,
+  }) {
+    if (items.isEmpty) {
+      return Center(
+        child: Text(emptyMessage,
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant)),
+      );
+    }
+    return ListView.builder(
+      itemCount: items.length,
+      itemBuilder: (_, i) {
+        final item = items[i];
+        return ListTile(
+          leading: Icon(icon),
+          title: Text(title(item)),
+          subtitle: Text(subtitle(item),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+          onTap: () => onTap(item),
+        );
+      },
+    );
+  }
+
+  String _questionTypeLabel(QuestionTemplate t) => switch (t.question) {
+        TextInputQuestion _ => 'Text input',
+        MultipleChoiceQuestion _ => 'Multiple choice',
+        WordOrderQuestion _ => 'Word order',
+      };
 }
 
 // ---------------------------------------------------------------------------
@@ -323,52 +405,61 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
     });
   }
 
-  // Shows a bottom sheet listing the user's templates.
-  // Asks for confirmation if questions are already present before replacing.
+  // Opens the two-tab template picker.
+  // CardTemplate result → replaces all questions (with confirmation if any exist).
+  // QuestionTemplate result → appends a single question.
   Future<void> _showTemplatePicker() async {
-    final templates = ref.read(userTemplatesProvider).asData?.value ?? [];
-    if (templates.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'No templates yet. Create one from the Templates tab.'),
-        ),
-      );
-      return;
-    }
+    final cardTemplates =
+        ref.read(userTemplatesProvider).asData?.value ?? [];
 
-    final selected = await showModalBottomSheet<CardTemplate>(
+    final result = await showModalBottomSheet<Object>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _TemplatePickerSheet(templates: templates),
+      builder: (_) => _TemplatePickerSheet(cardTemplates: cardTemplates),
     );
-    if (selected == null || !mounted) return;
+    if (result == null || !mounted) return;
 
-    if (_questions.isNotEmpty) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Replace questions?'),
-          content: Text(
-            'Apply "${selected.name}"? '
-            'Your current questions will be replaced.',
+    if (result is CardTemplate) {
+      if (_questions.isNotEmpty) {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Replace questions?'),
+            content: Text(
+              'Apply "${result.name}"? '
+              'Your current questions will be replaced.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Replace'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Replace'),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true || !mounted) return;
+        );
+        if (confirmed != true || !mounted) return;
+      }
+      _applyTemplate(result);
+    } else if (result is QuestionTemplate) {
+      _appendQuestionFromTemplate(result);
     }
+  }
 
-    _applyTemplate(selected);
+  // Appends a question from a QuestionTemplate with a fresh questionId.
+  void _appendQuestionFromTemplate(QuestionTemplate qt) {
+    final freshQuestion = switch (qt.question) {
+      TextInputQuestion q =>
+        q.copyWith(questionId: CardQuestion.generateId()),
+      MultipleChoiceQuestion q =>
+        q.copyWith(questionId: CardQuestion.generateId()),
+      WordOrderQuestion q =>
+        q.copyWith(questionId: CardQuestion.generateId()),
+    };
+    setState(() => _questions.add(_QuestionState.fromQuestion(freshQuestion)));
   }
 
   void _removeQuestion(int index) {

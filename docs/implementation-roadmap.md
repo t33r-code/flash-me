@@ -486,13 +486,14 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [x] `ImportService` handles both old (`fields`) and new (`questions`) ZIP formats
 - [x] Import validation updated for unified question types
 
-#### Step 6 — Question templates (new feature, depends on Steps 1–3)
-- [ ] `QuestionTemplate` Firestore collection (`questionTemplates/{templateId}`): `createdBy`, `name`, `description`, `question: CardQuestion` (single question, answers nullable)
-- [ ] `QuestionTemplateRepository` + `FirebaseQuestionTemplateRepository`
-- [ ] `questionTemplateRepositoryProvider`, `userQuestionTemplatesProvider`
-- [ ] Question template picker in `CardFormScreen` and `WorkbookCardFormScreen` — bottom sheet listing user's question templates; selecting one appends the question without affecting existing questions
-- [ ] Create / edit / delete question templates (dedicated screen or inline)
-- [ ] Firestore security rules for `questionTemplates/`
+#### Step 6 — Question templates (new feature, depends on Steps 1–3) ✅
+- [x] `QuestionTemplate` Firestore collection (`questionTemplates/{templateId}`): `createdBy`, `name`, `description`, `question: CardQuestion` (single question, answers nullable)
+- [x] `QuestionTemplateRepository` + `FirebaseQuestionTemplateRepository`
+- [x] `questionTemplateRepositoryProvider`, `userQuestionTemplatesProvider`
+- [x] Question template picker in `CardFormScreen` — two-tab bottom sheet (Card Templates / Question Templates); selecting a question template appends without replacing
+- [x] "Use Template" button in `TemplateFormScreen` — opens question template picker, appends to template questions
+- [x] Create / edit / delete question templates from the Question Templates tab in the Templates screen
+- [x] Firestore security rules for `questionTemplates/`
 
 ### Cards & Templates
 - [ ] Add card metadata display (createdAt, updatedAt, createdBy)

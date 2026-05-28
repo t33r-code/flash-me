@@ -68,6 +68,14 @@ service cloud.firestore {
           request.resource.data.createdBy == request.auth.uid;
     }
 
+    // Question templates are private to the user who created them.
+    match /questionTemplates/{templateId} {
+      allow read, update, delete: if isAuth() &&
+          resource.data.createdBy == request.auth.uid;
+      allow create: if isAuth() &&
+          request.resource.data.createdBy == request.auth.uid;
+    }
+
     // Workbook cards follow the same read policy as flash cards above.
     match /workbookCards/{cardId} {
       allow read: if isAuth();

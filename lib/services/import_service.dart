@@ -45,7 +45,10 @@ class ImportService {
     // 2. Locate and parse cards.json.
     final jsonFile = archive.findFile('cards.json');
     if (jsonFile == null) throw AppException('cards.json not found in archive.');
-    final jsonStr = utf8.decode(jsonFile.content as List<int>);
+    final rawStr = utf8.decode(jsonFile.content as List<int>);
+    // Strip trailing commas before ] or } — invalid in strict JSON but common
+    // in hand-authored files (e.g. the last item in an array or object).
+    final jsonStr = rawStr.replaceAll(RegExp(r',(\s*[}\]])'), r'$1');
     final Map<String, dynamic> root;
     try {
       root = jsonDecode(jsonStr) as Map<String, dynamic>;

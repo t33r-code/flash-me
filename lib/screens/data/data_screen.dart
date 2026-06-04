@@ -321,6 +321,11 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
             cardSetRepo: widget.ref.read(cardSetRepositoryProvider),
             cardRepo: widget.ref.read(cardRepositoryProvider),
           );
+      // Force all cardsInSetProvider streams to re-subscribe so updated card
+      // data (questions, correctIndex, etc.) is reflected immediately.
+      // Without this, the stream only re-fires when set membership changes,
+      // not when individual card documents are updated.
+      widget.ref.invalidate(cardsInSetProvider);
       if (mounted) {
         Navigator.of(context).pop(_ImportSummaryData(
           totalSets: widget.analysis.setDiffs.length,

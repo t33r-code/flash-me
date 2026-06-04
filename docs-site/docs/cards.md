@@ -76,32 +76,58 @@ Open the card for editing, then tap the :material-delete-outline: **delete icon*
 
 ## Templates { #templates }
 
-A template defines a reusable field structure — the set of extra fields a card should have, without any of the answers filled in. If you create many cards with the same shape (e.g. every verb card has a *Conjugation* and a *Gender* field), save that structure as a template once and apply it to new cards with a single tap.
+The Templates tab (:material-file-multiple-outline:) holds two types of reusable templates: **Card Templates** and **Question Templates**. Both tabs are shown in the Templates screen.
 
-### Creating a Template { #create-template }
+### Card Templates { #card-templates }
 
-1. Tap the **Templates** tab (:material-file-multiple-outline:).
+A Card Template defines the full question structure for a Flash Card — the complete set of questions a card should have, without any of the answers filled in. If you create many cards with the same shape (e.g. every noun card has a *Gender* and a *Plural form* question), save that structure once and apply it to new cards with a single tap.
+
+#### Creating a Card Template { #create-template }
+
+1. Tap the **Templates** tab (:material-file-multiple-outline:) and select **Card Templates**.
 2. Tap **+** and give the template a **name** and optional **description**.
-3. Add fields the same way as on a card — the field structure is defined here, but answers are left blank.
+3. Add questions the same way as on a card — the structure is defined here, but answers are left blank.
 4. Tap **Save**.
 
 !!! tip "Hide primary word"
-    Templates have a **Hide primary word by default** toggle. When on, cards created from this template will hide the foreign word until the learner taps *Show Word* — useful when you want to practise recall from media (image or audio) before reading the word.
+    Card Templates have a **Hide primary word by default** toggle. When on, cards created from this template will hide the foreign word until the learner taps *Show Word* — useful for media-recognition drills.
 
-### Applying a Template { #apply-template }
+#### Applying a Card Template { #apply-template }
 
-When creating or editing a Flash Card, tap **Use Template** in the *Additional Fields* section. Pick a template from the list — its fields are added to the card instantly, with the structure pre-filled and answers blank for you to fill in.
+When creating or editing a Flash Card, tap **Use Template** in the *Additional Questions* section, then choose the **Card Templates** tab. Pick a template — its full question structure is applied to the card instantly, with answers blank for you to fill in.
 
 !!! note
-    If the card already has fields, you'll be asked to confirm before they are replaced.
+    If the card already has questions, you'll be asked to confirm before they are replaced.
 
-### Saving a Card as a Template { #save-as-template }
+#### Saving a Card as a Template { #save-as-template }
 
-If you've already built a card with the right field structure, you can turn it into a template without rebuilding it from scratch.
+If you've already built a card with the right question structure, you can turn it into a template without rebuilding from scratch.
 
 1. Open the card for editing.
 2. Tap the **⋮** menu in the top-right corner and choose **Save as Template**.
-3. Give the template a name and tap **Save**. The field structure is copied; all answers are cleared.
+3. Give the template a name and tap **Save**. The question structure is copied; all answers are cleared.
+
+---
+
+### Question Templates { #question-templates }
+
+A Question Template defines a single reusable question — its type, label, options (for multiple choice), hint (for text input), and other config. Unlike Card Templates, applying a Question Template *appends* the question to the card; nothing is replaced and no confirmation is needed.
+
+Question Templates are useful when the same question recurs across many cards — for example, a *Gender* multiple-choice question with the same four options on every noun card.
+
+#### Creating a Question Template { #create-question-template }
+
+1. Tap the **Templates** tab and select **Question Templates**.
+2. Tap **+**, give the template a **name** and optional **description**.
+3. Choose the **question type** (Text input, Multiple choice, or Word order) and fill in the structure — options, hint, display mode, etc. No answers are stored here.
+4. Optionally set an **Import ID** — a short slug (e.g. `gender`) used to reference this template in hand-authored import files as `##gender`. Must be unique across your question templates.
+5. Tap **Save**.
+
+#### Applying a Question Template { #apply-question-template }
+
+**From a Flash Card or Workbook Card:** tap **Use Template** in the questions section, then choose the **Question Templates** tab. Tap a template — the question is appended to the card's existing questions.
+
+**From a Card Template:** tap **Use Template** alongside the *Add Question* button. The question is appended to the template's question list.
 
 ---
 

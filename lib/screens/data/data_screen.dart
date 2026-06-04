@@ -9,6 +9,7 @@ import 'package:flash_me/providers/card_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/export_provider.dart';
 import 'package:flash_me/providers/import_provider.dart';
+import 'package:flash_me/providers/question_template_provider.dart';
 import 'package:flash_me/utils/exceptions.dart';
 
 // ---------------------------------------------------------------------------
@@ -246,6 +247,8 @@ class _DataScreenState extends ConsumerState<DataScreen> {
             userId: uid,
             cardSetRepo: ref.read(cardSetRepositoryProvider),
             cardRepo: ref.read(cardRepositoryProvider),
+            questionTemplateRepo:
+                ref.read(questionTemplateRepositoryProvider),
           );
 
       if (!context.mounted) return;
@@ -318,6 +321,11 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
             cardSetRepo: widget.ref.read(cardSetRepositoryProvider),
             cardRepo: widget.ref.read(cardRepositoryProvider),
           );
+      // Force all cardsInSetProvider streams to re-subscribe so updated card
+      // data (questions, correctIndex, etc.) is reflected immediately.
+      // Without this, the stream only re-fires when set membership changes,
+      // not when individual card documents are updated.
+      widget.ref.invalidate(cardsInSetProvider);
       if (mounted) {
         Navigator.of(context).pop(_ImportSummaryData(
           totalSets: widget.analysis.setDiffs.length,

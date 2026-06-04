@@ -49,5 +49,24 @@ Tap **Import** to apply the changes. When the import finishes, a summary shows h
 
 Flash Me imports ZIP files that were exported by Flash Me. The archive contains a `cards.json` file describing the sets and cards, plus a `media/` folder for any attached images or audio. Both single-set and multi-set archives are supported.
 
-!!! note
-    Manually created or edited ZIP files are supported as long as they match the expected JSON structure. If Flash Me can't parse the file, it shows an error and no changes are made.
+Manually created or edited ZIP files are also supported. Flash Me is lenient about common hand-authoring quirks:
+
+- **Trailing commas** before `]` or `}` are accepted.
+- Both `questions` and the legacy `fields` key are recognised.
+
+If Flash Me can't parse the file, it shows an error and no changes are made.
+
+### Question Template Shorthand { #import-template-shorthand }
+
+If you have a [Question Template](cards.md#question-templates) with an **Import ID** set (e.g. `gender`), you can reference it in a hand-authored import file instead of writing out the full question definition:
+
+```json
+{ "template": "##gender", "correctIndex": 2 }
+```
+
+The `##` prefix identifies the value as a template reference. The part after `##` must match the Import ID of one of your Question Templates exactly. Any answer fields you include alongside it (`correctIndex`, `correctAnswers`, `correctOrder`, `wordBank`) override the template's defaults for that card.
+
+!!! warning "Unknown template IDs"
+    If the referenced Import ID doesn't match any of your Question Templates, the import fails immediately and no changes are made. Check the spelling of the ID and ensure the template exists before retrying.
+
+The shorthand and the full question definition can be mixed in the same file — use whichever is more convenient for each question.

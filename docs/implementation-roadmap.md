@@ -467,7 +467,7 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 #### Step 2 — Firestore data migration ✅
 - [x] Migration script: for each doc in `cards/`, rename `fields` → `questions`; within each question rename `fieldId` → `questionId`, `name` → `prompt`; delete any questions with `type == 'reveal'`
 - [x] Migration script: for each doc in `templates/`, same field renames and reveal removal
-- [ ] Deploy and verify; no session migration needed (unknown keys ignored by `fromJson`)
+- [x] Deploy and verify; no session migration needed (unknown keys ignored by `fromJson`)
 
 #### Step 3 — Card form UI ✅
 - [x] Replace `CardFormScreen` field editors with unified `CardQuestion` editors
@@ -494,6 +494,11 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [x] "Use Template" button in `TemplateFormScreen` — opens question template picker, appends to template questions
 - [x] Create / edit / delete question templates from the Question Templates tab in the Templates screen
 - [x] Firestore security rules for `questionTemplates/`
+- [x] Optional Import ID (`templateId`) field on `QuestionTemplate` — user-defined slug (alphanumeric/hyphen/underscore), unique per user; validated and checked for uniqueness on save in `QuestionTemplateFormScreen`
+- [x] Import shorthand: `{"template": "##id", "correctIndex": N}` — importer resolves `##id` references at parse time, merging template structure with answer-field overrides; unknown references fail immediately with a descriptive error
+- [x] `QuestionTemplateRepository.getUserTemplates()` — one-shot future for import-time lookup
+- [x] Trailing commas tolerated in hand-authored `cards.json` files
+- [x] Fix: `cardsInSetProvider` invalidated after import so updated card data (questions, `correctIndex`) is visible immediately in study mode without requiring a full app restart
 
 ### Cards & Templates
 - [ ] Add card metadata display (createdAt, updatedAt, createdBy)

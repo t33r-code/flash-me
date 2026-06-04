@@ -141,12 +141,13 @@ cards/{cardId}
   - primaryAudioUrl: string? (optional Firebase Storage download URL for a pronunciation clip)
   - primaryWordHidden: boolean (default false; hides primaryWord until "Show Word" is tapped,
                                 only meaningful when at least one media URL is set)
-  - fields: array of field objects       ← sealed class hierarchy in Dart (RevealContent, TextInputContent, MultipleChoiceContent)
-    - fieldId: unique identifier
-    - name: string (label)
-    - type: enum (reveal, text_input, multiple_choice)
-    - content: object (varies by type; answer fields are nullable so templates reuse this same model)
-  - templateId: string (optional, reference to template used)
+  - questions: array of question objects  ← sealed class hierarchy in Dart (TextInputQuestion,
+                                            MultipleChoiceQuestion, WordOrderQuestion)
+    - questionId: string (client-generated unique ID)
+    - prompt: string? (optional label shown above the question)
+    - type: string ('text_input' | 'multiple_choice' | 'word_order')
+    - content: object (shape varies by type; answer fields are nullable so templates reuse this model)
+  - templateId: string? (optional, reference to Card Template used to create this card)
   - nativeLanguage: string? (optional, ISO 639-1 code for the user's reading language, e.g. 'en')
   - targetLanguage: string? (optional, ISO 639-1 code for the language being studied, e.g. 'es')
   - tags: string[] (normalized tag names from the global `tags` collection; default empty)
@@ -154,6 +155,7 @@ cards/{cardId}
   - updatedAt: timestamp
   - createdBy: userId
 ```
+Note: legacy documents written before the unification may use a `fields` key instead of `questions`. `FlashCard.fromFirestore` reads `questions ?? fields` for backward compatibility.
 Set membership is tracked in `setCards` (see Card-Set Relationship below), not on the card document itself.
 
 **Read permissions:** Card reads are open to any authenticated user. Card IDs are not guessable, and future sharing and marketplace features require that a user who has legitimately obtained a card ID (e.g. from a shared or subscribed set) can read it. Write operations (create, update, delete) remain restricted to the `createdBy` user. The security rule uses `.get('createdBy', request.auth.uid)` as a fallback for legacy documents that predate this field.
@@ -178,21 +180,51 @@ Each card (and each set) carries an optional language pair: **`nativeLanguage`**
 **Templates do not carry a language pair.** Templates define field structure only; the language is a property of the content (card or set), not the structure.
 
 #### Card Templates
-- Templates are reusable field configurations
-- Template structure: {name, description, fields_schema}
-- Fields in template have same structure as card fields (but no specific content)
-- Users can:
-  - Create custom templates from scratch
-  - Create template from existing card
-  - Browse pre-made templates (optional: shipped with app)
-  - Use templates when creating new cards
+
+Card Templates define a reusable question structure for Flash Cards. A template stores the full `questions` array (type, prompt, options, hint, exactMatch, etc.) but with answer fields left null — correct answers are filled in per card. Firestore schema:
+
+```
+templates/{templateId}
+  - createdBy: userId
+  - name: string
+  - description: string?
+  - primaryWordHidden: boolean (inherited by cards created from this template)
+  - questions: array (same CardQuestion structure as cards; answers null)
+  - createdAt: timestamp
+  - updatedAt: timestamp
+```
+
+Users can create a Card Template from scratch, or save any existing card's question structure as a template (answers are cleared). Applying a template to a card in the editor replaces all current questions (with confirmation) and pre-populates the structure for the user to fill in.
+
+#### Question Templates
+
+Question Templates define a reusable single question — one `CardQuestion` with its structure and config (options, hint, displayMode, etc.) but with answer fields null. They are separate from Card Templates and serve a different purpose: a Card Template replaces an entire card's question set, while a Question Template appends one question without affecting anything else. Firestore schema:
+
+```
+questionTemplates/{templateId}
+  - createdBy: userId
+  - name: string
+  - description: string?
+  - question: CardQuestion (single question; answers null)
+  - templateId: string? (optional user-defined Import ID; must be unique per user if set)
+  - createdAt: timestamp
+  - updatedAt: timestamp
+```
+
+**Import ID (`templateId` field):** Users can assign a short slug (e.g. `gender`) to a Question Template. This allows import files to reference the template using the `##` prefix instead of repeating the full question definition (see [Import Shorthand](#import-shorthand)). The slug must be unique across the user's question templates; only alphanumeric characters, hyphens, and underscores are allowed.
+
+**Usage in the card editor:** The "Use Template" bottom sheet has two tabs — Card Templates and Question Templates. Selecting a Question Template appends the question to the card's current list; it never replaces existing questions and requires no confirmation.
+
+**Usage in the Card Template editor:** A "Use Template" button alongside "Add Question" opens a Question Template picker. The selected question is appended to the template's question list with a fresh ID.
 
 #### Template Usage Workflow
-1. User creates/selects a template with fields: [Primary (auto), Gender, Example, Conjugation]
-2. When creating a new card, user selects template
-3. Form auto-populates with template fields
-4. User fills in specific content for each field
-5. Card is created with template structure
+1. User creates/selects a Card Template with questions: [Gender (MC), Example (text input)]
+2. When creating a new card, user taps "Use Template" → Card Templates tab → picks a template
+3. Form pre-populates with template questions (structure and config carried over, answers blank)
+4. User fills in correct answers for each question
+5. Card is saved with the completed question structure
+
+Alternatively, user taps "Use Template" → Question Templates tab to append one question at a time.
 
 #### Card CRUD Operations
 
@@ -781,18 +813,18 @@ spanish-verbs-export.zip
         "primaryWordHidden": false,
         "nativeLanguage": "en",
         "targetLanguage": "es",
-        "fields": [
+        "questions": [
           {
-            "name": "Conjugation (yo)",
+            "prompt": "Conjugation (yo)",
             "type": "text_input",
-            "content": { "correct_answers": ["hablo"], "hint": "Present tense" }
+            "content": { "correctAnswers": ["hablo"], "hint": "Present tense" }
           },
           {
-            "name": "Type",
+            "prompt": "Type",
             "type": "multiple_choice",
             "content": {
               "options": ["Regular", "Irregular", "Reflexive"],
-              "correct_index": 0
+              "correctIndex": 0
             }
           }
         ]
@@ -801,6 +833,25 @@ spanish-verbs-export.zip
   }
 }
 ```
+
+**JSON format notes:**
+- The `questions` key replaced the legacy `fields` key; both are accepted on import for backward compatibility.
+- Trailing commas before `]` or `}` are tolerated in hand-authored files.
+
+#### Import Shorthand for Question Templates { #import-shorthand }
+
+Instead of repeating a full question definition in every card, a hand-authored import file can reference a Question Template by its Import ID using the `##` prefix:
+
+```json
+{
+  "template": "##gender",
+  "correctIndex": 2
+}
+```
+
+The `##` prefix signals a template reference. The value after `##` must match the `templateId` field of one of the importing user's Question Templates. The importer resolves the reference at parse time, merging the template's question structure with any answer-field overrides provided inline (`correctIndex`, `correctAnswers`, `correctOrder`, `wordBank`). If the referenced template is not found the import fails immediately with a descriptive error.
+
+This shorthand is an alternative to the full question definition — both forms can appear in the same `questions` array and in the same file.
 
 **Rationale for ZIP format:** Firebase Storage download URLs are user-scoped and non-portable. Bundling media files inside the ZIP makes sets fully self-contained for sharing and bulk creation — the recipient imports one file and gets cards plus all media. JSON handles all field types (including multiple choice options and correct indices) natively without representational compromises.
 

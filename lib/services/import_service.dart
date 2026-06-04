@@ -7,8 +7,10 @@ import 'package:flash_me/models/card_question.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/models/import_diff.dart';
+import 'package:flash_me/models/question_template.dart';
 import 'package:flash_me/repositories/card_repository.dart';
 import 'package:flash_me/repositories/card_set_repository.dart';
+import 'package:flash_me/repositories/question_template_repository.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/exceptions.dart';
 
@@ -27,6 +29,7 @@ class ImportService {
     required String userId,
     required CardSetRepository cardSetRepo,
     required CardRepository cardRepo,
+    required QuestionTemplateRepository questionTemplateRepo,
   }) async {
     // 1. Decode ZIP.
     final Archive archive;
@@ -50,11 +53,18 @@ class ImportService {
       throw AppException('cards.json is not valid JSON.');
     }
 
-    // 3. Normalise to a list of raw set maps (supports both formats).
+    // 3. Load user's question templates once; build lookup map by templateId.
+    // Used to resolve ##templateId references in question entries.
+    final qtList = await questionTemplateRepo.getUserTemplates(userId);
+    final qtMap = <String, QuestionTemplate>{
+      for (final t in qtList)
+        if (t.templateId != null) t.templateId!: t,
+    };
+
+    // 4. Normalise to a list of raw set maps (supports both formats).
     final List<Map<String, dynamic>> rawSets;
     if (root.containsKey('sets')) {
-      rawSets = (root['sets'] as List)
-          .cast<Map<String, dynamic>>();
+      rawSets = (root['sets'] as List).cast<Map<String, dynamic>>();
     } else if (root.containsKey('set')) {
       rawSets = [root['set'] as Map<String, dynamic>];
     } else {
@@ -62,7 +72,7 @@ class ImportService {
           'Invalid format: expected a "set" or "sets" key in cards.json.');
     }
 
-    // 4. Parse, validate, and diff each set.
+    // 5. Parse, validate, and diff each set.
     final diffs = <ImportSetDiff>[];
     for (final rawSet in rawSets) {
       final diff = await _diffSet(
@@ -70,6 +80,7 @@ class ImportService {
         userId: userId,
         cardSetRepo: cardSetRepo,
         cardRepo: cardRepo,
+        qtMap: qtMap,
       );
       diffs.add(diff);
     }
@@ -181,13 +192,15 @@ class ImportService {
     required String userId,
     required CardSetRepository cardSetRepo,
     required CardRepository cardRepo,
+    required Map<String, QuestionTemplate> qtMap,
   }) async {
     final setName = rawSet['name'] as String? ?? '';
     if (setName.isEmpty) throw AppException('A set in the import has no name.');
 
     final rawCards = (rawSet['cards'] as List? ?? [])
         .cast<Map<String, dynamic>>();
-    final importCards = rawCards.map(_parseCard).toList();
+    final importCards =
+        rawCards.map((c) => _parseCard(c, qtMap)).toList();
 
     // Look up existing set and its current cards.
     final existingSet = await cardSetRepo.findSetByName(setName, userId);
@@ -248,22 +261,44 @@ class ImportService {
     );
   }
 
-  ImportCardData _parseCard(Map<String, dynamic> raw) {
+  ImportCardData _parseCard(
+      Map<String, dynamic> raw, Map<String, QuestionTemplate> qtMap) {
     final word = raw['primaryWord'] as String? ?? '';
     final translation = raw['translation'] as String? ?? '';
     if (word.isEmpty) throw AppException('A card is missing primaryWord.');
-    if (translation.isEmpty) throw AppException('Card "$word" is missing translation.');
+    if (translation.isEmpty) {
+      throw AppException('Card "$word" is missing translation.');
+    }
 
     // Accept both 'questions' (new format) and 'fields' (legacy ZIP export).
     final rawFields = ((raw['questions'] ?? raw['fields']) as List? ?? [])
         .cast<Map<String, dynamic>>();
 
-    // Basic question validation — name/prompt interchangeable; content required.
+    // Validate and resolve each question entry.
+    // Template references ("template": "##id") are expanded here so that all
+    // downstream code (diff, build) sees standard question maps.
+    final resolvedFields = <Map<String, dynamic>>[];
     for (final f in rawFields) {
-      if ((f['name'] == null && f['prompt'] == null) ||
-          f['type'] == null ||
-          f['content'] == null) {
-        throw AppException('Card "$word" has a malformed question entry.');
+      if (_isTemplateRef(f)) {
+        // ##id reference — look up in the user's question templates.
+        final refValue = f['template'] as String;
+        final refId = refValue.substring(kTemplateIdPrefix.length);
+        final qt = qtMap[refId];
+        if (qt == null) {
+          throw AppException(
+            'Card "$word" references unknown question template '
+            '"$refValue". Create this question template before importing.',
+          );
+        }
+        resolvedFields.add(_resolveTemplateRef(qt, f));
+      } else {
+        // Standard question entry — name/prompt interchangeable; content required.
+        if ((f['name'] == null && f['prompt'] == null) ||
+            f['type'] == null ||
+            f['content'] == null) {
+          throw AppException('Card "$word" has a malformed question entry.');
+        }
+        resolvedFields.add(f);
       }
     }
 
@@ -273,10 +308,33 @@ class ImportService {
       primaryWordHidden: raw['primaryWordHidden'] as bool? ?? false,
       mediaImagePath: raw['primaryImageUrl'] as String?,
       mediaAudioPath: raw['primaryAudioUrl'] as String?,
-      rawFields: rawFields,
+      rawFields: resolvedFields,
       templateId: raw['templateId'] as String?,
       tags: List<String>.from(raw['tags'] as List? ?? []),
     );
+  }
+
+  // Returns true when a raw question map is a ##templateId reference.
+  bool _isTemplateRef(Map<String, dynamic> f) {
+    final t = f['template'];
+    return t is String && t.startsWith(kTemplateIdPrefix);
+  }
+
+  // Expand a ##templateId reference into a standard question map by merging
+  // the template's question structure with any answer overrides in [ref].
+  Map<String, dynamic> _resolveTemplateRef(
+      QuestionTemplate qt, Map<String, dynamic> ref) {
+    final qJson = Map<String, dynamic>.from(qt.question.toJson());
+    qJson.remove('questionId'); // fresh ID is generated by _buildQuestions
+
+    // Merge answer-field overrides from the ref entry into the content map.
+    final content =
+        Map<String, dynamic>.from(qJson['content'] as Map<String, dynamic>? ?? {});
+    for (final key in ['correctIndex', 'correctAnswers', 'correctOrder', 'wordBank']) {
+      if (ref.containsKey(key)) content[key] = ref[key];
+    }
+    qJson['content'] = content;
+    return qJson;
   }
 
   // Diff each attribute and return display-ready old→new pairs.

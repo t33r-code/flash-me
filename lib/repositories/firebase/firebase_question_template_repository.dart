@@ -21,6 +21,15 @@ class FirebaseQuestionTemplateRepository implements QuestionTemplateRepository {
               snap.docs.map(QuestionTemplate.fromFirestore).toList());
 
   @override
+  Future<List<QuestionTemplate>> getUserTemplates(String userId) async {
+    final snap = await _col
+        .where('createdBy', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .get();
+    return snap.docs.map(QuestionTemplate.fromFirestore).toList();
+  }
+
+  @override
   Future<QuestionTemplate> createTemplate(QuestionTemplate template) async {
     final ref = await _col.add(template.toFirestore());
     final snap = await ref.get();

@@ -9,6 +9,7 @@ import 'package:flash_me/providers/card_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/export_provider.dart';
 import 'package:flash_me/providers/import_provider.dart';
+import 'package:flash_me/providers/question_template_provider.dart';
 import 'package:flash_me/utils/exceptions.dart';
 
 // ---------------------------------------------------------------------------
@@ -246,6 +247,8 @@ class _DataScreenState extends ConsumerState<DataScreen> {
             userId: uid,
             cardSetRepo: ref.read(cardSetRepositoryProvider),
             cardRepo: ref.read(cardRepositoryProvider),
+            questionTemplateRepo:
+                ref.read(questionTemplateRepositoryProvider),
           );
 
       if (!context.mounted) return;

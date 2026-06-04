@@ -6,6 +6,9 @@ import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/question_template_provider.dart';
 import 'package:flash_me/utils/constants.dart';
 
+// Characters that are valid in a templateId (alphanumeric, hyphen, underscore).
+final _templateIdPattern = RegExp(r'^[a-zA-Z0-9_-]+$');
+
 // ---------------------------------------------------------------------------
 // _QuestionState — mutable holder for the single question while the form
 // is open. Mirrors _TplQuestionState in template_form_screen.dart.
@@ -123,6 +126,7 @@ class _QuestionTemplateFormScreenState
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _descController;
+  late final TextEditingController _templateIdController;
   late _QuestionState _question;
   bool _isSaving = false;
 
@@ -134,6 +138,7 @@ class _QuestionTemplateFormScreenState
     final t = widget.template;
     _nameController = TextEditingController(text: t?.name ?? '');
     _descController = TextEditingController(text: t?.description ?? '');
+    _templateIdController = TextEditingController(text: t?.templateId ?? '');
     _question = t != null
         ? _QuestionState.fromQuestion(t.question)
         : _QuestionState.empty();
@@ -143,6 +148,7 @@ class _QuestionTemplateFormScreenState
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
+    _templateIdController.dispose();
     _question.dispose();
     super.dispose();
   }
@@ -167,6 +173,26 @@ class _QuestionTemplateFormScreenState
       final uid = ref.read(authStateProvider).asData?.value ?? '';
       final question = _question.toQuestion();
       final repo = ref.read(questionTemplateRepositoryProvider);
+      final newTemplateId = _templateIdController.text.trim().isEmpty
+          ? null
+          : _templateIdController.text.trim();
+
+      // Uniqueness check: no other template owned by this user may share the same templateId.
+      if (newTemplateId != null) {
+        final existing =
+            ref.read(userQuestionTemplatesProvider).asData?.value ?? [];
+        final conflict = existing.any((t) =>
+            t.templateId == newTemplateId &&
+            t.id != (widget.template?.id ?? ''));
+        if (conflict) {
+          setState(() => _isSaving = false);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                'Import ID "$newTemplateId" is already used by another template.'),
+          ));
+          return;
+        }
+      }
 
       if (!_isEditing) {
         await repo.createTemplate(QuestionTemplate(
@@ -177,6 +203,7 @@ class _QuestionTemplateFormScreenState
               ? null
               : _descController.text.trim(),
           question: question,
+          templateId: newTemplateId,
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         ));
@@ -187,6 +214,7 @@ class _QuestionTemplateFormScreenState
               ? null
               : _descController.text.trim(),
           question: question,
+          templateId: newTemplateId,
           updatedAt: DateTime.now(),
         ));
       }
@@ -366,6 +394,25 @@ class _QuestionTemplateFormScreenState
                     border: OutlineInputBorder(),
                   ),
                   maxLines: 2,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _templateIdController,
+                  decoration: const InputDecoration(
+                    labelText: 'Import ID (optional)',
+                    hintText: 'e.g. gender',
+                    helperText: 'Reference this template in import files as ##gender',
+                    border: OutlineInputBorder(),
+                  ),
+                  // Only alphanumeric, hyphens, underscores — no spaces or ##.
+                  validator: (v) {
+                    final s = v?.trim() ?? '';
+                    if (s.isEmpty) return null;
+                    if (!_templateIdPattern.hasMatch(s)) {
+                      return 'Only letters, numbers, hyphens and underscores allowed';
+                    }
+                    return null;
+                  },
                 ),
 
                 // --- Question config ---

@@ -8,7 +8,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:flash_me/models/card_set.dart';
+import 'package:flash_me/models/card_template.dart';
 import 'package:flash_me/models/flash_card.dart';
+import 'package:flash_me/models/question_template.dart';
 import 'package:flash_me/repositories/card_set_repository.dart';
 import 'web_download_stub.dart' if (dart.library.html) 'web_download_web.dart';
 
@@ -23,7 +25,12 @@ import 'web_download_stub.dart' if (dart.library.html) 'web_download_web.dart';
 // after the share sheet is opened).  The caller can display this to the user.
 // ---------------------------------------------------------------------------
 class ExportService {
-  Future<String?> exportSet(CardSet cardSet, List<FlashCard> cards) async {
+  Future<String?> exportSet(
+    CardSet cardSet,
+    List<FlashCard> cards, {
+    List<CardTemplate> cardTemplates = const [],
+    List<QuestionTemplate> questionTemplates = const [],
+  }) async {
     final archive = Archive();
     final mediaBytes = <String, Uint8List>{}; // relative filename → bytes
 
@@ -60,6 +67,11 @@ class ExportService {
     final jsonMap = {
       'version': '1.0',
       'exportDate': DateTime.now().toUtc().toIso8601String(),
+      if (cardTemplates.isNotEmpty)
+        'cardTemplates': cardTemplates.map(_cardTemplateToMap).toList(),
+      if (questionTemplates.isNotEmpty)
+        'questionTemplates':
+            questionTemplates.map(_questionTemplateToMap).toList(),
       'set': {
         'name': cardSet.name,
         if (cardSet.description != null) 'description': cardSet.description,
@@ -97,6 +109,8 @@ class ExportService {
     required List<CardSet> sets,
     required String userId,
     required CardSetRepository cardSetRepo,
+    List<CardTemplate> cardTemplates = const [],
+    List<QuestionTemplate> questionTemplates = const [],
   }) async {
     final archive = Archive();
     final mediaBytes = <String, Uint8List>{}; // shared deduplication map
@@ -146,6 +160,11 @@ class ExportService {
     final jsonMap = {
       'version': '1.0',
       'exportDate': DateTime.now().toUtc().toIso8601String(),
+      if (cardTemplates.isNotEmpty)
+        'cardTemplates': cardTemplates.map(_cardTemplateToMap).toList(),
+      if (questionTemplates.isNotEmpty)
+        'questionTemplates':
+            questionTemplates.map(_questionTemplateToMap).toList(),
       'sets': rawSets,
     };
     final jsonBytes = utf8.encode(jsonEncode(jsonMap));
@@ -164,6 +183,30 @@ class ExportService {
       'flash_me_${_dateStamp()}.zip',
       shareSubject: 'Flash Me export',
     );
+  }
+
+  // Serialise a CardTemplate for export — strips Firestore IDs and ownership.
+  Map<String, dynamic> _cardTemplateToMap(CardTemplate t) => {
+        'name': t.name,
+        if (t.description != null) 'description': t.description,
+        'primaryWordHidden': t.primaryWordHidden,
+        'questions': t.questions.map((q) {
+          final m = Map<String, dynamic>.from(q.toJson());
+          m.remove('questionId');
+          return m;
+        }).toList(),
+      };
+
+  // Serialise a QuestionTemplate for export — strips Firestore IDs and ownership.
+  Map<String, dynamic> _questionTemplateToMap(QuestionTemplate t) {
+    final qJson = Map<String, dynamic>.from(t.question.toJson());
+    qJson.remove('questionId');
+    return {
+      'name': t.name,
+      if (t.description != null) 'description': t.description,
+      if (t.templateId != null) 'templateId': t.templateId,
+      'question': qJson,
+    };
   }
 
   // Build a clean export map — strips internal IDs and user-scoped fields.

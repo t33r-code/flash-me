@@ -107,8 +107,18 @@ class ImportSetDiff {
 class ImportAnalysis {
   final List<ImportSetDiff> setDiffs;
   final Archive archive;
+  // Raw JSON maps for templates that do not yet exist in the user's account
+  // and will be created by execute(). Card Templates are matched by name;
+  // Question Templates by templateId (Import ID) if set, else by name.
+  final List<Map<String, dynamic>> newCardTemplates;
+  final List<Map<String, dynamic>> newQuestionTemplates;
 
-  const ImportAnalysis({required this.setDiffs, required this.archive});
+  const ImportAnalysis({
+    required this.setDiffs,
+    required this.archive,
+    this.newCardTemplates = const [],
+    this.newQuestionTemplates = const [],
+  });
 
   int get totalNewCards =>
       setDiffs.fold(0, (s, d) => s + d.newCards.length);
@@ -118,4 +128,6 @@ class ImportAnalysis {
       setDiffs.fold(0, (s, d) => s + d.updatedCards.length);
   int get totalDeletableCards =>
       setDiffs.fold(0, (s, d) => s + d.deletableCards.length);
+  int get totalNewCardTemplates => newCardTemplates.length;
+  int get totalNewQuestionTemplates => newQuestionTemplates.length;
 }

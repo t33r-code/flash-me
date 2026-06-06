@@ -10,6 +10,7 @@ import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/export_provider.dart';
 import 'package:flash_me/providers/import_provider.dart';
 import 'package:flash_me/providers/question_template_provider.dart';
+import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/utils/exceptions.dart';
 
 // ---------------------------------------------------------------------------
@@ -191,10 +192,23 @@ class _DataScreenState extends ConsumerState<DataScreen> {
     );
 
     try {
+      // Fetch templates directly from repositories — don't rely on cached
+      // stream state, which may be AsyncLoading if the Templates tab hasn't
+      // been opened yet.
+      final cardTemplates = await ref
+          .read(templateRepositoryProvider)
+          .watchUserTemplates(uid)
+          .first;
+      final questionTemplates = await ref
+          .read(questionTemplateRepositoryProvider)
+          .getUserTemplates(uid);
+
       final path = await ref.read(exportServiceProvider).exportSets(
             sets: selected,
             userId: uid,
             cardSetRepo: ref.read(cardSetRepositoryProvider),
+            cardTemplates: cardTemplates,
+            questionTemplates: questionTemplates,
           );
 
       if (!mounted) return;
@@ -249,6 +263,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
             cardRepo: ref.read(cardRepositoryProvider),
             questionTemplateRepo:
                 ref.read(questionTemplateRepositoryProvider),
+            templateRepo: ref.read(templateRepositoryProvider),
           );
 
       if (!context.mounted) return;
@@ -320,12 +335,17 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
             userId: widget.userId,
             cardSetRepo: widget.ref.read(cardSetRepositoryProvider),
             cardRepo: widget.ref.read(cardRepositoryProvider),
+            templateRepo: widget.ref.read(templateRepositoryProvider),
+            questionTemplateRepo:
+                widget.ref.read(questionTemplateRepositoryProvider),
           );
       // Force all cardsInSetProvider streams to re-subscribe so updated card
       // data (questions, correctIndex, etc.) is reflected immediately.
       // Without this, the stream only re-fires when set membership changes,
       // not when individual card documents are updated.
       widget.ref.invalidate(cardsInSetProvider);
+      widget.ref.invalidate(userTemplatesProvider);
+      widget.ref.invalidate(userQuestionTemplatesProvider);
       if (mounted) {
         Navigator.of(context).pop(_ImportSummaryData(
           totalSets: widget.analysis.setDiffs.length,
@@ -335,6 +355,8 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
           cardsUpdated: _skipUpdates ? 0 : widget.analysis.totalUpdatedCards,
           cardsRemoved:
               _deleteNotInImport ? widget.analysis.totalDeletableCards : 0,
+          cardTemplatesCreated: widget.analysis.totalNewCardTemplates,
+          questionTemplatesCreated: widget.analysis.totalNewQuestionTemplates,
         ));
       }
     } catch (e) {
@@ -391,16 +413,21 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
             ),
             const Divider(),
 
-            // Per-set diffs.
+            // Templates + per-set diffs in one scrollable list.
             Flexible(
-              child: ListView.builder(
+              child: ListView(
                 shrinkWrap: true,
-                itemCount: diffs.length,
-                itemBuilder: (_, i) => _SetDiffTile(
-                  diff: diffs[i],
-                  showDeletable: _deleteNotInImport,
-                  skipUpdates: _skipUpdates,
-                ),
+                children: [
+                  if (widget.analysis.totalNewCardTemplates > 0 ||
+                      widget.analysis.totalNewQuestionTemplates > 0)
+                    _TemplateDiffSection(analysis: widget.analysis),
+                  for (final diff in diffs)
+                    _SetDiffTile(
+                      diff: diff,
+                      showDeletable: _deleteNotInImport,
+                      skipUpdates: _skipUpdates,
+                    ),
+                ],
               ),
             ),
           ],
@@ -558,6 +585,94 @@ class _SetDiffTileState extends State<_SetDiffTile> {
 
           if (!diff.hasChanges)
             Text('No changes', style: theme.textTheme.bodySmall),
+
+          const Divider(),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Templates section in the preview dialog — new Card and Question Templates.
+// ---------------------------------------------------------------------------
+class _TemplateDiffSection extends StatefulWidget {
+  final ImportAnalysis analysis;
+  const _TemplateDiffSection({required this.analysis});
+
+  @override
+  State<_TemplateDiffSection> createState() => _TemplateDiffSectionState();
+}
+
+class _TemplateDiffSectionState extends State<_TemplateDiffSection> {
+  bool _cardTplExpanded = false;
+  bool _questionTplExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final successColor = isDark ? Colors.green[300]! : Colors.green[700]!;
+    final cts = widget.analysis.newCardTemplates;
+    final qts = widget.analysis.newQuestionTemplates;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.copy_all_outlined, size: 18),
+              const SizedBox(width: 6),
+              Text('Templates', style: theme.textTheme.titleSmall),
+            ],
+          ),
+          const SizedBox(height: 6),
+
+          if (cts.isNotEmpty)
+            _ExpandableCountRow(
+              icon: Icons.add_circle_outline,
+              color: successColor,
+              label: '${cts.length} new card template${cts.length == 1 ? '' : 's'}',
+              expanded: _cardTplExpanded,
+              onTap: () =>
+                  setState(() => _cardTplExpanded = !_cardTplExpanded),
+              children: cts.map((t) {
+                final name = t['name'] as String? ?? '';
+                final qs = (t['questions'] as List?)?.length ?? 0;
+                final desc = t['description'] as String?;
+                return _CardSummaryTile(
+                  primary: name,
+                  secondary: desc ?? '$qs question${qs == 1 ? '' : 's'}',
+                );
+              }).toList(),
+            ),
+
+          if (qts.isNotEmpty)
+            _ExpandableCountRow(
+              icon: Icons.add_circle_outline,
+              color: successColor,
+              label: '${qts.length} new question template${qts.length == 1 ? '' : 's'}',
+              expanded: _questionTplExpanded,
+              onTap: () => setState(
+                  () => _questionTplExpanded = !_questionTplExpanded),
+              children: qts.map((t) {
+                final name = t['name'] as String? ?? '';
+                final importId = t['templateId'] as String?;
+                final q = t['question'] as Map<String, dynamic>? ?? {};
+                final typeLabel = switch (q['type'] as String? ?? '') {
+                  'text_input' => 'Text input',
+                  'multiple_choice' => 'Multiple choice',
+                  'word_order' => 'Word order',
+                  _ => 'Question',
+                };
+                final secondary = importId != null
+                    ? '##$importId  ·  $typeLabel'
+                    : typeLabel;
+                return _CardSummaryTile(primary: name, secondary: secondary);
+              }).toList(),
+            ),
 
           const Divider(),
         ],
@@ -725,6 +840,8 @@ class _ImportSummaryData {
   final int cardsLinked;
   final int cardsUpdated;
   final int cardsRemoved;
+  final int cardTemplatesCreated;
+  final int questionTemplatesCreated;
 
   const _ImportSummaryData({
     required this.totalSets,
@@ -733,6 +850,8 @@ class _ImportSummaryData {
     required this.cardsLinked,
     required this.cardsUpdated,
     required this.cardsRemoved,
+    this.cardTemplatesCreated = 0,
+    this.questionTemplatesCreated = 0,
   });
 }
 
@@ -751,7 +870,9 @@ class _ImportSummaryDialog extends StatelessWidget {
     final successColor = isDark ? Colors.green[300]! : Colors.green[700]!;
     final warningColor = isDark ? Colors.orange[300]! : Colors.orange[700]!;
     final s = summary;
-    final hasChanges = s.cardsAdded > 0 || s.cardsLinked > 0 || s.cardsUpdated > 0 || s.cardsRemoved > 0;
+    final hasChanges = s.cardsAdded > 0 || s.cardsLinked > 0 ||
+        s.cardsUpdated > 0 || s.cardsRemoved > 0 ||
+        s.cardTemplatesCreated > 0 || s.questionTemplatesCreated > 0;
 
     return AlertDialog(
       title: Row(
@@ -800,6 +921,20 @@ class _ImportSummaryDialog extends StatelessWidget {
               Icons.remove_circle_outline,
               '${s.cardsRemoved} card${s.cardsRemoved == 1 ? '' : 's'} removed from sets',
               color: theme.colorScheme.error,
+            ),
+          if (s.cardTemplatesCreated > 0)
+            _summaryRow(
+              theme,
+              Icons.copy_all_outlined,
+              '${s.cardTemplatesCreated} card template${s.cardTemplatesCreated == 1 ? '' : 's'} created',
+              color: successColor,
+            ),
+          if (s.questionTemplatesCreated > 0)
+            _summaryRow(
+              theme,
+              Icons.quiz_outlined,
+              '${s.questionTemplatesCreated} question template${s.questionTemplatesCreated == 1 ? '' : 's'} created',
+              color: successColor,
             ),
         ],
       ),

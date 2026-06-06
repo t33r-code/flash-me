@@ -5,12 +5,14 @@ import 'package:archive/archive.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flash_me/models/card_question.dart';
 import 'package:flash_me/models/card_set.dart';
+import 'package:flash_me/models/card_template.dart';
 import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/models/import_diff.dart';
 import 'package:flash_me/models/question_template.dart';
 import 'package:flash_me/repositories/card_repository.dart';
 import 'package:flash_me/repositories/card_set_repository.dart';
 import 'package:flash_me/repositories/question_template_repository.dart';
+import 'package:flash_me/repositories/template_repository.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/exceptions.dart';
 
@@ -30,6 +32,7 @@ class ImportService {
     required CardSetRepository cardSetRepo,
     required CardRepository cardRepo,
     required QuestionTemplateRepository questionTemplateRepo,
+    required TemplateRepository templateRepo,
   }) async {
     // 1. Decode ZIP.
     final Archive archive;
@@ -56,15 +59,70 @@ class ImportService {
       throw AppException('cards.json is not valid JSON.');
     }
 
-    // 3. Load user's question templates once; build lookup map by templateId.
-    // Used to resolve ##templateId references in question entries.
-    final qtList = await questionTemplateRepo.getUserTemplates(userId);
-    final qtMap = <String, QuestionTemplate>{
-      for (final t in qtList)
+    // 3. Parse templates from the JSON (optional — absent in older exports).
+    final rawCTs =
+        (root['cardTemplates'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final rawQTs =
+        (root['questionTemplates'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+
+    // 4. Load existing user templates; determine which JSON templates are new.
+    final existingQTs = await questionTemplateRepo.getUserTemplates(userId);
+    final existingQTByImportId = <String, QuestionTemplate>{
+      for (final t in existingQTs)
         if (t.templateId != null) t.templateId!: t,
     };
+    final existingQTByName = {for (final t in existingQTs) t.name: t};
 
-    // 4. Normalise to a list of raw set maps (supports both formats).
+    final existingCTs =
+        await templateRepo.watchUserTemplates(userId).first;
+    final existingCTNames = {for (final t in existingCTs) t.name};
+
+    // New QTs: not matched by Import ID (if present) or by name.
+    final newQTs = <Map<String, dynamic>>[];
+    for (final rawQt in rawQTs) {
+      final importId = rawQt['templateId'] as String?;
+      final name = rawQt['name'] as String? ?? '';
+      final exists = importId != null
+          ? existingQTByImportId.containsKey(importId)
+          : existingQTByName.containsKey(name);
+      if (!exists) newQTs.add(rawQt);
+    }
+
+    // New CTs: not matched by name.
+    final newCTs = rawCTs
+        .where((ct) => !existingCTNames.contains(ct['name'] as String? ?? ''))
+        .toList();
+
+    // 5. Build QT lookup map: existing DB templates + new JSON-defined ones.
+    // JSON-defined QTs are added so ##templateId refs in this file resolve even
+    // before execute() creates them in Firestore.
+    final qtMap = <String, QuestionTemplate>{
+      ...existingQTByImportId,
+    };
+    for (final rawQt in rawQTs) {
+      final importId = rawQt['templateId'] as String?;
+      if (importId == null || qtMap.containsKey(importId)) continue;
+      final rawQuestion = rawQt['question'] as Map<String, dynamic>?;
+      if (rawQuestion == null) continue;
+      try {
+        final q = CardQuestion.fromJson(
+            {...rawQuestion, 'questionId': CardQuestion.generateId()});
+        qtMap[importId] = QuestionTemplate(
+          id: '',
+          createdBy: userId,
+          name: rawQt['name'] as String? ?? '',
+          description: rawQt['description'] as String?,
+          question: q,
+          templateId: importId,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+      } on ArgumentError {
+        // Skip malformed question types — they'll fail again at execute time.
+      }
+    }
+
+    // 6. Normalise to a list of raw set maps (supports both formats).
     final List<Map<String, dynamic>> rawSets;
     if (root.containsKey('sets')) {
       rawSets = (root['sets'] as List).cast<Map<String, dynamic>>();
@@ -75,7 +133,7 @@ class ImportService {
           'Invalid format: expected a "set" or "sets" key in cards.json.');
     }
 
-    // 5. Parse, validate, and diff each set.
+    // 7. Parse, validate, and diff each set.
     final diffs = <ImportSetDiff>[];
     for (final rawSet in rawSets) {
       final diff = await _diffSet(
@@ -88,7 +146,12 @@ class ImportService {
       diffs.add(diff);
     }
 
-    return ImportAnalysis(setDiffs: diffs, archive: archive);
+    return ImportAnalysis(
+      setDiffs: diffs,
+      archive: archive,
+      newCardTemplates: newCTs,
+      newQuestionTemplates: newQTs,
+    );
   }
 
   // Execute the import based on the user's choices.
@@ -100,7 +163,18 @@ class ImportService {
     required String userId,
     required CardSetRepository cardSetRepo,
     required CardRepository cardRepo,
+    required TemplateRepository templateRepo,
+    required QuestionTemplateRepository questionTemplateRepo,
   }) async {
+    // Create new Question Templates first so they exist for future imports.
+    for (final rawQt in analysis.newQuestionTemplates) {
+      await _createQuestionTemplate(rawQt, userId, questionTemplateRepo);
+    }
+    // Create new Card Templates.
+    for (final rawCt in analysis.newCardTemplates) {
+      await _createCardTemplate(rawCt, userId, templateRepo);
+    }
+
     for (final diff in analysis.setDiffs) {
       // Resolve (or create) the set.
       final targetSet = diff.existingSet ??
@@ -513,6 +587,69 @@ class ImportService {
       }
     }
     return questions;
+  }
+
+  // Create a QuestionTemplate from a raw JSON map (as exported by ExportService).
+  // Silently skips entries with missing name or unrecognised question types.
+  Future<void> _createQuestionTemplate(
+    Map<String, dynamic> raw,
+    String userId,
+    QuestionTemplateRepository repo,
+  ) async {
+    final name = raw['name'] as String? ?? '';
+    if (name.isEmpty) return;
+    final rawQuestion = raw['question'] as Map<String, dynamic>?;
+    if (rawQuestion == null) return;
+    try {
+      final question = CardQuestion.fromJson(
+          {...rawQuestion, 'questionId': CardQuestion.generateId()});
+      await repo.createTemplate(QuestionTemplate(
+        id: '',
+        createdBy: userId,
+        name: name,
+        description: raw['description'] as String?,
+        question: question,
+        templateId: raw['templateId'] as String?,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ));
+    } on ArgumentError {
+      // Unknown question type — skip.
+    }
+  }
+
+  // Create a CardTemplate from a raw JSON map (as exported by ExportService).
+  // Silently skips entries with missing name; unknown question types are dropped.
+  Future<void> _createCardTemplate(
+    Map<String, dynamic> raw,
+    String userId,
+    TemplateRepository repo,
+  ) async {
+    final name = raw['name'] as String? ?? '';
+    if (name.isEmpty) return;
+    final rawQuestions =
+        (raw['questions'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final questions = rawQuestions
+        .map((q) {
+          try {
+            return CardQuestion.fromJson(
+                {...q, 'questionId': CardQuestion.generateId()});
+          } on ArgumentError {
+            return null;
+          }
+        })
+        .whereType<CardQuestion>()
+        .toList();
+    await repo.createTemplate(CardTemplate(
+      id: '',
+      createdBy: userId,
+      name: name,
+      description: raw['description'] as String?,
+      questions: questions,
+      primaryWordHidden: raw['primaryWordHidden'] as bool? ?? false,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    ));
   }
 
   // Upload a media file from the archive to Firebase Storage.

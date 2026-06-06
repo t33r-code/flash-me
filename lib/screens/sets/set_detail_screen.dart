@@ -7,6 +7,8 @@ import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/export_provider.dart';
+import 'package:flash_me/providers/question_template_provider.dart';
+import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/providers/workbook_card_provider.dart';
 import 'package:flash_me/screens/sets/set_form_screen.dart';
 import 'package:flash_me/screens/study/study_setup_screen.dart';
@@ -119,7 +121,14 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     try {
       final savedPath = await ref
           .read(exportServiceProvider)
-          .exportSet(liveSet, cards);
+          .exportSet(
+            liveSet,
+            cards,
+            cardTemplates:
+                ref.read(userTemplatesProvider).asData?.value ?? [],
+            questionTemplates:
+                ref.read(userQuestionTemplatesProvider).asData?.value ?? [],
+          );
       if (mounted) {
         Navigator.of(context).pop(); // dismiss progress dialog
         if (savedPath != null) {

@@ -10,6 +10,7 @@ import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/export_provider.dart';
 import 'package:flash_me/providers/import_provider.dart';
 import 'package:flash_me/providers/question_template_provider.dart';
+import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/utils/exceptions.dart';
 
 // ---------------------------------------------------------------------------
@@ -195,6 +196,10 @@ class _DataScreenState extends ConsumerState<DataScreen> {
             sets: selected,
             userId: uid,
             cardSetRepo: ref.read(cardSetRepositoryProvider),
+            cardTemplates:
+                ref.read(userTemplatesProvider).asData?.value ?? [],
+            questionTemplates:
+                ref.read(userQuestionTemplatesProvider).asData?.value ?? [],
           );
 
       if (!mounted) return;
@@ -249,6 +254,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
             cardRepo: ref.read(cardRepositoryProvider),
             questionTemplateRepo:
                 ref.read(questionTemplateRepositoryProvider),
+            templateRepo: ref.read(templateRepositoryProvider),
           );
 
       if (!context.mounted) return;
@@ -320,12 +326,17 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
             userId: widget.userId,
             cardSetRepo: widget.ref.read(cardSetRepositoryProvider),
             cardRepo: widget.ref.read(cardRepositoryProvider),
+            templateRepo: widget.ref.read(templateRepositoryProvider),
+            questionTemplateRepo:
+                widget.ref.read(questionTemplateRepositoryProvider),
           );
       // Force all cardsInSetProvider streams to re-subscribe so updated card
       // data (questions, correctIndex, etc.) is reflected immediately.
       // Without this, the stream only re-fires when set membership changes,
       // not when individual card documents are updated.
       widget.ref.invalidate(cardsInSetProvider);
+      widget.ref.invalidate(userTemplatesProvider);
+      widget.ref.invalidate(userQuestionTemplatesProvider);
       if (mounted) {
         Navigator.of(context).pop(_ImportSummaryData(
           totalSets: widget.analysis.setDiffs.length,
@@ -335,6 +346,8 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
           cardsUpdated: _skipUpdates ? 0 : widget.analysis.totalUpdatedCards,
           cardsRemoved:
               _deleteNotInImport ? widget.analysis.totalDeletableCards : 0,
+          cardTemplatesCreated: widget.analysis.totalNewCardTemplates,
+          questionTemplatesCreated: widget.analysis.totalNewQuestionTemplates,
         ));
       }
     } catch (e) {
@@ -345,6 +358,18 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
         );
       }
     }
+  }
+
+  String _templateSummaryLabel(int cardTplCount, int questionTplCount) {
+    final parts = <String>[];
+    if (cardTplCount > 0) {
+      parts.add('$cardTplCount card template${cardTplCount == 1 ? '' : 's'}');
+    }
+    if (questionTplCount > 0) {
+      parts.add(
+          '$questionTplCount question template${questionTplCount == 1 ? '' : 's'}');
+    }
+    return '${parts.join(' and ')} will be created';
   }
 
   @override
@@ -389,6 +414,26 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
                 ],
               ),
             ),
+            // New templates line (only shown when the import file defines new ones).
+            if (widget.analysis.totalNewCardTemplates > 0 ||
+                widget.analysis.totalNewQuestionTemplates > 0)
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Row(
+                  children: [
+                    const Icon(Icons.copy_all_outlined, size: 16),
+                    const SizedBox(width: 8),
+                    Text(
+                      _templateSummaryLabel(
+                        widget.analysis.totalNewCardTemplates,
+                        widget.analysis.totalNewQuestionTemplates,
+                      ),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
             const Divider(),
 
             // Per-set diffs.
@@ -725,6 +770,8 @@ class _ImportSummaryData {
   final int cardsLinked;
   final int cardsUpdated;
   final int cardsRemoved;
+  final int cardTemplatesCreated;
+  final int questionTemplatesCreated;
 
   const _ImportSummaryData({
     required this.totalSets,
@@ -733,6 +780,8 @@ class _ImportSummaryData {
     required this.cardsLinked,
     required this.cardsUpdated,
     required this.cardsRemoved,
+    this.cardTemplatesCreated = 0,
+    this.questionTemplatesCreated = 0,
   });
 }
 
@@ -751,7 +800,9 @@ class _ImportSummaryDialog extends StatelessWidget {
     final successColor = isDark ? Colors.green[300]! : Colors.green[700]!;
     final warningColor = isDark ? Colors.orange[300]! : Colors.orange[700]!;
     final s = summary;
-    final hasChanges = s.cardsAdded > 0 || s.cardsLinked > 0 || s.cardsUpdated > 0 || s.cardsRemoved > 0;
+    final hasChanges = s.cardsAdded > 0 || s.cardsLinked > 0 ||
+        s.cardsUpdated > 0 || s.cardsRemoved > 0 ||
+        s.cardTemplatesCreated > 0 || s.questionTemplatesCreated > 0;
 
     return AlertDialog(
       title: Row(
@@ -800,6 +851,20 @@ class _ImportSummaryDialog extends StatelessWidget {
               Icons.remove_circle_outline,
               '${s.cardsRemoved} card${s.cardsRemoved == 1 ? '' : 's'} removed from sets',
               color: theme.colorScheme.error,
+            ),
+          if (s.cardTemplatesCreated > 0)
+            _summaryRow(
+              theme,
+              Icons.copy_all_outlined,
+              '${s.cardTemplatesCreated} card template${s.cardTemplatesCreated == 1 ? '' : 's'} created',
+              color: successColor,
+            ),
+          if (s.questionTemplatesCreated > 0)
+            _summaryRow(
+              theme,
+              Icons.quiz_outlined,
+              '${s.questionTemplatesCreated} question template${s.questionTemplatesCreated == 1 ? '' : 's'} created',
+              color: successColor,
             ),
         ],
       ),

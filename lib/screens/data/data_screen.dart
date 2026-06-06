@@ -369,18 +369,6 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
     }
   }
 
-  String _templateSummaryLabel(int cardTplCount, int questionTplCount) {
-    final parts = <String>[];
-    if (cardTplCount > 0) {
-      parts.add('$cardTplCount card template${cardTplCount == 1 ? '' : 's'}');
-    }
-    if (questionTplCount > 0) {
-      parts.add(
-          '$questionTplCount question template${questionTplCount == 1 ? '' : 's'}');
-    }
-    return '${parts.join(' and ')} will be created';
-  }
-
   @override
   Widget build(BuildContext context) {
     final diffs = widget.analysis.setDiffs;
@@ -423,38 +411,23 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
                 ],
               ),
             ),
-            // New templates line (only shown when the import file defines new ones).
-            if (widget.analysis.totalNewCardTemplates > 0 ||
-                widget.analysis.totalNewQuestionTemplates > 0)
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: Row(
-                  children: [
-                    const Icon(Icons.copy_all_outlined, size: 16),
-                    const SizedBox(width: 8),
-                    Text(
-                      _templateSummaryLabel(
-                        widget.analysis.totalNewCardTemplates,
-                        widget.analysis.totalNewQuestionTemplates,
-                      ),
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
             const Divider(),
 
-            // Per-set diffs.
+            // Templates + per-set diffs in one scrollable list.
             Flexible(
-              child: ListView.builder(
+              child: ListView(
                 shrinkWrap: true,
-                itemCount: diffs.length,
-                itemBuilder: (_, i) => _SetDiffTile(
-                  diff: diffs[i],
-                  showDeletable: _deleteNotInImport,
-                  skipUpdates: _skipUpdates,
-                ),
+                children: [
+                  if (widget.analysis.totalNewCardTemplates > 0 ||
+                      widget.analysis.totalNewQuestionTemplates > 0)
+                    _TemplateDiffSection(analysis: widget.analysis),
+                  for (final diff in diffs)
+                    _SetDiffTile(
+                      diff: diff,
+                      showDeletable: _deleteNotInImport,
+                      skipUpdates: _skipUpdates,
+                    ),
+                ],
               ),
             ),
           ],
@@ -612,6 +585,94 @@ class _SetDiffTileState extends State<_SetDiffTile> {
 
           if (!diff.hasChanges)
             Text('No changes', style: theme.textTheme.bodySmall),
+
+          const Divider(),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Templates section in the preview dialog — new Card and Question Templates.
+// ---------------------------------------------------------------------------
+class _TemplateDiffSection extends StatefulWidget {
+  final ImportAnalysis analysis;
+  const _TemplateDiffSection({required this.analysis});
+
+  @override
+  State<_TemplateDiffSection> createState() => _TemplateDiffSectionState();
+}
+
+class _TemplateDiffSectionState extends State<_TemplateDiffSection> {
+  bool _cardTplExpanded = false;
+  bool _questionTplExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final successColor = isDark ? Colors.green[300]! : Colors.green[700]!;
+    final cts = widget.analysis.newCardTemplates;
+    final qts = widget.analysis.newQuestionTemplates;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.copy_all_outlined, size: 18),
+              const SizedBox(width: 6),
+              Text('Templates', style: theme.textTheme.titleSmall),
+            ],
+          ),
+          const SizedBox(height: 6),
+
+          if (cts.isNotEmpty)
+            _ExpandableCountRow(
+              icon: Icons.add_circle_outline,
+              color: successColor,
+              label: '${cts.length} new card template${cts.length == 1 ? '' : 's'}',
+              expanded: _cardTplExpanded,
+              onTap: () =>
+                  setState(() => _cardTplExpanded = !_cardTplExpanded),
+              children: cts.map((t) {
+                final name = t['name'] as String? ?? '';
+                final qs = (t['questions'] as List?)?.length ?? 0;
+                final desc = t['description'] as String?;
+                return _CardSummaryTile(
+                  primary: name,
+                  secondary: desc ?? '$qs question${qs == 1 ? '' : 's'}',
+                );
+              }).toList(),
+            ),
+
+          if (qts.isNotEmpty)
+            _ExpandableCountRow(
+              icon: Icons.add_circle_outline,
+              color: successColor,
+              label: '${qts.length} new question template${qts.length == 1 ? '' : 's'}',
+              expanded: _questionTplExpanded,
+              onTap: () => setState(
+                  () => _questionTplExpanded = !_questionTplExpanded),
+              children: qts.map((t) {
+                final name = t['name'] as String? ?? '';
+                final importId = t['templateId'] as String?;
+                final q = t['question'] as Map<String, dynamic>? ?? {};
+                final typeLabel = switch (q['type'] as String? ?? '') {
+                  'text_input' => 'Text input',
+                  'multiple_choice' => 'Multiple choice',
+                  'word_order' => 'Word order',
+                  _ => 'Question',
+                };
+                final secondary = importId != null
+                    ? '##$importId  ·  $typeLabel'
+                    : typeLabel;
+                return _CardSummaryTile(primary: name, secondary: secondary);
+              }).toList(),
+            ),
 
           const Divider(),
         ],

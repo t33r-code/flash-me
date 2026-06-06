@@ -192,14 +192,23 @@ class _DataScreenState extends ConsumerState<DataScreen> {
     );
 
     try {
+      // Fetch templates directly from repositories — don't rely on cached
+      // stream state, which may be AsyncLoading if the Templates tab hasn't
+      // been opened yet.
+      final cardTemplates = await ref
+          .read(templateRepositoryProvider)
+          .watchUserTemplates(uid)
+          .first;
+      final questionTemplates = await ref
+          .read(questionTemplateRepositoryProvider)
+          .getUserTemplates(uid);
+
       final path = await ref.read(exportServiceProvider).exportSets(
             sets: selected,
             userId: uid,
             cardSetRepo: ref.read(cardSetRepositoryProvider),
-            cardTemplates:
-                ref.read(userTemplatesProvider).asData?.value ?? [],
-            questionTemplates:
-                ref.read(userQuestionTemplatesProvider).asData?.value ?? [],
+            cardTemplates: cardTemplates,
+            questionTemplates: questionTemplates,
           );
 
       if (!mounted) return;

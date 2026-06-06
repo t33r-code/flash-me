@@ -100,10 +100,22 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   // Exports the set as a self-contained ZIP archive.
   Future<void> _exportSet(CardSet liveSet) async {
     setState(() => _isExporting = true);
+    final uid = ref.read(authStateProvider).asData?.value ?? '';
     final cards =
         ref.read(cardsInSetProvider(widget.cardSet.id)).asData?.value ?? [];
+    // Fetch templates directly from repositories — don't rely on cached
+    // stream state, which may be AsyncLoading if the Templates tab hasn't
+    // been opened yet.
+    final cardTemplates = await ref
+        .read(templateRepositoryProvider)
+        .watchUserTemplates(uid)
+        .first;
+    final questionTemplates = await ref
+        .read(questionTemplateRepositoryProvider)
+        .getUserTemplates(uid);
 
     // Show a non-dismissible progress dialog while the archive is built.
+    if (!mounted) return;
     showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -124,10 +136,8 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
           .exportSet(
             liveSet,
             cards,
-            cardTemplates:
-                ref.read(userTemplatesProvider).asData?.value ?? [],
-            questionTemplates:
-                ref.read(userQuestionTemplatesProvider).asData?.value ?? [],
+            cardTemplates: cardTemplates,
+            questionTemplates: questionTemplates,
           );
       if (mounted) {
         Navigator.of(context).pop(); // dismiss progress dialog

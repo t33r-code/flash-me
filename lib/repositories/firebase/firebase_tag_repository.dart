@@ -4,6 +4,9 @@ import 'package:flash_me/repositories/tag_repository.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/helpers.dart';
 
+// upsertTag and decrementTag are designed to be called fire-and-forget
+// (without await) from card/set save flows. Errors are logged but not
+// rethrown so a tag count failure never blocks a content write.
 class FirebaseTagRepository implements TagRepository {
   final FirebaseFirestore _firestore;
   FirebaseTagRepository({FirebaseFirestore? firestore})
@@ -17,31 +20,39 @@ class FirebaseTagRepository implements TagRepository {
     final normalized = AppHelpers.normalizeTag(rawTag);
     if (normalized.isEmpty) return;
     final docRef = _col.doc(normalized);
-
-    // Transactional upsert: create on first use (preserves displayName casing),
-    // increment on subsequent uses (displayName and createdBy are immutable).
-    await _firestore.runTransaction((tx) async {
-      final snap = await tx.get(docRef);
-      if (!snap.exists) {
-        tx.set(docRef, {
-          'normalizedName': normalized,
-          'displayName': rawTag.trim(),
-          'usageCount': 1,
-          'createdAt': FieldValue.serverTimestamp(),
-          'createdBy': userId,
-        });
-      } else {
-        tx.update(docRef, {'usageCount': FieldValue.increment(1)});
-      }
-    });
+    try {
+      // Transactional upsert: create on first use (preserves displayName casing),
+      // increment on subsequent uses (displayName and createdBy are immutable).
+      await _firestore.runTransaction((tx) async {
+        final snap = await tx.get(docRef);
+        if (!snap.exists) {
+          tx.set(docRef, {
+            'normalizedName': normalized,
+            'displayName': rawTag.trim(),
+            'usageCount': 1,
+            'createdAt': FieldValue.serverTimestamp(),
+            'createdBy': userId,
+          });
+        } else {
+          tx.update(docRef, {'usageCount': FieldValue.increment(1)});
+        }
+      });
+    } catch (e) {
+      // Non-fatal: a missed increment means a slightly off count, not data loss.
+      AppHelpers.logTagError('upsertTag', normalized, e);
+    }
   }
 
   @override
   Future<void> decrementTag(String normalizedTag) async {
     if (normalizedTag.isEmpty) return;
-    await _col.doc(normalizedTag).update({
-      'usageCount': FieldValue.increment(-1),
-    });
+    try {
+      await _col.doc(normalizedTag).update({
+        'usageCount': FieldValue.increment(-1),
+      });
+    } catch (e) {
+      AppHelpers.logTagError('decrementTag', normalizedTag, e);
+    }
   }
 
   @override

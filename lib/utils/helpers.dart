@@ -32,6 +32,12 @@ class AppHelpers {
   static String normalizeTag(String input) {
     return input.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '-');
   }
+
+  // Log a non-fatal tag write failure. Called from fire-and-forget upsert/
+  // decrement paths where the error must not propagate to the caller.
+  static void logTagError(String operation, String tag, Object error) {
+    AppLogger.warning('Tag $operation failed for "$tag": $error');
+  }
 }
 
 class AppValidators {

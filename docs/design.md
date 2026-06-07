@@ -837,6 +837,36 @@ spanish-verbs-export.zip
 **JSON format notes:**
 - The `questions` key replaced the legacy `fields` key; both are accepted on import for backward compatibility.
 - Trailing commas before `]` or `}` are tolerated in hand-authored files.
+- Exported ZIPs include all of the exporting user's Card Templates and Question Templates as top-level `cardTemplates` and `questionTemplates` arrays. Example top-level structure:
+
+```json
+{
+  "version": "1.0",
+  "exportDate": "2026-06-07T00:00:00.000Z",
+  "cardTemplates": [
+    {
+      "name": "Spanish Verb",
+      "questions": [
+        { "type": "text_input", "prompt": "1st person", "content": { "hint": null, "exactMatch": false } }
+      ]
+    }
+  ],
+  "questionTemplates": [
+    {
+      "name": "Gender",
+      "templateId": "gender",
+      "question": {
+        "type": "multiple_choice",
+        "prompt": "Gender",
+        "content": { "options": ["MA", "MI", "F", "N"] }
+      }
+    }
+  ],
+  "sets": [ ... ]
+}
+```
+
+Both arrays are omitted when empty. Templates are stripped of Firestore IDs and ownership fields; the importer assigns fresh IDs and sets `createdBy` to the importing user's UID.
 
 #### Import Shorthand for Question Templates { #import-shorthand }
 
@@ -865,6 +895,7 @@ This shorthand is an alternative to the full question definition — both forms 
 - Include all cards in set with all field types and content
 - Include set metadata (name, description, tags, color)
 - Include version number for future compatibility
+- Include all of the user's Card Templates and Question Templates as top-level arrays (not filtered to only referenced templates)
 
 #### Import Functionality
 
@@ -876,15 +907,17 @@ This shorthand is an alternative to the full question definition — both forms 
 2. Selects a `.zip` file from device
 3. System extracts and validates the archive structure
 4. Preview dialog shows:
-   - Number of sets to import
-   - Number of cards in each set
+   - New Card Templates and Question Templates that will be created (collapsible, with name, type, and Import ID)
+   - Number of sets to import / per-set card changes
    - Any validation warnings/errors
 5. User can:
    - Proceed with import (creates new sets)
    - Edit set names before import
    - Choose to merge with existing set (optional)
-6. System creates set(s) and cards in Firestore
-7. Success confirmation with import summary
+6. System creates any new templates first, then set(s) and cards in Firestore
+   - Card Templates deduped by name; Question Templates deduped by Import ID (then name)
+   - Existing templates are left unchanged; only genuinely new ones are created
+7. Success confirmation with import summary (cards and templates created)
 
 **Data Validation During Import:**
 - ZIP structure check (contains `cards.json`)

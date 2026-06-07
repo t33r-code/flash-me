@@ -336,6 +336,15 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 - [x] Add unit tests for validation and diff logic *(covered in Phase 7 unit-tests pass)*
 - [ ] Test full round-trip (export → import → verify data integrity) (deferred — requires Firebase emulator setup) *(→ deferred to Alpha 0.2)*
 
+##### Phase 6d — Template export/import (complete)
+- [x] Export includes all user Card Templates and Question Templates as top-level `cardTemplates`/`questionTemplates` arrays in `cards.json` (both single-set and bulk export)
+- [x] Templates fetched directly from repositories at export time (not from cached stream state)
+- [x] Import analyze: parses templates from JSON root; deduplicates against DB (QT by Import ID then name, CT by name); JSON-defined QTs added to `##templateId` lookup map so cards in the same file can reference them before they exist in Firestore
+- [x] Import execute: creates new Question Templates before Card Templates before cards
+- [x] Import preview: collapsible Templates section shows new card and question templates (name, type, Import ID) above the per-set diffs
+- [x] Import summary: counts card and question templates created
+- [x] Template providers invalidated after import so Templates screen reflects new templates immediately
+
 **Deliverable**: Account-level Data screen with bulk import/export; full round-trip for single and multi-set ZIPs covering all field types and media.
 
 ---

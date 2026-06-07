@@ -66,6 +66,9 @@ scripts/serviceAccountKey.json
 scripts/node_modules/
 scripts/package-lock.json
 
+# Development data files (local CSVs, generated JSON/ZIP for import testing)
+scripts/development/
+
 # Root-level node_modules / lock file (accidental npm runs in project root)
 /node_modules/
 /package-lock.json

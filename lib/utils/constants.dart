@@ -11,6 +11,7 @@ class AppConstants {
   static const String setCardsCollection = 'setCards'; // many-to-many join: set ↔ card
   static const String templatesCollection = 'templates';
   static const String questionTemplatesCollection = 'questionTemplates';
+  static const String tagsCollection = 'tags';
   static const String studySessionsSubcollection = 'studySessions';
   static const String cardMarksSubcollection = 'cardMarks'; // users/{uid}/cardMarks/{cardId}
   static const String questionResultsSubcollection = 'questionResults'; // users/{uid}/questionResults/{cardId}_{fieldId}

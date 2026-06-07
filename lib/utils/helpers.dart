@@ -25,6 +25,15 @@ class AppLogger {
   }
 }
 
+class AppHelpers {
+  // Normalise a raw tag string to its canonical Firestore document ID form:
+  // trim whitespace, lowercase, collapse runs of whitespace to a single hyphen.
+  // Returns an empty string if the result is empty (caller should discard it).
+  static String normalizeTag(String input) {
+    return input.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '-');
+  }
+}
+
 class AppValidators {
   static String? validateEmail(String? email) {
     if (email == null || email.isEmpty) {

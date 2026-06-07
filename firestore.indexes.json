@@ -93,20 +93,6 @@
       ]
     },
     {
-      "collectionGroup": "tags",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "normalizedName", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "tags",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "usageCount", "order": "DESCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "cards",
       "queryScope": "COLLECTION",
       "fields": [

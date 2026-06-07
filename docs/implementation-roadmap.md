@@ -222,11 +222,11 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 - [x] Deploy `tags` collection security rules (read: any authed user; create: authed + `usageCount=1` constraint; update: count-only, `displayName`/`createdBy`/`normalizedName` immutable; delete: never)
 - [x] Deploy Firestore indexes: `normalizedName ASC` (prefix queries), `usageCount DESC` (popularity), composite `(createdBy, tags[])` on `cards`, composite `(userId, tags[])` on `sets`
 
-###### 4d-2 — Data Layer *(→ deferred to Alpha 0.2)*
-- [ ] Implement `normalizeTag(String input) → String` utility in `AppHelpers`
-- [ ] Implement `TagRepository` abstract interface: `upsertTag`, `decrementTag`, `searchTags(prefix)`
-- [ ] Implement `FirebaseTagRepository`
-- [ ] Add `tagRepositoryProvider` and `tagSearchProvider.family` to provider layer
+###### 4d-2 — Data Layer ✅
+- [x] Implement `normalizeTag(String input) → String` utility in `AppHelpers`
+- [x] Implement `TagRepository` abstract interface: `upsertTag`, `decrementTag`, `searchTags(prefix)`
+- [x] Implement `FirebaseTagRepository`
+- [x] Add `tagRepositoryProvider` and `tagSearchProvider.family` to provider layer
 
 ###### 4d-3 — Content Lifecycle Hooks *(→ deferred to Alpha 0.2)*
 - [ ] Card create/edit: diff old vs new tags → upsert added, decrement removed
@@ -535,11 +535,11 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [x] Deploy `tags` collection security rules (read: any authed user; create: authed + `usageCount=1` constraint; update: count-only, `displayName`/`createdBy`/`normalizedName` immutable; delete: never)
 - [x] Deploy Firestore indexes: `normalizedName ASC` (prefix queries), `usageCount DESC` (popularity), composite `(createdBy, tags[])` on `cards`, composite `(userId, tags[])` on `sets`
 
-#### 4d-2 — Data Layer
-- [ ] Implement `normalizeTag(String input) → String` utility in `AppHelpers`
-- [ ] Implement `TagRepository` abstract interface: `upsertTag`, `decrementTag`, `searchTags(prefix)`
-- [ ] Implement `FirebaseTagRepository`
-- [ ] Add `tagRepositoryProvider` and `tagSearchProvider.family` to provider layer
+#### 4d-2 — Data Layer ✅
+- [x] Implement `normalizeTag(String input) → String` utility in `AppHelpers`
+- [x] Implement `TagRepository` abstract interface: `upsertTag`, `decrementTag`, `searchTags(prefix)`
+- [x] Implement `FirebaseTagRepository`
+- [x] Add `tagRepositoryProvider` and `tagSearchProvider.family` to provider layer
 
 #### 4d-3 — Content Lifecycle Hooks
 - [ ] Card create/edit: diff old vs new tags → upsert added, decrement removed

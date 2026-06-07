@@ -212,28 +212,39 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 - [ ] Search / filter within set detail view *(→ deferred to Alpha 0.2)*
 - [ ] Search / filter on My Cards screen (search bar is already stubbed) *(→ deferred to Alpha 0.2)*
 
-##### Phase 4d — Global Tag System (deferred to after Phase 5)
+##### Phase 4d — Global Tag System (deferred to Alpha 0.2)
 
 **Rationale for deferral:** Tag infrastructure is a prerequisite for Phase 4c (tag-based filtering) and for the long-term marketplace feature, but does not block Phase 5 (Study Mode). Implementing it after Phase 5 allows Study Mode — the core value proposition — to ship sooner while the tag system is built correctly without time pressure.
 
 **Design summary:** Tags are stored in a global Firestore collection (`tags/{normalizedName}`) shared across all users. The document ID is the normalized form of the tag (lowercase, trimmed, spaces collapsed to hyphens). A `usageCount` field is maintained as tags are added/removed across all content types. The autocomplete widget queries this collection with a prefix filter. Full design in [docs/design.md — Tag System](design.md#tag-system).
 
-- [ ] Create `tags` Firestore collection; deploy security rules (read: any authed user; create/update: authed user with constraints; delete: never) *(→ deferred to Alpha 0.2)*
-- [ ] Add Firestore indexes for prefix queries (`normalizedName ASC`) and array-contains tag filters on `cards` and `sets` *(→ deferred to Alpha 0.2)*
-- [ ] Implement `normalizeTag(String input) → String` utility in `AppHelpers` *(→ deferred to Alpha 0.2)*
-- [ ] Implement `TagRepository` abstract interface with: `upsertTag`, `decrementTag`, `searchTags(prefix)` *(→ deferred to Alpha 0.2)*
-- [ ] Implement `FirebaseTagRepository` *(→ deferred to Alpha 0.2)*
-- [ ] Add `tagRepositoryProvider` and `tagSearchProvider.family` to provider layer *(→ deferred to Alpha 0.2)*
-- [ ] Build shared `TagInputField` widget: debounced autocomplete, chip display, comma-paste, Enter-to-create *(→ deferred to Alpha 0.2)*
-- [ ] Replace current chip-input on `CardFormScreen` with `TagInputField` *(→ deferred to Alpha 0.2)*
-- [ ] Replace current chip-input on `SetFormScreen` with `TagInputField` *(→ deferred to Alpha 0.2)*
-- [ ] Update card save/edit to diff old vs new tags and call upsert/decrement accordingly *(→ deferred to Alpha 0.2)*
-- [ ] Update set save/edit to diff old vs new tags similarly *(→ deferred to Alpha 0.2)*
-- [ ] Update card delete to decrement all tags on the deleted card *(→ deferred to Alpha 0.2)*
-- [ ] Update set delete to decrement all tags on the deleted set *(→ deferred to Alpha 0.2)*
-- [ ] Update import flow (Phase 6) to run upsert for every imported tag *(→ deferred to Alpha 0.2)*
-- [ ] Deploy updated Firestore rules and indexes *(→ deferred to Alpha 0.2)*
-- [ ] Wire tag filter into Phase 4c (My Cards and My Sets screens) *(→ deferred to Alpha 0.2)*
+###### 4d-1 — Firestore Infrastructure *(→ deferred to Alpha 0.2)*
+- [ ] Deploy `tags` collection security rules (read: any authed user; create: authed + `usageCount=1` constraint; update: count-only, `displayName`/`createdBy`/`normalizedName` immutable; delete: never)
+- [ ] Deploy Firestore indexes: `normalizedName ASC` (prefix queries), `usageCount DESC` (popularity), composite `(createdBy, tags[])` on `cards`, composite `(userId, tags[])` on `sets`
+
+###### 4d-2 — Data Layer *(→ deferred to Alpha 0.2)*
+- [ ] Implement `normalizeTag(String input) → String` utility in `AppHelpers`
+- [ ] Implement `TagRepository` abstract interface: `upsertTag`, `decrementTag`, `searchTags(prefix)`
+- [ ] Implement `FirebaseTagRepository`
+- [ ] Add `tagRepositoryProvider` and `tagSearchProvider.family` to provider layer
+
+###### 4d-3 — Content Lifecycle Hooks *(→ deferred to Alpha 0.2)*
+- [ ] Card create/edit: diff old vs new tags → upsert added, decrement removed
+- [ ] Set create/edit: same
+- [ ] Card delete: decrement all tags on the card
+- [ ] Set delete: decrement all tags on the set
+- [ ] Import: upsert every tag on every imported card and set
+
+###### 4d-4 — TagInputField Widget *(→ deferred to Alpha 0.2)*
+- [ ] Build shared `TagInputField`: debounced autocomplete (~300ms), chip display, comma-paste, Enter-to-create, `usageCount >= 2` threshold
+- [ ] Replace chip-input on `CardFormScreen` with `TagInputField`
+- [ ] Replace chip-input on `SetFormScreen` with `TagInputField`
+
+###### 4d-5 — Search & Filter (Phase 4c) *(→ deferred to Alpha 0.2)*
+- [ ] Tag filter on My Cards screen (search bar already stubbed)
+- [ ] Tag filter on My Sets screen
+- [ ] Name search on My Cards and My Sets screens
+- [ ] Sort options (name, last updated, card count) on sets
 
 **Deliverable**: Complete set management with card organization.
 
@@ -520,30 +531,33 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 
 **Design summary:** Tags stored in `tags/{normalizedName}` (global, shared across users). Document ID is the normalized tag. `usageCount` maintained on add/remove. Autocomplete queries with a prefix filter. Full design in [docs/design.md — Tag System](design.md#tag-system).
 
-- [ ] Create `tags` Firestore collection; deploy security rules (read: any authed user; create/update: authed user with constraints; delete: never)
-- [ ] Add Firestore indexes for prefix queries (`normalizedName ASC`) and array-contains tag filters on `cards` and `sets`
+#### 4d-1 — Firestore Infrastructure
+- [ ] Deploy `tags` collection security rules (read: any authed user; create: authed + `usageCount=1` constraint; update: count-only, `displayName`/`createdBy`/`normalizedName` immutable; delete: never)
+- [ ] Deploy Firestore indexes: `normalizedName ASC` (prefix queries), `usageCount DESC` (popularity), composite `(createdBy, tags[])` on `cards`, composite `(userId, tags[])` on `sets`
+
+#### 4d-2 — Data Layer
 - [ ] Implement `normalizeTag(String input) → String` utility in `AppHelpers`
-- [ ] Implement `TagRepository` abstract interface with: `upsertTag`, `decrementTag`, `searchTags(prefix)`
+- [ ] Implement `TagRepository` abstract interface: `upsertTag`, `decrementTag`, `searchTags(prefix)`
 - [ ] Implement `FirebaseTagRepository`
 - [ ] Add `tagRepositoryProvider` and `tagSearchProvider.family` to provider layer
-- [ ] Build shared `TagInputField` widget: debounced autocomplete, chip display, comma-paste, Enter-to-create
-- [ ] Replace current chip-input on `CardFormScreen` with `TagInputField`
-- [ ] Replace current chip-input on `SetFormScreen` with `TagInputField`
-- [ ] Update card save/edit to diff old vs new tags and call upsert/decrement accordingly
-- [ ] Update set save/edit to diff old vs new tags similarly
-- [ ] Update card delete to decrement all tags on the deleted card
-- [ ] Update set delete to decrement all tags on the deleted set
-- [ ] Update import flow to run upsert for every imported tag
-- [ ] Deploy updated Firestore rules and indexes
 
-### Search & Filter (Phase 4c) — requires Global Tag System
+#### 4d-3 — Content Lifecycle Hooks
+- [ ] Card create/edit: diff old vs new tags → upsert added, decrement removed
+- [ ] Set create/edit: same
+- [ ] Card delete: decrement all tags on the card
+- [ ] Set delete: decrement all tags on the set
+- [ ] Import: upsert every tag on every imported card and set
 
-- [ ] Search sets by name
-- [ ] Filter sets by tag
-- [ ] Sort options (by name, last updated, card count)
-- [ ] Search / filter within set detail view
-- [ ] Search / filter on My Cards screen (search bar already stubbed)
-- [ ] Wire tag filter into My Cards and My Sets screens
+#### 4d-4 — TagInputField Widget
+- [ ] Build shared `TagInputField`: debounced autocomplete (~300ms), chip display, comma-paste, Enter-to-create, `usageCount >= 2` threshold
+- [ ] Replace chip-input on `CardFormScreen` with `TagInputField`
+- [ ] Replace chip-input on `SetFormScreen` with `TagInputField`
+
+#### 4d-5 — Search & Filter (Phase 4c)
+- [ ] Tag filter on My Cards screen (search bar already stubbed)
+- [ ] Tag filter on My Sets screen
+- [ ] Name search on My Cards and My Sets screens
+- [ ] Sort options (name, last updated, card count) on sets
 
 ### Study Enhancements
 - [ ] Set summary results improvement — richer breakdown on the session summary screen (e.g. per-field question results, time-per-card)

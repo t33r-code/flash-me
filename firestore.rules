@@ -76,6 +76,23 @@ service cloud.firestore {
           request.resource.data.createdBy == request.auth.uid;
     }
 
+    // Tags are global — any authenticated user can read (needed for autocomplete
+    // across accounts and for future marketplace discovery).
+    // Only the coining user can create; usageCount is the only mutable field
+    // after creation; hard deletion by clients is never permitted.
+    match /tags/{normalizedName} {
+      allow read: if isAuth();
+      allow create: if isAuth()
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.usageCount == 1;
+      // displayName, createdBy, and normalizedName are immutable after creation.
+      allow update: if isAuth()
+          && request.resource.data.displayName == resource.data.displayName
+          && request.resource.data.createdBy  == resource.data.createdBy
+          && request.resource.data.normalizedName == resource.data.normalizedName;
+      allow delete: if false;
+    }
+
     // Workbook cards follow the same read policy as flash cards above.
     match /workbookCards/{cardId} {
       allow read: if isAuth();

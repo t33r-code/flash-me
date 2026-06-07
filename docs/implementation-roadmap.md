@@ -218,9 +218,9 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 
 **Design summary:** Tags are stored in a global Firestore collection (`tags/{normalizedName}`) shared across all users. The document ID is the normalized form of the tag (lowercase, trimmed, spaces collapsed to hyphens). A `usageCount` field is maintained as tags are added/removed across all content types. The autocomplete widget queries this collection with a prefix filter. Full design in [docs/design.md — Tag System](design.md#tag-system).
 
-###### 4d-1 — Firestore Infrastructure *(→ deferred to Alpha 0.2)*
-- [ ] Deploy `tags` collection security rules (read: any authed user; create: authed + `usageCount=1` constraint; update: count-only, `displayName`/`createdBy`/`normalizedName` immutable; delete: never)
-- [ ] Deploy Firestore indexes: `normalizedName ASC` (prefix queries), `usageCount DESC` (popularity), composite `(createdBy, tags[])` on `cards`, composite `(userId, tags[])` on `sets`
+###### 4d-1 — Firestore Infrastructure ✅
+- [x] Deploy `tags` collection security rules (read: any authed user; create: authed + `usageCount=1` constraint; update: count-only, `displayName`/`createdBy`/`normalizedName` immutable; delete: never)
+- [x] Deploy Firestore indexes: `normalizedName ASC` (prefix queries), `usageCount DESC` (popularity), composite `(createdBy, tags[])` on `cards`, composite `(userId, tags[])` on `sets`
 
 ###### 4d-2 — Data Layer *(→ deferred to Alpha 0.2)*
 - [ ] Implement `normalizeTag(String input) → String` utility in `AppHelpers`
@@ -531,9 +531,9 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 
 **Design summary:** Tags stored in `tags/{normalizedName}` (global, shared across users). Document ID is the normalized tag. `usageCount` maintained on add/remove. Autocomplete queries with a prefix filter. Full design in [docs/design.md — Tag System](design.md#tag-system).
 
-#### 4d-1 — Firestore Infrastructure
-- [ ] Deploy `tags` collection security rules (read: any authed user; create: authed + `usageCount=1` constraint; update: count-only, `displayName`/`createdBy`/`normalizedName` immutable; delete: never)
-- [ ] Deploy Firestore indexes: `normalizedName ASC` (prefix queries), `usageCount DESC` (popularity), composite `(createdBy, tags[])` on `cards`, composite `(userId, tags[])` on `sets`
+#### 4d-1 — Firestore Infrastructure ✅
+- [x] Deploy `tags` collection security rules (read: any authed user; create: authed + `usageCount=1` constraint; update: count-only, `displayName`/`createdBy`/`normalizedName` immutable; delete: never)
+- [x] Deploy Firestore indexes: `normalizedName ASC` (prefix queries), `usageCount DESC` (popularity), composite `(createdBy, tags[])` on `cards`, composite `(userId, tags[])` on `sets`
 
 #### 4d-2 — Data Layer
 - [ ] Implement `normalizeTag(String input) → String` utility in `AppHelpers`

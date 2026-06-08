@@ -43,6 +43,11 @@ class _TagInputFieldState extends ConsumerState<TagInputField> {
   // The query actually sent to Firestore — updated 300ms after the last
   // keystroke so we don't open a new listener on every character.
   String _query = '';
+  // Hides the suggestion list after the field blurs. Visibility is NOT gated
+  // directly on focus: tapping a suggestion blurs the field, and tearing the
+  // list down on that blur would cancel the tap before onTap fires. Instead we
+  // hide on a short delay so a pending tap completes first.
+  bool _suppressSuggestions = false;
 
   @override
   void initState() {
@@ -60,7 +65,19 @@ class _TagInputFieldState extends ConsumerState<TagInputField> {
     super.dispose();
   }
 
-  void _onFocusChanged() => setState(() {});
+  void _onFocusChanged() {
+    if (_focusNode.hasFocus) {
+      setState(() => _suppressSuggestions = false);
+    } else {
+      // Delay hiding so a tap on a suggestion is processed first (the tap
+      // re-requests focus, which cancels the suppression).
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (mounted && !_focusNode.hasFocus) {
+          setState(() => _suppressSuggestions = true);
+        }
+      });
+    }
+  }
 
   void _onTextChanged(String value) {
     // A comma commits everything before it; the remainder stays in the field.
@@ -83,7 +100,12 @@ class _TagInputFieldState extends ConsumerState<TagInputField> {
   void _scheduleQuery(String value) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
-      if (mounted) setState(() => _query = value.trim());
+      if (mounted) {
+        setState(() {
+          _query = value.trim();
+          _suppressSuggestions = false; // typing re-shows suggestions
+        });
+      }
     });
   }
 
@@ -118,7 +140,7 @@ class _TagInputFieldState extends ConsumerState<TagInputField> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final showSuggestions = widget.enabled &&
-        _focusNode.hasFocus &&
+        !_suppressSuggestions &&
         _query.isNotEmpty;
 
     return Column(

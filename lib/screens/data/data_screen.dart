@@ -10,6 +10,7 @@ import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/export_provider.dart';
 import 'package:flash_me/providers/import_provider.dart';
 import 'package:flash_me/providers/question_template_provider.dart';
+import 'package:flash_me/providers/tag_provider.dart';
 import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/utils/exceptions.dart';
 
@@ -338,6 +339,7 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
             templateRepo: widget.ref.read(templateRepositoryProvider),
             questionTemplateRepo:
                 widget.ref.read(questionTemplateRepositoryProvider),
+            tagRepo: widget.ref.read(tagRepositoryProvider),
           );
       // Force all cardsInSetProvider streams to re-subscribe so updated card
       // data (questions, correctIndex, etc.) is reflected immediately.

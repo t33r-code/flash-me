@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
+import 'package:flash_me/providers/tag_provider.dart';
+import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/widgets/language_picker.dart';
 
 // ---------------------------------------------------------------------------
@@ -85,6 +87,12 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
     try {
       final uid = ref.read(authStateProvider).asData?.value ?? '';
       final repo = ref.read(cardSetRepositoryProvider);
+      final tagRepo = ref.read(tagRepositoryProvider);
+
+      final normalizedTags = _tags
+          .map(AppHelpers.normalizeTag)
+          .where((t) => t.isNotEmpty)
+          .toList();
 
       if (!_isEditing) {
         await repo.createSet(CardSet(
@@ -97,22 +105,27 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
           cardCount: 0,
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
-          tags: _tags,
+          tags: normalizedTags,
           color: _selectedColor,
           nativeLanguage: _nativeLanguage,
           targetLanguage: _targetLanguage,
         ));
+        for (final tag in normalizedTags) { tagRepo.upsertTag(tag, uid); }
       } else {
+        final (toUpsert, toDecrement) =
+            AppHelpers.diffTags(widget.cardSet!.tags, normalizedTags);
         await repo.updateSet(widget.cardSet!.copyWith(
           name: _nameController.text.trim(),
           description: _descController.text.trim().isEmpty
               ? null
               : _descController.text.trim(),
-          tags: _tags,
+          tags: normalizedTags,
           color: _selectedColor,
           nativeLanguage: _nativeLanguage,
           targetLanguage: _targetLanguage,
         ));
+        for (final tag in toUpsert) { tagRepo.upsertTag(tag, uid); }
+        for (final norm in toDecrement) { tagRepo.decrementTag(norm); }
       }
       if (mounted) {
         setState(() => _isSaving = false);

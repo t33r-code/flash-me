@@ -8,6 +8,8 @@ import 'package:flash_me/models/card_template.dart';
 import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_provider.dart';
+import 'package:flash_me/providers/tag_provider.dart';
+import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/providers/language_provider.dart';
 import 'package:flash_me/providers/storage_provider.dart';
 import 'package:flash_me/providers/question_template_provider.dart';
@@ -626,8 +628,16 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
     setState(() => _isSaving = true);
     try {
       final uid = ref.read(authStateProvider).asData?.value ?? '';
+      final tagRepo = ref.read(tagRepositoryProvider);
       final questions = _questions.map((q) => q.toQuestion()).toList();
       final media = await _resolveMediaUrls();
+
+      // Normalise tags before writing to Firestore so the stored value
+      // matches the global tags/{normalizedName} document ID.
+      final normalizedTags = _tags
+          .map(AppHelpers.normalizeTag)
+          .where((t) => t.isNotEmpty)
+          .toList();
 
       if (!_isEditing) {
         await ref.read(cardRepositoryProvider).createCard(
@@ -639,7 +649,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
                 primaryAudioUrl: media.audioUrl,
                 primaryWordHidden: _primaryWordHidden,
                 questions: questions,
-                tags: _tags,
+                tags: normalizedTags,
                 nativeLanguage: _nativeLanguage,
                 targetLanguage: _targetLanguage,
                 createdAt: DateTime.now(),
@@ -651,7 +661,14 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
         ref.read(lastUsedLanguagesProvider.notifier).set(
               (native: _nativeLanguage, target: _targetLanguage),
             );
+        // Upsert all tags — fire-and-forget so a count failure never
+        // blocks the card save.
+        for (final tag in normalizedTags) {
+          tagRepo.upsertTag(tag, uid);
+        }
       } else {
+        final (toUpsert, toDecrement) =
+            AppHelpers.diffTags(widget.card!.tags, normalizedTags);
         await ref.read(cardRepositoryProvider).updateCard(
               widget.card!.copyWith(
                 primaryWord: _primaryWordController.text.trim(),
@@ -660,11 +677,13 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
                 primaryAudioUrl: media.audioUrl,
                 primaryWordHidden: _primaryWordHidden,
                 questions: questions,
-                tags: _tags,
+                tags: normalizedTags,
                 nativeLanguage: _nativeLanguage,
                 targetLanguage: _targetLanguage,
               ),
             );
+        for (final tag in toUpsert) { tagRepo.upsertTag(tag, uid); }
+        for (final norm in toDecrement) { tagRepo.decrementTag(norm); }
       }
       if (mounted) {
         setState(() => _isSaving = false);
@@ -721,9 +740,16 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
     if (confirmed != true || !mounted) return;
     setState(() => _isSaving = true);
     try {
+      // Capture tags before deleting — decrement fire-and-forget after.
+      final tagsToDecrement = widget.card!.tags
+          .map(AppHelpers.normalizeTag)
+          .where((t) => t.isNotEmpty)
+          .toList();
+      final tagRepo = ref.read(tagRepositoryProvider);
       await ref
           .read(cardRepositoryProvider)
           .deleteCard(widget.card!.id);
+      for (final norm in tagsToDecrement) { tagRepo.decrementTag(norm); }
       if (mounted) {
         setState(() => _isSaving = false);
         Navigator.of(context).pop();

@@ -33,6 +33,23 @@ class AppHelpers {
     return input.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '-');
   }
 
+  // Diff two tag lists and return which tags were added and which removed.
+  // Both sides are normalised before comparison so casing differences are
+  // treated as the same tag.  Returns (toUpsert, toDecrement) where:
+  //   toUpsert   — normalised names present in [newTags] but not [oldTags]
+  //   toDecrement — normalised names present in [oldTags] but not [newTags]
+  static (List<String>, List<String>) diffTags(
+      List<String> oldTags, List<String> newTags) {
+    final oldNorm =
+        oldTags.map(normalizeTag).where((t) => t.isNotEmpty).toSet();
+    final newNorm =
+        newTags.map(normalizeTag).where((t) => t.isNotEmpty).toSet();
+    return (
+      newNorm.difference(oldNorm).toList(),
+      oldNorm.difference(newNorm).toList(),
+    );
+  }
+
   // Log a non-fatal tag write failure. Called from fire-and-forget upsert/
   // decrement paths where the error must not propagate to the caller.
   static void logTagError(String operation, String tag, Object error) {

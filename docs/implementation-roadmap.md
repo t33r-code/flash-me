@@ -228,12 +228,12 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 - [x] Implement `FirebaseTagRepository`
 - [x] Add `tagRepositoryProvider` and `tagSearchProvider.family` to provider layer
 
-###### 4d-3 — Content Lifecycle Hooks *(→ deferred to Alpha 0.2)*
-- [ ] Card create/edit: diff old vs new tags → upsert added, decrement removed
-- [ ] Set create/edit: same
-- [ ] Card delete: decrement all tags on the card
-- [ ] Set delete: decrement all tags on the set
-- [ ] Import: upsert every tag on every imported card and set
+###### 4d-3 — Content Lifecycle Hooks ✅
+- [x] Card create/edit: diff old vs new tags → upsert added, decrement removed
+- [x] Set create/edit: same
+- [x] Card delete: decrement all tags on the card
+- [x] Set delete: decrement all tags on the set
+- [x] Import: upsert every tag on new cards; diff tags on updated cards
 
 ###### 4d-4 — TagInputField Widget *(→ deferred to Alpha 0.2)*
 - [ ] Build shared `TagInputField`: debounced autocomplete (~300ms), chip display, comma-paste, Enter-to-create, `usageCount >= 2` threshold
@@ -541,12 +541,12 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [x] Implement `FirebaseTagRepository`
 - [x] Add `tagRepositoryProvider` and `tagSearchProvider.family` to provider layer
 
-#### 4d-3 — Content Lifecycle Hooks
-- [ ] Card create/edit: diff old vs new tags → upsert added, decrement removed
-- [ ] Set create/edit: same
-- [ ] Card delete: decrement all tags on the card
-- [ ] Set delete: decrement all tags on the set
-- [ ] Import: upsert every tag on every imported card and set
+#### 4d-3 — Content Lifecycle Hooks ✅
+- [x] Card create/edit: diff old vs new tags → upsert added, decrement removed
+- [x] Set create/edit: same
+- [x] Card delete: decrement all tags on the card
+- [x] Set delete: decrement all tags on the set
+- [x] Import: upsert every tag on new cards; diff tags on updated cards
 
 #### 4d-4 — TagInputField Widget
 - [ ] Build shared `TagInputField`: debounced autocomplete (~300ms), chip display, comma-paste, Enter-to-create, `usageCount >= 2` threshold

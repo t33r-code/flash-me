@@ -8,8 +8,10 @@ import 'package:flash_me/providers/card_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/export_provider.dart';
 import 'package:flash_me/providers/question_template_provider.dart';
+import 'package:flash_me/providers/tag_provider.dart';
 import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/providers/workbook_card_provider.dart';
+import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/screens/sets/set_form_screen.dart';
 import 'package:flash_me/screens/study/study_setup_screen.dart';
 import 'package:flash_me/utils/constants.dart';
@@ -57,9 +59,15 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     setState(() => _isDeleting = true);
     try {
       final uid = ref.read(authStateProvider).asData?.value ?? '';
+      final tagsToDecrement = widget.cardSet.tags
+          .map(AppHelpers.normalizeTag)
+          .where((t) => t.isNotEmpty)
+          .toList();
+      final tagRepo = ref.read(tagRepositoryProvider);
       await ref
           .read(cardSetRepositoryProvider)
           .deleteSet(widget.cardSet.id, uid);
+      for (final norm in tagsToDecrement) { tagRepo.decrementTag(norm); }
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
       if (mounted) {

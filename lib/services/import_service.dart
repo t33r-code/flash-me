@@ -12,9 +12,11 @@ import 'package:flash_me/models/question_template.dart';
 import 'package:flash_me/repositories/card_repository.dart';
 import 'package:flash_me/repositories/card_set_repository.dart';
 import 'package:flash_me/repositories/question_template_repository.dart';
+import 'package:flash_me/repositories/tag_repository.dart';
 import 'package:flash_me/repositories/template_repository.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/exceptions.dart';
+import 'package:flash_me/utils/helpers.dart';
 
 // ---------------------------------------------------------------------------
 // ImportService — parses a ZIP archive, diffs it against Firestore, and
@@ -165,6 +167,7 @@ class ImportService {
     required CardRepository cardRepo,
     required TemplateRepository templateRepo,
     required QuestionTemplateRepository questionTemplateRepo,
+    required TagRepository tagRepo,
   }) async {
     // Create new Question Templates first so they exist for future imports.
     for (final rawQt in analysis.newQuestionTemplates) {
@@ -212,6 +215,7 @@ class ImportService {
           cardId: card.id,
           userId: userId,
         );
+        for (final tag in entry.data.tags) { tagRepo.upsertTag(tag, userId); }
       }
 
       // Link library cards to the set — no card creation needed.
@@ -234,6 +238,8 @@ class ImportService {
               ? await _uploadMedia(
                   analysis.archive, entry.incoming.mediaAudioPath, userId)
               : entry.existing.primaryAudioUrl;
+          final (toUpsert, toDecrement) =
+              AppHelpers.diffTags(entry.existing.tags, entry.incoming.tags);
           await cardRepo.updateCard(entry.existing.copyWith(
             translation: entry.incoming.translation,
             primaryWordHidden: entry.incoming.primaryWordHidden,
@@ -244,6 +250,8 @@ class ImportService {
             tags: entry.incoming.tags,
             updatedAt: DateTime.now(),
           ));
+          for (final tag in toUpsert) { tagRepo.upsertTag(tag, userId); }
+          for (final norm in toDecrement) { tagRepo.decrementTag(norm); }
         }
       }
 

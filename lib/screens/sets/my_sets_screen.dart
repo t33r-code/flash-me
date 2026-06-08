@@ -5,25 +5,204 @@ import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/screens/sets/set_detail_screen.dart';
 import 'package:flash_me/screens/sets/set_form_screen.dart';
 
-class MySetsScreen extends ConsumerWidget {
+enum _SortOrder { updated, name, cardCount }
+
+class MySetsScreen extends ConsumerStatefulWidget {
   const MySetsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MySetsScreen> createState() => _MySetsScreenState();
+}
+
+class _MySetsScreenState extends ConsumerState<MySetsScreen> {
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+  String? _selectedTag;
+  _SortOrder _sortOrder = _SortOrder.updated;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<String> _allTags(List<CardSet> sets) {
+    final tags = <String>{};
+    for (final s in sets) { tags.addAll(s.tags); }
+    final sorted = tags.toList()..sort();
+    return sorted;
+  }
+
+  List<CardSet> _filterAndSort(List<CardSet> sets) {
+    var result = sets;
+    if (_selectedTag != null) {
+      result = result.where((s) => s.tags.contains(_selectedTag)).toList();
+    }
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      result = result
+          .where((s) => s.name.toLowerCase().contains(q))
+          .toList();
+    }
+    switch (_sortOrder) {
+      case _SortOrder.updated:
+        result.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      case _SortOrder.name:
+        result.sort((a, b) =>
+            a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      case _SortOrder.cardCount:
+        result.sort((a, b) => b.cardCount.compareTo(a.cardCount));
+    }
+    return result;
+  }
+
+  String get _sortLabel => switch (_sortOrder) {
+        _SortOrder.updated => 'Last updated',
+        _SortOrder.name => 'Name',
+        _SortOrder.cardCount => 'Card count',
+      };
+
+  @override
+  Widget build(BuildContext context) {
     final setsAsync = ref.watch(userSetsProvider);
+    final allSets = setsAsync.asData?.value ?? [];
+    final allTags = _allTags(allSets);
+    final displaySets = _filterAndSort(allSets);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Sets')),
-      body: setsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => const Center(child: Text('Failed to load sets.')),
-        data: (sets) => sets.isEmpty
-            ? const _EmptyState()
-            : ListView.builder(
-                padding: const EdgeInsets.all(8),
-                itemCount: sets.length,
-                itemBuilder: (ctx, i) => _SetTile(cardSet: sets[i]),
+      appBar: AppBar(
+        title: const Text('My Sets'),
+        actions: [
+          // Sort menu — only shown once sets are loaded.
+          if (allSets.isNotEmpty)
+            PopupMenuButton<_SortOrder>(
+              icon: const Icon(Icons.sort),
+              tooltip: 'Sort by',
+              initialValue: _sortOrder,
+              onSelected: (v) => setState(() => _sortOrder = v),
+              itemBuilder: (_) => [
+                _sortItem(_SortOrder.updated, 'Last updated', Icons.access_time),
+                _sortItem(_SortOrder.name, 'Name', Icons.sort_by_alpha),
+                _sortItem(_SortOrder.cardCount, 'Card count', Icons.numbers),
+              ],
+            ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Search bar.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search sets…',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => setState(() {
+                          _searchController.clear();
+                          _searchQuery = '';
+                        }),
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(28),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
               ),
+              onChanged: (v) => setState(() => _searchQuery = v.trim()),
+            ),
+          ),
+
+          // Tag filter chips.
+          if (allTags.isNotEmpty)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  FilterChip(
+                    label: const Text('All'),
+                    selected: _selectedTag == null,
+                    onSelected: (_) => setState(() => _selectedTag = null),
+                  ),
+                  const SizedBox(width: 8),
+                  ...allTags.map((tag) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          label: Text(tag),
+                          selected: _selectedTag == tag,
+                          onSelected: (_) => setState(
+                              () => _selectedTag =
+                                  _selectedTag == tag ? null : tag),
+                        ),
+                      )),
+                ],
+              ),
+            ),
+
+          // Active sort label — subtle indicator below the chips.
+          if (allSets.isNotEmpty)
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+              child: Row(
+                children: [
+                  Icon(Icons.sort, size: 14,
+                      color:
+                          Theme.of(context).colorScheme.onSurfaceVariant),
+                  const SizedBox(width: 4),
+                  Text(
+                    _sortLabel,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+
+          Expanded(
+            child: setsAsync.when(
+              loading: () =>
+                  const Center(child: CircularProgressIndicator()),
+              error: (_, _) =>
+                  const Center(child: Text('Failed to load sets.')),
+              data: (_) {
+                if (allSets.isEmpty) return const _EmptyState();
+                if (displaySets.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text(
+                        'No sets match your search.',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.all(8),
+                  itemCount: displaySets.length,
+                  itemBuilder: (ctx, i) =>
+                      _SetTile(cardSet: displaySets[i]),
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: null,
@@ -35,6 +214,25 @@ class MySetsScreen extends ConsumerWidget {
       ),
     );
   }
+
+  PopupMenuItem<_SortOrder> _sortItem(
+          _SortOrder value, String label, IconData icon) =>
+      PopupMenuItem(
+        value: value,
+        child: Row(
+          children: [
+            Icon(icon, size: 18),
+            const SizedBox(width: 10),
+            Text(label),
+            if (_sortOrder == value) ...[
+              const Spacer(),
+              Icon(Icons.check,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.primary),
+            ],
+          ],
+        ),
+      );
 }
 
 // ---------------------------------------------------------------------------
@@ -94,17 +292,11 @@ class _SetTile extends StatelessWidget {
     final diff = today.difference(d).inDays;
     if (diff == 0) return 'Today';
     if (diff == 1) return 'Yesterday';
-    if (dt.year == now.year) {
-      const months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-      ];
-      return '${months[dt.month - 1]} ${dt.day}';
-    }
     const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
+    if (dt.year == now.year) return '${months[dt.month - 1]} ${dt.day}';
     return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
   }
 
@@ -183,16 +375,13 @@ class _SetTile extends StatelessWidget {
                 ),
               ),
 
-              // Right info column: language (top) · card count · date (bottom).
-              // Uses spaceBetween so the date is always pushed to the bottom of
-              // the tile regardless of how many lines the left content has.
+              // Right info column: language · card count · date.
               Padding(
                 padding: const EdgeInsets.fromLTRB(0, 6, 8, 6),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Top group: language badge (if set) above card count.
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
@@ -209,7 +398,6 @@ class _SetTile extends StatelessWidget {
                         ),
                       ],
                     ),
-                    // Bottom: last updated date.
                     Text(
                       _relativeDate(cardSet.updatedAt),
                       style: textTheme.bodySmall
@@ -219,7 +407,6 @@ class _SetTile extends StatelessWidget {
                 ),
               ),
 
-              // Chevron affordance.
               const Icon(Icons.chevron_right, size: 20),
               const SizedBox(width: 4),
             ],

@@ -66,6 +66,15 @@ Tags help you organise and filter cards. Start typing in the tags field and Flas
 
 Tags are stored in a simplified form — lowercased with spaces turned into hyphens (e.g. *Spanish Verbs* becomes *spanish-verbs*) — so the same tag always matches regardless of how it was typed.
 
+### Searching & Filtering Cards { #card-search }
+
+The **My Cards** screen has a search bar and tag filter row at the top.
+
+- **Search** — type any part of a card's primary word, translation, or prompt to narrow the list instantly.
+- **Tag filter** — tap a tag chip to show only cards with that tag. Tap it again (or tap **All**) to clear the filter.
+
+Search and tag filter work together — you can, for example, search for "hab" while filtered to "spanish-verbs".
+
 ### Editing a Flash Card { #edit-card }
 
 Tap any card in the **Cards** list to open it in the editor. All fields, languages, and tags can be changed. Tap **Save** to confirm.

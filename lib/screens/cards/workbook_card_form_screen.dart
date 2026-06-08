@@ -4,9 +4,12 @@ import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/workbook_card.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/language_provider.dart';
+import 'package:flash_me/providers/tag_provider.dart';
 import 'package:flash_me/providers/workbook_card_provider.dart';
 import 'package:flash_me/utils/constants.dart';
+import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/widgets/language_picker.dart';
+import 'package:flash_me/widgets/tag_input_field.dart';
 
 // ---------------------------------------------------------------------------
 // _QuestionState — mutable holder for one workbook question while the form
@@ -206,7 +209,6 @@ class _WorkbookCardFormScreenState
     extends ConsumerState<WorkbookCardFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _promptController;
-  final _tagInputController = TextEditingController();
 
   List<String> _tags = [];
   final List<_QuestionState> _questions = [];
@@ -239,7 +241,6 @@ class _WorkbookCardFormScreenState
   @override
   void dispose() {
     _promptController.dispose();
-    _tagInputController.dispose();
     for (final q in _questions) {
       q.dispose();
     }
@@ -263,19 +264,6 @@ class _WorkbookCardFormScreenState
       _questions.insert(to, q);
     });
   }
-
-  void _addTag(String input) {
-    final parts =
-        input.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty);
-    setState(() {
-      for (final tag in parts) {
-        if (!_tags.contains(tag)) _tags.add(tag);
-      }
-    });
-    _tagInputController.clear();
-  }
-
-  void _removeTag(String tag) => setState(() => _tags.remove(tag));
 
   // --- Multiple choice option management ------------------------------------
 
@@ -381,7 +369,14 @@ class _WorkbookCardFormScreenState
     setState(() => _isSaving = true);
     try {
       final uid = ref.read(authStateProvider).asData?.value ?? '';
+      final tagRepo = ref.read(tagRepositoryProvider);
       final questions = _questions.map((q) => q.toQuestion()).toList();
+
+      // Normalise tags so stored values match tags/{normalizedName} doc IDs.
+      final normalizedTags = _tags
+          .map(AppHelpers.normalizeTag)
+          .where((t) => t.isNotEmpty)
+          .toList();
 
       if (!_isEditing) {
         final now = DateTime.now();
@@ -390,7 +385,7 @@ class _WorkbookCardFormScreenState
                 id: '',
                 prompt: _promptController.text.trim(),
                 questions: questions,
-                tags: _tags,
+                tags: normalizedTags,
                 nativeLanguage: _nativeLanguage,
                 targetLanguage: _targetLanguage,
                 createdAt: now,
@@ -401,16 +396,22 @@ class _WorkbookCardFormScreenState
         ref.read(lastUsedLanguagesProvider.notifier).set(
               (native: _nativeLanguage, target: _targetLanguage),
             );
+        // Fire-and-forget tag upserts so a count failure never blocks save.
+        for (final tag in normalizedTags) { tagRepo.upsertTag(tag, uid); }
       } else {
+        final (toUpsert, toDecrement) =
+            AppHelpers.diffTags(widget.card!.tags, normalizedTags);
         await ref.read(workbookCardRepositoryProvider).updateCard(
               widget.card!.copyWith(
                 prompt: _promptController.text.trim(),
                 questions: questions,
-                tags: _tags,
+                tags: normalizedTags,
                 nativeLanguage: _nativeLanguage,
                 targetLanguage: _targetLanguage,
               ),
             );
+        for (final tag in toUpsert) { tagRepo.upsertTag(tag, uid); }
+        for (final norm in toDecrement) { tagRepo.decrementTag(norm); }
       }
       if (mounted) {
         setState(() => _isSaving = false);
@@ -452,9 +453,15 @@ class _WorkbookCardFormScreenState
     if (confirmed != true || !mounted) return;
     setState(() => _isSaving = true);
     try {
+      final tagsToDecrement = widget.card!.tags
+          .map(AppHelpers.normalizeTag)
+          .where((t) => t.isNotEmpty)
+          .toList();
+      final tagRepo = ref.read(tagRepositoryProvider);
       await ref
           .read(workbookCardRepositoryProvider)
           .deleteCard(widget.card!.id);
+      for (final norm in tagsToDecrement) { tagRepo.decrementTag(norm); }
       if (mounted) {
         setState(() => _isSaving = false);
         Navigator.of(context).pop();
@@ -888,33 +895,10 @@ class _WorkbookCardFormScreenState
                 Text('Tags',
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
-                if (_tags.isNotEmpty) ...[
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: _tags
-                        .map((tag) => Chip(
-                              label: Text(tag),
-                              onDeleted: () => _removeTag(tag),
-                            ))
-                        .toList(),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                TextField(
-                  controller: _tagInputController,
-                  decoration: InputDecoration(
-                    hintText: 'Type a tag and press Enter',
-                    prefixIcon: const Icon(Icons.label_outline),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.add),
-                      onPressed: () => _addTag(_tagInputController.text),
-                    ),
-                  ),
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: _addTag,
+                TagInputField(
+                  tags: _tags,
+                  enabled: !_isSaving,
+                  onChanged: (updated) => setState(() => _tags = updated),
                 ),
 
                 // --- Questions --------------------------------------------

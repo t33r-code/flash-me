@@ -235,10 +235,11 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 - [x] Set delete: decrement all tags on the set
 - [x] Import: upsert every tag on new cards; diff tags on updated cards
 
-###### 4d-4 — TagInputField Widget *(→ deferred to Alpha 0.2)*
-- [ ] Build shared `TagInputField`: debounced autocomplete (~300ms), chip display, comma-paste, Enter-to-create, `usageCount >= 2` threshold
-- [ ] Replace chip-input on `CardFormScreen` with `TagInputField`
-- [ ] Replace chip-input on `SetFormScreen` with `TagInputField`
+###### 4d-4 — TagInputField Widget ✅
+- [x] Build shared `TagInputField`: debounced autocomplete (~300ms), chip display, comma-paste, Enter-to-create, `usageCount >= 2` threshold (own tags always shown)
+- [x] Replace chip-input on `CardFormScreen` with `TagInputField`
+- [x] Replace chip-input on `SetFormScreen` with `TagInputField`
+- [x] Replace chip-input on `WorkbookCardFormScreen` + add the 4d-3 lifecycle hooks it was missing (folded in for consistency)
 
 ###### 4d-5 — Search & Filter (Phase 4c) *(→ deferred to Alpha 0.2)*
 - [ ] Tag filter on My Cards screen (search bar already stubbed)
@@ -548,10 +549,11 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [x] Set delete: decrement all tags on the set
 - [x] Import: upsert every tag on new cards; diff tags on updated cards
 
-#### 4d-4 — TagInputField Widget
-- [ ] Build shared `TagInputField`: debounced autocomplete (~300ms), chip display, comma-paste, Enter-to-create, `usageCount >= 2` threshold
-- [ ] Replace chip-input on `CardFormScreen` with `TagInputField`
-- [ ] Replace chip-input on `SetFormScreen` with `TagInputField`
+#### 4d-4 — TagInputField Widget ✅
+- [x] Build shared `TagInputField`: debounced autocomplete (~300ms), chip display, comma-paste, Enter-to-create, `usageCount >= 2` threshold (own tags always shown)
+- [x] Replace chip-input on `CardFormScreen` with `TagInputField`
+- [x] Replace chip-input on `SetFormScreen` with `TagInputField`
+- [x] Replace chip-input on `WorkbookCardFormScreen` + add the 4d-3 lifecycle hooks it was missing (folded in for consistency)
 
 #### 4d-5 — Search & Filter (Phase 4c)
 - [ ] Tag filter on My Cards screen (search bar already stubbed)

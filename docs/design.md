@@ -734,17 +734,19 @@ Active tag pruning (deleting orphans) is explicitly deferred. If it becomes nece
 
 #### TagInputField (shared widget)
 
-A reusable `TagInputField` widget replaces the current ad-hoc chip-input pattern on `CardFormScreen` and `SetFormScreen`. It encapsulates:
+A reusable `TagInputField` widget (`lib/widgets/tag_input_field.dart`) replaces the former ad-hoc chip-input pattern on `CardFormScreen`, `SetFormScreen`, and `WorkbookCardFormScreen`. It encapsulates:
 
-- A `TextField` that queries the global `tags` collection on each keystroke (debounced ~300ms)
-- A dropdown overlay showing up to 10 matching `displayName` suggestions
-- "Press Enter to create new tag" prompt when input matches no suggestion
-- Chip display of already-added tags with `×` delete affordance
-- Comma-paste support (splitting pasted text on `,` into multiple tags)
+- A `TextField` that queries the global `tags` collection (debounced ~300ms; the query state only updates 300ms after the last keystroke so a new Firestore listener isn't opened per character)
+- An inline suggestion list showing up to 10 matching `displayName` results, each with its `usageCount`
+- Threshold filtering: a suggestion is shown if `usageCount >= 2` **or** it was created by the current user (so users always see their own tags, even one-offs, while other users' typos stay hidden)
+- Enter (or the `+` button) to commit the current input as a tag; comma-paste splits into multiple tags
+- Chip display of already-added tags with delete affordance
+
+The parent owns the tag list — the widget calls `onChanged` with the new list on every add/remove. Persisting tags and running the upsert/decrement lifecycle hooks remains the parent screen's responsibility (see Phase 4d-3).
 
 #### Display
 
-Tags are stored as normalized strings but always displayed using their `displayName` from the `tags` collection. The `TagChip` widget resolves display names on render. In lists and detail screens where performance matters, the display name can be derived from a locally cached tag map rather than per-chip Firestore reads.
+New tags are **normalized at input time** and stored in their normalized form, so chips display the canonical value (e.g. `spanish-verbs`). This keeps what the user sees identical to what is stored and to the `tags/{normalizedName}` document ID. Pre-existing un-normalized tags on older content are displayed as-is and converge to normalized form on the next save. Resolving and displaying the prettier `displayName` per chip (via a cached tag map) is a possible future refinement, deferred to avoid per-chip Firestore reads.
 
 ### Import / Export Considerations
 

@@ -7,8 +7,23 @@ import 'package:flash_me/providers/workbook_card_provider.dart';
 import 'package:flash_me/screens/cards/card_form_screen.dart';
 import 'package:flash_me/screens/cards/workbook_card_form_screen.dart';
 
-class MyCardsScreen extends ConsumerWidget {
+class MyCardsScreen extends ConsumerStatefulWidget {
   const MyCardsScreen({super.key});
+
+  @override
+  ConsumerState<MyCardsScreen> createState() => _MyCardsScreenState();
+}
+
+class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+  String? _selectedTag; // null = show all
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   // Shows a bottom sheet letting the user choose Flash Card or Workbook Card.
   void _showCardTypeChooser(BuildContext context) {
@@ -35,7 +50,8 @@ class MyCardsScreen extends ConsumerWidget {
             ListTile(
               leading: const Icon(Icons.style_outlined),
               title: const Text('Flash Card'),
-              subtitle: const Text('Word + translation with optional fields'),
+              subtitle:
+                  const Text('Word + translation with optional fields'),
               onTap: () {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
@@ -46,7 +62,8 @@ class MyCardsScreen extends ConsumerWidget {
             ListTile(
               leading: const Icon(Icons.book_outlined),
               title: const Text('Workbook Card'),
-              subtitle: const Text('Prompt with text, multiple choice, or word order questions'),
+              subtitle: const Text(
+                  'Prompt with text, multiple choice, or word order questions'),
               onTap: () {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
@@ -62,47 +79,125 @@ class MyCardsScreen extends ConsumerWidget {
     );
   }
 
+  // Unique sorted tags from both card lists (full unfiltered data).
+  List<String> _allTags(
+      List<FlashCard> cards, List<WorkbookCard> workbookCards) {
+    final tags = <String>{};
+    for (final c in cards) { tags.addAll(c.tags); }
+    for (final c in workbookCards) { tags.addAll(c.tags); }
+    final sorted = tags.toList()..sort();
+    return sorted;
+  }
+
+  List<FlashCard> _filterFlash(List<FlashCard> cards) {
+    var result = cards;
+    if (_selectedTag != null) {
+      result = result.where((c) => c.tags.contains(_selectedTag)).toList();
+    }
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      result = result
+          .where((c) =>
+              c.primaryWord.toLowerCase().contains(q) ||
+              c.translation.toLowerCase().contains(q))
+          .toList();
+    }
+    return result;
+  }
+
+  List<WorkbookCard> _filterWorkbook(List<WorkbookCard> cards) {
+    var result = cards;
+    if (_selectedTag != null) {
+      result = result.where((c) => c.tags.contains(_selectedTag)).toList();
+    }
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      result = result
+          .where((c) => c.prompt.toLowerCase().contains(q))
+          .toList();
+    }
+    return result;
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final cardsAsync = ref.watch(userCardsProvider);
     final workbookCardsAsync = ref.watch(userWorkbookCardsProvider);
+
+    final allCards = cardsAsync.asData?.value ?? [];
+    final allWorkbook = workbookCardsAsync.asData?.value ?? [];
+    final allTags = _allTags(allCards, allWorkbook);
+
+    final filteredCards = _filterFlash(allCards);
+    final filteredWorkbook = _filterWorkbook(allWorkbook);
 
     return Scaffold(
       appBar: AppBar(title: const Text('My Cards')),
       body: Column(
         children: [
-          // Search bar — full-text search wired up in a future subphase.
+          // Search bar.
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: TextField(
-              enabled: false,
+              controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search cards...',
+                hintText: 'Search cards…',
                 prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => setState(() {
+                          _searchController.clear();
+                          _searchQuery = '';
+                        }),
+                      )
+                    : null,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(28),
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
               ),
+              onChanged: (v) => setState(() => _searchQuery = v.trim()),
             ),
           ),
-          // Tag filter chips — wired up in a future subphase.
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Row(
-              children: [
-                FilterChip(
-                  label: const Text('All tags'),
-                  selected: true,
-                  onSelected: (_) {},
-                ),
-              ],
+
+          // Tag filter chips — only rendered when there are tags to show.
+          if (allTags.isNotEmpty)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  FilterChip(
+                    label: const Text('All'),
+                    selected: _selectedTag == null,
+                    onSelected: (_) => setState(() => _selectedTag = null),
+                  ),
+                  const SizedBox(width: 8),
+                  ...allTags.map((tag) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          label: Text(tag),
+                          selected: _selectedTag == tag,
+                          onSelected: (_) => setState(
+                              () => _selectedTag =
+                                  _selectedTag == tag ? null : tag),
+                        ),
+                      )),
+                ],
+              ),
             ),
-          ),
+
           Expanded(
-            child: _buildCardList(context, cardsAsync, workbookCardsAsync),
+            child: _buildCardList(
+                context,
+                cardsAsync.isLoading || workbookCardsAsync.isLoading,
+                cardsAsync.hasError || workbookCardsAsync.hasError,
+                filteredCards,
+                filteredWorkbook,
+                allCards.isEmpty && allWorkbook.isEmpty),
           ),
         ],
       ),
@@ -115,37 +210,38 @@ class MyCardsScreen extends ConsumerWidget {
     );
   }
 
-  // Combines flash cards and workbook cards into a single scrollable list.
-  // Flash cards are shown first (ordered by update time from the provider),
-  // workbook cards below.
   Widget _buildCardList(
     BuildContext context,
-    AsyncValue<List<FlashCard>> cardsAsync,
-    AsyncValue<List<WorkbookCard>> workbookCardsAsync,
+    bool isLoading,
+    bool hasError,
+    List<FlashCard> cards,
+    List<WorkbookCard> workbookCards,
+    bool isEmpty,
   ) {
-    if (cardsAsync.isLoading || workbookCardsAsync.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (cardsAsync.hasError || workbookCardsAsync.hasError) {
-      return const Center(child: Text('Failed to load cards.'));
-    }
-
-    final cards = cardsAsync.asData?.value ?? [];
-    final workbookCards = workbookCardsAsync.asData?.value ?? [];
+    if (isLoading) return const Center(child: CircularProgressIndicator());
+    if (hasError) return const Center(child: Text('Failed to load cards.'));
+    if (isEmpty) return const _EmptyState();
 
     if (cards.isEmpty && workbookCards.isEmpty) {
-      return const _EmptyState();
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text(
+            'No cards match your search.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
     }
 
-    // Build a unified list: flash card tiles then workbook card tiles.
     final itemCount = cards.length + workbookCards.length;
     return ListView.builder(
       padding: const EdgeInsets.all(8),
       itemCount: itemCount,
       itemBuilder: (ctx, i) {
-        if (i < cards.length) {
-          return _FlashCardTile(card: cards[i]);
-        }
+        if (i < cards.length) return _FlashCardTile(card: cards[i]);
         return _WorkbookCardTile(card: workbookCards[i - cards.length]);
       },
     );
@@ -241,8 +337,7 @@ class _WorkbookCardTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
     final qCount = card.questions.length;
-    final subtitle =
-        '$qCount question${qCount == 1 ? '' : 's'}';
+    final subtitle = '$qCount question${qCount == 1 ? '' : 's'}';
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(

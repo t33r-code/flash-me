@@ -241,11 +241,11 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 - [x] Replace chip-input on `SetFormScreen` with `TagInputField`
 - [x] Replace chip-input on `WorkbookCardFormScreen` + add the 4d-3 lifecycle hooks it was missing (folded in for consistency)
 
-###### 4d-5 — Search & Filter (Phase 4c) *(→ deferred to Alpha 0.2)*
-- [ ] Tag filter on My Cards screen (search bar already stubbed)
-- [ ] Tag filter on My Sets screen
-- [ ] Name search on My Cards and My Sets screens
-- [ ] Sort options (name, last updated, card count) on sets
+###### 4d-5 — Search & Filter (Phase 4c) ✅
+- [x] Tag filter on My Cards screen (search bar already stubbed)
+- [x] Tag filter on My Sets screen
+- [x] Name search on My Cards and My Sets screens
+- [x] Sort options (name, last updated, card count) on sets
 
 **Deliverable**: Complete set management with card organization.
 
@@ -555,11 +555,11 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [x] Replace chip-input on `SetFormScreen` with `TagInputField`
 - [x] Replace chip-input on `WorkbookCardFormScreen` + add the 4d-3 lifecycle hooks it was missing (folded in for consistency)
 
-#### 4d-5 — Search & Filter (Phase 4c)
-- [ ] Tag filter on My Cards screen (search bar already stubbed)
-- [ ] Tag filter on My Sets screen
-- [ ] Name search on My Cards and My Sets screens
-- [ ] Sort options (name, last updated, card count) on sets
+#### 4d-5 — Search & Filter (Phase 4c) ✅
+- [x] Tag filter on My Cards screen (search bar already stubbed)
+- [x] Tag filter on My Sets screen
+- [x] Name search on My Cards and My Sets screens
+- [x] Sort options (name, last updated, card count) on sets
 
 ### Study Enhancements
 - [ ] Set summary results improvement — richer breakdown on the session summary screen (e.g. per-field question results, time-per-card)

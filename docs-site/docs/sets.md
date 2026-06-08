@@ -48,6 +48,21 @@ See [Study Mode](study.md) for a full walkthrough of sessions.
 
 ---
 
+## Searching, Filtering & Sorting Sets { #set-search }
+
+The **My Sets** screen has a search bar, tag filter chips, and a sort menu.
+
+- **Search** — type any part of a set name to narrow the list instantly.
+- **Tag filter** — tap a tag chip to show only sets with that tag. Tap again (or tap **All**) to clear.
+- **Sort** — tap the :material-sort: icon in the top-right corner to choose:
+    - **Last updated** (default) — most recently changed first.
+    - **Name** — alphabetical A → Z.
+    - **Card count** — most cards first.
+
+The active sort order is shown as a small label below the tag chips.
+
+---
+
 ## Editing a Set { #edit-set }
 
 Tap the :material-pencil-outline: **edit icon** in the top-right corner of the set detail screen to change the name, description, colour, tags, or languages.

@@ -10,6 +10,7 @@ import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_provider.dart';
 import 'package:flash_me/providers/tag_provider.dart';
 import 'package:flash_me/utils/helpers.dart';
+import 'package:flash_me/widgets/tag_input_field.dart';
 import 'package:flash_me/providers/language_provider.dart';
 import 'package:flash_me/providers/storage_provider.dart';
 import 'package:flash_me/providers/question_template_provider.dart';
@@ -326,7 +327,6 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _primaryWordController;
   late final TextEditingController _translationController;
-  final _tagInputController = TextEditingController();
 
   List<String> _tags = [];
   final List<_QuestionState> _questions = [];
@@ -384,7 +384,6 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
   void dispose() {
     _primaryWordController.dispose();
     _translationController.dispose();
-    _tagInputController.dispose();
     for (final q in _questions) {
       q.dispose();
     }
@@ -491,19 +490,6 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
       }
     });
   }
-
-  void _addTag(String input) {
-    // Allow multi-tag paste (comma-separated) or single-tag Enter.
-    final parts = input.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty);
-    setState(() {
-      for (final tag in parts) {
-        if (!_tags.contains(tag)) _tags.add(tag);
-      }
-    });
-    _tagInputController.clear();
-  }
-
-  void _removeTag(String tag) => setState(() => _tags.remove(tag));
 
   // Returns the MIME type string for a file extension.
   String _mimeForExt(String ext) => switch (ext.toLowerCase()) {
@@ -1125,33 +1111,10 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
               const SizedBox(height: 24),
               Text('Tags', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              if (_tags.isNotEmpty) ...[
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: _tags
-                      .map((tag) => Chip(
-                            label: Text(tag),
-                            onDeleted: () => _removeTag(tag),
-                          ))
-                      .toList(),
-                ),
-                const SizedBox(height: 8),
-              ],
-              TextField(
-                controller: _tagInputController,
-                decoration: InputDecoration(
-                  hintText: 'Type a tag and press Enter',
-                  prefixIcon: const Icon(Icons.label_outline),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.add),
-                    onPressed: () => _addTag(_tagInputController.text),
-                  ),
-                ),
-                textInputAction: TextInputAction.done,
-                onSubmitted: _addTag,
+              TagInputField(
+                tags: _tags,
+                enabled: !_isSaving,
+                onChanged: (updated) => setState(() => _tags = updated),
               ),
 
               // --- Additional questions ---

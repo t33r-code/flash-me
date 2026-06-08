@@ -62,7 +62,9 @@ Tap the **Native language** or **Target language** pickers to tag a card with it
 
 ### Tags { #card-tags }
 
-Tags help you organise and filter cards. Type a tag in the tags field and press **Enter** to add it. A card can have multiple tags.
+Tags help you organise and filter cards. Start typing in the tags field and Flash Me suggests matching tags that you or other users have already used — tap a suggestion to add it. To create a brand-new tag, type it and press **Enter** (or tap the **+** button). You can paste several comma-separated tags at once, and a card can have any number of tags.
+
+Tags are stored in a simplified form — lowercased with spaces turned into hyphens (e.g. *Spanish Verbs* becomes *spanish-verbs*) — so the same tag always matches regardless of how it was typed.
 
 ### Editing a Flash Card { #edit-card }
 
@@ -140,7 +142,8 @@ Question Templates are useful when the same question recurs across many cards �
 3. Enter a **Prompt** — the text or instruction the learner reads before answering (e.g. *Read the passage and answer the questions below.*).
 4. Tap **Add question** to add your first question.
 5. Choose a [question type](#question-types), fill in the details, and repeat for additional questions.
-6. Tap **Save**.
+6. Optionally add [tags](#card-tags) — the same autocomplete tag field as on Flash Cards.
+7. Tap **Save**.
 
 ### Question Types { #question-types }
 

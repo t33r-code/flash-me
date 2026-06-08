@@ -5,6 +5,7 @@ import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/tag_provider.dart';
 import 'package:flash_me/utils/helpers.dart';
+import 'package:flash_me/widgets/tag_input_field.dart';
 import 'package:flash_me/widgets/language_picker.dart';
 
 // ---------------------------------------------------------------------------
@@ -23,7 +24,6 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _descController;
-  final _tagInputController = TextEditingController();
 
   List<String> _tags = [];
   String? _selectedColor;
@@ -63,22 +63,8 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
-    _tagInputController.dispose();
     super.dispose();
   }
-
-  void _addTag(String input) {
-    final parts =
-        input.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty);
-    setState(() {
-      for (final tag in parts) {
-        if (!_tags.contains(tag)) _tags.add(tag);
-      }
-    });
-    _tagInputController.clear();
-  }
-
-  void _removeTag(String tag) => setState(() => _tags.remove(tag));
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
@@ -284,37 +270,10 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
               // --- Tags ---
               Text('Tags', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              if (_tags.isNotEmpty) ...[
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: _tags
-                      .map((tag) => Chip(
-                            label: Text(tag),
-                            onDeleted:
-                                _isSaving ? null : () => _removeTag(tag),
-                          ))
-                      .toList(),
-                ),
-                const SizedBox(height: 8),
-              ],
-              TextField(
-                controller: _tagInputController,
+              TagInputField(
+                tags: _tags,
                 enabled: !_isSaving,
-                decoration: InputDecoration(
-                  hintText: 'Type a tag and press Enter',
-                  prefixIcon: const Icon(Icons.label_outline),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.add),
-                    onPressed: _isSaving
-                        ? null
-                        : () => _addTag(_tagInputController.text),
-                  ),
-                ),
-                textInputAction: TextInputAction.done,
-                onSubmitted: _isSaving ? null : _addTag,
+                onChanged: (updated) => setState(() => _tags = updated),
               ),
 
               // --- Save / Cancel ---

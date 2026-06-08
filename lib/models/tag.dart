@@ -6,11 +6,13 @@ class Tag {
   final String normalizedName; // document ID — lowercase, hyphens, no spaces
   final String displayName;    // original casing from the user who coined the tag
   final int usageCount;        // total references across all cards and sets
+  final String createdBy;      // uid of the user who first coined the tag
 
   const Tag({
     required this.normalizedName,
     required this.displayName,
     required this.usageCount,
+    required this.createdBy,
   });
 
   factory Tag.fromFirestore(DocumentSnapshot doc) {
@@ -19,6 +21,7 @@ class Tag {
       normalizedName: doc.id,
       displayName: data['displayName'] as String? ?? doc.id,
       usageCount: data['usageCount'] as int? ?? 0,
+      createdBy: data['createdBy'] as String? ?? '',
     );
   }
 }

@@ -561,6 +561,53 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [x] Name search on My Cards and My Sets screens
 - [x] Sort options (name, last updated, card count) on sets
 
+### Marketplace MVP (Phase 8)
+
+**Goal**: Enable creators to offer sets in a public Market; other users can browse and clone them. Subscriptions, moderation, and full search deferred to Beta 0.1.
+
+**Design**: [docs/design.md — Marketplace MVP](design.md#marketplace-mvp)
+
+#### Mk-1 — Firestore Infrastructure
+- [ ] Update `sets` security rules: allow read for any authenticated user when `isPublic == true`
+- [ ] Deploy `setAcquisitions` collection rules: any authenticated user may create a record for themselves; reads restricted to involved user IDs
+- [ ] Deploy Firestore indexes: `sets (isPublic ASC, createdAt DESC)`, `setAcquisitions (originalSetId ASC, acquiredAt DESC)`, `setAcquisitions (acquiredByUserId ASC, acquiredAt DESC)`
+- [ ] Add `acquisitionCount: int` (default 0) to `CardSet` model and Firestore serialisation
+
+#### Mk-2 — Publish / Unpublish
+- [ ] "Offer in Market" action on Set detail screen — opens a bottom sheet with publication options
+- [ ] Initial options: Allow Clone (on by default, not toggleable in this phase — extensible for future types)
+- [ ] Sets `isPublic = true` on the Firestore document
+- [ ] "Remove from Market" (un-publish) action with guard: shows `acquisitionCount` before confirming
+- [ ] Sets `isPublic = false`; does not affect existing acquired copies
+
+#### Mk-3 — Market Tab
+- [ ] Split Sets section into **My Sets** | **Market** tabs (`DefaultTabController`)
+- [ ] Market tab: streams all public sets ordered by `createdAt DESC`
+- [ ] `SetRepository` gains `watchPublicSets()` stream
+- [ ] `publicSetsProvider` Riverpod provider
+- [ ] Market tile: set name, description, tags, card count, language pair, creator display name, acquisition count
+- [ ] Creator display name resolved from `users/{userId}` (one-shot read, cached per tile)
+
+#### Mk-4 — Clone
+- [ ] Dedicated clone confirmation screen (not a generic dialog — structured to accommodate preview details in future iterations)
+- [ ] Clone logic:
+  - Create new `CardSet` under cloner's `userId` (copies name, description, tags, color, language pair)
+  - Flash cards: match existing library card by `[primaryWord, translation]`; link if found, copy if not
+  - Workbook cards: always copy (no reliable dedup key yet — see Mk-5)
+  - Write `setAcquisitions` record
+  - Increment `acquisitionCount` on original set (Firestore `FieldValue.increment(1)`)
+- [ ] Cloned set appears in the cloner's My Sets tab
+- [ ] `SetAcquisitionRepository` abstract interface + `FirebaseSetAcquisitionRepository`
+- [ ] `setAcquisitionRepositoryProvider`
+
+#### Mk-5 — (Fast follow) Card Acquisition Tracking
+- [ ] Design `cardAcquisitions` collection: universal card dedup key independent of card type or field structure
+- [ ] `cardAcquisitions` Firestore rules + indexes
+- [ ] Update clone logic to use `cardAcquisitions` for workbook card dedup and to record card-level provenance
+- [ ] Abstract over card type so any future card type is supported without bespoke dedup logic
+
+---
+
 ### Study Enhancements
 - [ ] Set summary results improvement — richer breakdown on the session summary screen (e.g. per-field question results, time-per-card)
 
@@ -616,35 +663,25 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 
 These features are important but deferred to post-Alpha-launch:
 
-### Marketplace & Lessons
+### Marketplace (full)
 
-> **See [docs/design.md — Marketplace & Lessons](design.md#marketplace--lessons--long-term-vision) for full pre-design notes.**
+> **Alpha 0.2 already delivers publish + browse + clone (Phase 8 above). Beta 0.1 adds the remaining marketplace capabilities.**
+> See [docs/design.md — Marketplace & Lessons](design.md#marketplace--lessons--long-term-vision) for the long-term vision.
 
-The long-term vision for Flash Me is a content marketplace where users can publish sets and lessons for others to discover, study, and build upon. Key planned capabilities:
-
-- **Published Sets** — owners mark sets as public; non-owners can browse, subscribe, or clone
-- **Lessons** — a new content type: an ordered grouping of sets forming a structured learning curriculum (analogous to a course chapter). Requires its own data model, creation UI, and study flow.
-- **Marketplace Discovery** — browse by tag (global tag system), search by name/description (requires external full-text search service: Algolia, Typesense, or Firebase Search Extension), sort by popularity/recency
-- **Subscriptions** — user's library includes subscribed sets; receives updates when owner edits
-- **Cloning** — user gets an independent editable copy; clone provenance recorded for attribution
-- **Creator Tools** — view counts, subscriber counts, clone counts for publishers
+- **Subscriptions** — user's library includes subscribed sets; receives live updates when owner edits
+- **Marketplace Discovery** — search by name/description (requires external full-text search: Algolia, Typesense, or Firebase Search Extension); filter by language, tag, popularity
+- **Creator Tools** — subscriber counts, view counts, full acquisition history dashboard
 - **Content Moderation** — flagging, takedowns, abuse prevention (required before public launch)
+- **Lessons** — a new content type: an ordered grouping of sets forming a structured learning curriculum; own data model, creation UI, and study flow
 
-**Architectural decisions already made in support of this:**
+**Architectural foundations already in place:**
 - Global normalized tag system (Alpha 0.2) — tags converge across users for marketplace search
-- `isPublic` field reserved on `CardSet`
-- `createdBy` on all content types for attribution
+- `isPublic` on `CardSet`, `createdBy` on all content types
+- `setAcquisitions` collection (Alpha 0.2) — designed to cover subscriptions from day one (`acquisitionType` field)
 - `setCards` join collection supports future subscription patterns
-
-**Implementation phasing (future):**
-1. Marketplace Alpha — publish/unpublish; tag + popularity browsing; subscribe + clone
-2. Marketplace Beta — ratings, reviews, moderation
-3. Lessons — data model, creation UI, lesson-level study flow
-4. Creator Analytics & optional monetization design
 
 ### Sharing & Community
 - [ ] Set subscriptions (see Marketplace above)
-- [ ] Set cloning (see Marketplace above)
 - [ ] User profiles and profile management
 - [ ] Social features (ratings, reviews, followers)
 

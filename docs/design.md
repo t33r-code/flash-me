@@ -11,6 +11,7 @@ This document outlines the design for all major features of the Flash Me applica
 - [Study Tab & Study Modes](#study-tab--study-modes)
 - [Use Flash Card Sets (CORE USE CASE)](#use-flash-card-sets-core-use-case)
 - [User Performance Tracking](#user-performance-tracking)
+- [Marketplace MVP (Alpha 0.2)](#marketplace-mvp)
 - [Marketplace & Lessons — Long-Term Vision](#marketplace--lessons--long-term-vision)
 
 ---
@@ -419,10 +420,11 @@ sets/{setId}
   - name: string (required, e.g., "Spanish Verbs")
   - description: string (optional, e.g., "Regular and irregular verbs")
   - cardCount: integer (denormalized counter; increment/decrement on setCards link create/delete)
+  - acquisitionCount: integer (denormalized counter; incremented each time the set is acquired
+                               via clone or subscription — never decremented)
   - createdAt: timestamp
   - updatedAt: timestamp
-  - isPublic: boolean (default false; marks set as discoverable in the marketplace)
-  - cloneable: boolean (default false; isPublic must be true; creator must explicitly opt in)
+  - isPublic: boolean (default false; true means the set appears in the Market tab)
   - tags: array<string> (optional, for organization: ["verbs", "regular"])
   - color: string (optional, for UI differentiation)
   - nativeLanguage: string? (optional, ISO 639-1 code; inherited by cards created within this set)
@@ -1364,9 +1366,90 @@ The document ID `{cardId}_{fieldId}` (two Firestore auto-IDs joined with an unde
 
 ---
 
+## Marketplace MVP (Alpha 0.2) { #marketplace-mvp }
+
+> **Status: Designed, implementation in sub-phases Mk-1 through Mk-5.**
+> This section covers the Alpha 0.2 slice of marketplace functionality: publish, browse, and clone. Subscriptions, ratings, and moderation are deferred to the full marketplace (Beta 0.1).
+
+### Overview
+
+Creators can offer their sets in the Market. Other users can browse public sets and clone them into their own library. Clones are fully independent — the cloner owns their copy and edits do not propagate. Subscription-based live updates are deferred to Beta 0.1.
+
+### Firestore Data Model
+
+#### `setAcquisitions/{id}` — new collection
+
+Records every acquisition event across all acquisition types (clone, and future: subscription, purchase).
+
+```
+setAcquisitions/{id}
+  acquiredByUserId:  string     ← user who acquired the set
+  originalSetId:     string     ← the market set (source of truth)
+  originalUserId:    string     ← the creator
+  acquiredSetId:     string     ← the resulting set in the acquirer's library
+  acquisitionType:   string     ← 'clone' | 'subscription' (extensible)
+  acquiredAt:        timestamp
+```
+
+Query patterns:
+- **Creator report** — who/how many acquired my set: `where('originalSetId', ==, id)`
+- **Acquirer history** — what a user has acquired: `where('acquiredByUserId', ==, uid)`
+- **More from this creator** — read `originalUserId` from any record, query `sets` where `userId == originalUserId && isPublic == true`
+
+`acquisitionCount` on the `CardSet` document is a denormalized counter incremented on every acquisition, used for display in Market tiles without a per-tile count query. It is never decremented (acquisition count = "times acquired", not "currently in others' libraries").
+
+### Publish / Unpublish Flow
+
+Publishing is a dedicated action on the Set detail screen (not a field on the edit form). Tapping "Offer in Market" opens a bottom sheet listing the publication options:
+
+| Option | Default | Notes |
+|---|---|---|
+| Allow Clone | On | The only supported acquisition type in Alpha 0.2 |
+
+The bottom sheet will gain more options (subscription, pricing) in Beta 0.1.
+
+**Un-publishing** shows the current `acquisitionCount` as a guard: *"X users have acquired this set. Un-publishing removes it from the Market but does not affect their copies."* This guard is intentional infrastructure for subscriptions — when subscribed users exist, un-publishing will have live consequences.
+
+### Security Rules
+
+- `sets`: read allowed for any authenticated user when `resource.data.isPublic == true`; write remains owner-only
+- `setAcquisitions`: any authenticated user can create a record for themselves; read and delete restricted to the involved user IDs
+
+### Market Tab
+
+The Sets section is split into two tabs: **My Sets** and **Market**. The Market tab shows all public sets from all users, sorted newest-published first. Each tile shows:
+- Set name, description, tags, card count, language pair
+- Creator display name (from their user profile)
+- Acquisition count
+
+Filtering and search within the Market tab are deferred to Beta 0.1 (requires full-text search infrastructure).
+
+### Clone Operation
+
+Tapping **Clone** on a market set opens a dedicated confirmation screen (not a generic dialog — designed to accommodate preview details in future iterations). Confirming performs:
+
+1. Create a new `CardSet` document under the cloner's `userId` (same name, description, tags, color, language pair)
+2. For each card in the original set:
+   - **Flash cards** — match against the cloner's library by `[primaryWord, translation]`; link existing card if found, copy (new document, `createdBy` = cloner) if not
+   - **Workbook cards** — always copy (no reliable dedup key yet; universal card dedup via `cardAcquisitions` is a fast-follow in Mk-5)
+3. Write a `setAcquisitions` record
+4. Increment `acquisitionCount` on the original set
+
+The cloner's set is fully editable and evolves independently. No ongoing link to the original is maintained in this phase.
+
+### Indexes
+
+```
+setAcquisitions: (originalSetId ASC, acquiredAt DESC)  ← creator report
+setAcquisitions: (acquiredByUserId ASC, acquiredAt DESC)  ← acquirer history
+sets:            (isPublic ASC, createdAt DESC)  ← market browse
+```
+
+---
+
 ## Marketplace & Lessons — Long-Term Vision
 
-> **Status: Pre-design only.** This section documents long-term intent to inform architectural decisions made today. No implementation tasks are assigned yet. Detailed design will be written when development reaches this phase.
+> **Status: Pre-design only.** The Alpha 0.2 slice (publish + clone) is specified in [Marketplace MVP](#marketplace-mvp) above. This section documents the longer-term vision that informed early architectural decisions.
 
 ### Purpose
 

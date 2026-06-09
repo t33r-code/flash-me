@@ -31,10 +31,14 @@ service cloud.firestore {
     }
 
     // setCards join documents are private to the owning user.
-    // userId is stored on the document so we can verify ownership
-    // without reading the parent set or card document.
+    // Reads are also allowed when the parent set is public so that the clone
+    // operation can enumerate cards from another user's market set.
     match /setCards/{linkId} {
-      allow read, update, delete: if isAuth() &&
+      allow read: if isAuth() && (
+          resource.data.userId == request.auth.uid ||
+          get(/databases/$(database)/documents/sets/$(resource.data.setId)).data.isPublic == true
+      );
+      allow update, delete: if isAuth() &&
           resource.data.userId == request.auth.uid;
       allow create: if isAuth() &&
           request.resource.data.userId == request.auth.uid;

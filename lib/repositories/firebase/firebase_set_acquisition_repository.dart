@@ -31,9 +31,11 @@ class FirebaseSetAcquisitionRepository implements SetAcquisitionRepository {
       final sourceSet = CardSet.fromFirestore(sourceDoc);
 
       // --- 2. Read all setCards join docs for the source set ----------------
+      // Include userId so the query uses the existing (setId, userId, addedAt) index.
       final setCardsSnap = await _db
           .collection(AppConstants.setCardsCollection)
           .where('setId', isEqualTo: originalSetId)
+          .where('userId', isEqualTo: sourceSet.userId)
           .orderBy('addedAt')
           .get();
 

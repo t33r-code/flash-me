@@ -375,7 +375,7 @@ class _SetTile extends StatelessWidget {
                 ),
               ),
 
-              // Right info column: language · card count · date.
+              // Right info column: market badge (if public) · language · card count · date.
               Padding(
                 padding: const EdgeInsets.fromLTRB(0, 6, 8, 6),
                 child: Column(
@@ -385,6 +385,24 @@ class _SetTile extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
+                        // "In Market" indicator shown when the set is public.
+                        if (cardSet.isPublic)
+                          Tooltip(
+                            message: 'Offered in Market',
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.storefront,
+                                    size: 12, color: scheme.primary),
+                                const SizedBox(width: 3),
+                                Text(
+                                  'In Market',
+                                  style: textTheme.labelSmall
+                                      ?.copyWith(color: scheme.primary),
+                                ),
+                              ],
+                            ),
+                          ),
                         if (hasLanguage)
                           Text(
                             '${cardSet.targetLanguage!.toUpperCase()} → ${cardSet.nativeLanguage!.toUpperCase()}',

@@ -342,10 +342,12 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
         title: Text(liveSet.name),
         actions: [
           // Market publish/unpublish toggle.
+          // Outlined = private; filled + primary colour = currently in Market.
           IconButton(
-            icon: Icon(liveSet.isPublic
-                ? Icons.storefront
-                : Icons.storefront_outlined),
+            icon: liveSet.isPublic
+                ? Icon(Icons.storefront,
+                    color: Theme.of(context).colorScheme.primary)
+                : const Icon(Icons.storefront_outlined),
             tooltip:
                 liveSet.isPublic ? 'Remove from Market' : 'Offer in Market',
             onPressed: _isPublishing

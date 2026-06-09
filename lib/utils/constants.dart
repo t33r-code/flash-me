@@ -39,6 +39,7 @@ class AppConstants {
 
   // Firestore collection for workbook cards (parallel to cards/).
   static const String workbookCardsCollection = 'workbookCards';
+  static const String setAcquisitionsCollection = 'setAcquisitions';
 
   // Session status
   static const String sessionStatusInProgress = 'in_progress';

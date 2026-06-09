@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
+import 'package:flash_me/screens/sets/clone_confirmation_screen.dart';
 import 'package:flash_me/screens/sets/set_detail_screen.dart';
 import 'package:flash_me/screens/sets/set_form_screen.dart';
 
@@ -680,17 +681,26 @@ class _MarketSetTile extends ConsumerWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Coloured accent bar.
-            if (color != null)
-              Container(width: 6, color: color)
-            else
-              const SizedBox(width: 6),
+      child: InkWell(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CloneConfirmationScreen(
+              marketSet: cardSet,
+              creatorDisplayName: creatorName,
+            ),
+          ),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Coloured accent bar.
+              if (color != null)
+                Container(width: 6, color: color)
+              else
+                const SizedBox(width: 6),
 
-            // Left: name, description, creator, tags.
+              // Left: name, description, creator, tags.
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 12, 8, 10),
@@ -793,7 +803,8 @@ class _MarketSetTile extends ConsumerWidget {
             ),
           ],
         ),
-      ),
+      ), // IntrinsicHeight
+      ), // InkWell
     );
   }
 }

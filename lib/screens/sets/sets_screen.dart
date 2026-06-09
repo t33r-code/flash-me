@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
+import 'package:flash_me/providers/set_acquisition_provider.dart';
 import 'package:flash_me/screens/sets/clone_confirmation_screen.dart';
 import 'package:flash_me/screens/sets/set_detail_screen.dart';
 import 'package:flash_me/screens/sets/set_form_screen.dart';
@@ -665,6 +666,21 @@ class _MarketSetTile extends ConsumerWidget {
     return Color(int.parse('ff$h', radix: 16));
   }
 
+  String _relativeDate(DateTime dt) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final d = DateTime(dt.year, dt.month, dt.day);
+    final diff = today.difference(d).inDays;
+    if (diff == 0) return 'Today';
+    if (diff == 1) return 'Yesterday';
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    if (dt.year == now.year) return '${months[dt.month - 1]} ${dt.day}';
+    return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
@@ -674,9 +690,13 @@ class _MarketSetTile extends ConsumerWidget {
     final hasLanguage =
         cardSet.targetLanguage != null && cardSet.nativeLanguage != null;
 
-    // Fetch creator name; falls back to a plain uid while loading.
+    // Fetch creator name; falls back to '…' while the Firestore read is in-flight.
     final creatorAsync = ref.watch(creatorDisplayNameProvider(cardSet.userId));
     final creatorName = creatorAsync.asData?.value ?? '…';
+
+    // Look up whether the current user has already acquired this set.
+    final acquisitions = ref.watch(userAcquisitionsProvider).asData?.value ?? {};
+    final acquisition = acquisitions[cardSet.id];
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -784,18 +804,40 @@ class _MarketSetTile extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  // Acquisition count with download icon.
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Icon(Icons.download_outlined,
-                          size: 12, color: scheme.onSurfaceVariant),
-                      const SizedBox(width: 3),
-                      Text(
-                        '${cardSet.acquisitionCount}',
-                        style: textTheme.labelSmall
-                            ?.copyWith(color: scheme.onSurfaceVariant),
+                      // Acquisition count with download icon.
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.download_outlined,
+                              size: 12, color: scheme.onSurfaceVariant),
+                          const SizedBox(width: 3),
+                          Text(
+                            '${cardSet.acquisitionCount}',
+                            style: textTheme.labelSmall
+                                ?.copyWith(color: scheme.onSurfaceVariant),
+                          ),
+                        ],
                       ),
+                      // "Cloned on …" / "Subscribed on …" badge.
+                      if (acquisition != null) ...[
+                        const SizedBox(height: 3),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.check_circle_outline,
+                                size: 12, color: scheme.primary),
+                            const SizedBox(width: 3),
+                            Text(
+                              '${acquisition.acquisitionType == 'subscription' ? 'Subscribed' : 'Cloned'} ${_relativeDate(acquisition.acquiredAt)}',
+                              style: textTheme.labelSmall
+                                  ?.copyWith(color: scheme.primary),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ],

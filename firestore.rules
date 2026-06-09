@@ -10,9 +10,11 @@ service cloud.firestore {
       return isAuth() && request.auth.uid == uid;
     }
 
-    // Each user can only read/write their own profile document.
+    // User profiles: any signed-in user can read (display names are shown in
+    // the Market); only the owner can write.
     match /users/{userId} {
-      allow read, write: if isUser(userId);
+      allow read: if isAuth();
+      allow write: if isUser(userId);
 
       // Study sessions are private to the owning user.
       match /studySessions/{sessionId} {

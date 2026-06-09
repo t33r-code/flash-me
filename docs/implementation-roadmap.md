@@ -580,13 +580,13 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [x] "Remove from Market" (un-publish) action with guard: shows `acquisitionCount` before confirming
 - [x] Sets `isPublic = false`; does not affect existing acquired copies
 
-#### Mk-3 — Market Tab
-- [ ] Split Sets section into **My Sets** | **Market** tabs (`DefaultTabController`)
-- [ ] Market tab: streams all public sets ordered by `createdAt DESC`
-- [ ] `SetRepository` gains `watchPublicSets()` stream
-- [ ] `publicSetsProvider` Riverpod provider
-- [ ] Market tile: set name, description, tags, card count, language pair, creator display name, acquisition count
-- [ ] Creator display name resolved from `users/{userId}` (one-shot read, cached per tile)
+#### Mk-3 — Market Tab ✅
+- [x] Split Sets section into **My Sets** | **Market** tabs (`DefaultTabController`)
+- [x] Market tab: streams all public sets ordered by `createdAt DESC`
+- [x] `SetRepository` gains `watchPublicSets()` stream
+- [x] `publicSetsProvider` Riverpod provider
+- [x] Market tile: set name, description, tags, card count, language pair, creator display name, acquisition count
+- [x] Creator display name resolved from `users/{userId}` (one-shot read, cached per tile)
 
 #### Mk-4 — Clone
 - [ ] Dedicated clone confirmation screen (not a generic dialog — structured to accommodate preview details in future iterations)

@@ -46,3 +46,8 @@ final cardsInSetProvider =
   if (uid == null) return Stream.value([]);
   return ref.watch(cardSetRepositoryProvider).watchCardsInSet(setId, uid);
 });
+
+// Streams all public sets ordered by createdAt DESC — drives the Market tab.
+final publicSetsProvider = StreamProvider<List<CardSet>>((ref) {
+  return ref.watch(cardSetRepositoryProvider).watchPublicSets();
+});

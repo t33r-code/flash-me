@@ -55,6 +55,10 @@ abstract class CardSetRepository {
   // Used by the study session builder to construct cardTypeMap for mixed sets.
   Stream<List<SetCard>> watchSetCards(String setId, String userId);
 
+  // Stream all public sets (isPublic == true) ordered by creation date descending.
+  // Used by the Market tab — no userId filter.
+  Stream<List<CardSet>> watchPublicSets();
+
   // Find a set owned by [userId] whose name exactly matches [name].
   // Returns null if no such set exists.
   Future<CardSet?> findSetByName(String name, String userId);

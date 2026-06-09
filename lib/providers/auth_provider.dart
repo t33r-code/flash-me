@@ -22,3 +22,10 @@ final appUserProvider = StreamProvider<AppUser?>((ref) {
   if (uid == null) return Stream.value(null);
   return ref.watch(authRepositoryProvider).watchUser(uid);
 });
+
+// Fetches the display name of any user by uid — used by Market tiles to show
+// the creator's name. Riverpod caches the result per uid for the session.
+final creatorDisplayNameProvider =
+    FutureProvider.family<String?, String>((ref, userId) {
+  return ref.read(authRepositoryProvider).getUserDisplayName(userId);
+});

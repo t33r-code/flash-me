@@ -137,6 +137,16 @@ class FirebaseAuthRepository implements AuthRepository {
     }
   }
 
+  // One-shot read of any user's displayName — used by Market tiles.
+  @override
+  Future<String?> getUserDisplayName(String userId) async {
+    final doc = await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(userId)
+        .get();
+    return doc.data()?['displayName'] as String?;
+  }
+
   // Stream the Firestore user document; used by appUserProvider.
   @override
   Stream<AppUser?> watchUser(String userId) {

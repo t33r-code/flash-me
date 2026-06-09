@@ -289,6 +289,17 @@ class FirebaseCardSetRepository implements CardSetRepository {
         .map((s) => s.docs.map(SetCard.fromFirestore).toList());
   }
 
+  // Stream all public sets ordered by creation date descending — the Market feed.
+  @override
+  Stream<List<CardSet>> watchPublicSets() {
+    return _firestore
+        .collection(AppConstants.setsCollection)
+        .where('isPublic', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((s) => s.docs.map(CardSet.fromFirestore).toList());
+  }
+
   @override
   Future<List<CardSet>> getSetsContainingCard(String cardId, String userId) async {
     try {

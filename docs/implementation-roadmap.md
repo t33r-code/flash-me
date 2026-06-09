@@ -588,17 +588,17 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [x] Market tile: set name, description, tags, card count, language pair, creator display name, acquisition count
 - [x] Creator display name resolved from `users/{userId}` (one-shot read, cached per tile)
 
-#### Mk-4 — Clone
-- [ ] Dedicated clone confirmation screen (not a generic dialog — structured to accommodate preview details in future iterations)
-- [ ] Clone logic:
+#### Mk-4 — Clone ✅
+- [x] Dedicated clone confirmation screen (not a generic dialog — structured to accommodate preview details in future iterations)
+- [x] Clone logic:
   - Create new `CardSet` under cloner's `userId` (copies name, description, tags, color, language pair)
   - Flash cards: match existing library card by `[primaryWord, translation]`; link if found, copy if not
   - Workbook cards: always copy (no reliable dedup key yet — see Mk-5)
   - Write `setAcquisitions` record
   - Increment `acquisitionCount` on original set (Firestore `FieldValue.increment(1)`)
-- [ ] Cloned set appears in the cloner's My Sets tab
-- [ ] `SetAcquisitionRepository` abstract interface + `FirebaseSetAcquisitionRepository`
-- [ ] `setAcquisitionRepositoryProvider`
+- [x] Cloned set appears in the cloner's My Sets tab
+- [x] `SetAcquisitionRepository` abstract interface + `FirebaseSetAcquisitionRepository`
+- [x] `setAcquisitionRepositoryProvider`
 
 #### Mk-5 — (Fast follow) Card Acquisition Tracking
 - [ ] Design `cardAcquisitions` collection: universal card dedup key independent of card type or field structure

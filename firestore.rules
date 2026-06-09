@@ -62,7 +62,13 @@ service cloud.firestore {
       allow read: if isAuth() && (
           resource.data.userId == request.auth.uid ||
           resource.data.isPublic == true);
-      allow update, delete: if isAuth() &&
+      allow update: if isAuth() && (
+          resource.data.userId == request.auth.uid ||
+          // Allow any authenticated user to increment acquisitionCount only
+          // (written by the clone operation on behalf of the acquirer).
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['acquisitionCount'])
+      );
+      allow delete: if isAuth() &&
           resource.data.userId == request.auth.uid;
       allow create: if isAuth() &&
           request.resource.data.userId == request.auth.uid;

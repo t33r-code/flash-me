@@ -573,12 +573,12 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [x] Deploy Firestore indexes: `sets (isPublic ASC, createdAt DESC)`, `setAcquisitions (originalSetId ASC, acquiredAt DESC)`, `setAcquisitions (acquiredByUserId ASC, acquiredAt DESC)`
 - [x] Add `acquisitionCount: int` (default 0) to `CardSet` model and Firestore serialisation
 
-#### Mk-2 — Publish / Unpublish
-- [ ] "Offer in Market" action on Set detail screen — opens a bottom sheet with publication options
-- [ ] Initial options: Allow Clone (on by default, not toggleable in this phase — extensible for future types)
-- [ ] Sets `isPublic = true` on the Firestore document
-- [ ] "Remove from Market" (un-publish) action with guard: shows `acquisitionCount` before confirming
-- [ ] Sets `isPublic = false`; does not affect existing acquired copies
+#### Mk-2 — Publish / Unpublish ✅
+- [x] "Offer in Market" action on Set detail screen — opens a bottom sheet with publication options
+- [x] Initial options: Allow Clone (on by default, not toggleable in this phase — extensible for future types)
+- [x] Sets `isPublic = true` on the Firestore document
+- [x] "Remove from Market" (un-publish) action with guard: shows `acquisitionCount` before confirming
+- [x] Sets `isPublic = false`; does not affect existing acquired copies
 
 #### Mk-3 — Market Tab
 - [ ] Split Sets section into **My Sets** | **Market** tabs (`DefaultTabController`)

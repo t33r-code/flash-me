@@ -30,6 +30,7 @@ class SetDetailScreen extends ConsumerStatefulWidget {
 class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   bool _isDeleting = false;
   bool _isExporting = false;
+  bool _isPublishing = false;
 
   Future<void> _confirmDelete() async {
     final confirmed = await showDialog<bool>(
@@ -167,6 +168,78 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     }
   }
 
+  // Opens the "Offer in Market" bottom sheet for a private set.
+  Future<void> _offerInMarket(CardSet liveSet) async {
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _MarketPublishSheet(cardSet: liveSet),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _isPublishing = true);
+    try {
+      await ref
+          .read(cardSetRepositoryProvider)
+          .updateSet(liveSet.copyWith(isPublic: true));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to publish. Please try again.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isPublishing = false);
+    }
+  }
+
+  // Shows the un-publish confirmation with acquisitionCount guard.
+  Future<void> _removeFromMarket(CardSet liveSet) async {
+    final count = liveSet.acquisitionCount;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove from Market'),
+        content: Text(
+          count > 0
+              ? '"${liveSet.name}" has been acquired by $count '
+                '${count == 1 ? 'user' : 'users'}. Removing it from the '
+                'Market will not affect their copies — this set will simply '
+                'stop appearing to new users.'
+              : 'Remove "${liveSet.name}" from the Market? '
+                'It will no longer appear for other users.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _isPublishing = true);
+    try {
+      await ref
+          .read(cardSetRepositoryProvider)
+          .updateSet(liveSet.copyWith(isPublic: false));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Failed to remove from Market. Please try again.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isPublishing = false);
+    }
+  }
+
   // Navigates to the study setup screen for this set.
   void _study() {
     final currentSet =
@@ -268,6 +341,19 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       appBar: AppBar(
         title: Text(liveSet.name),
         actions: [
+          // Market publish/unpublish toggle.
+          IconButton(
+            icon: Icon(liveSet.isPublic
+                ? Icons.storefront
+                : Icons.storefront_outlined),
+            tooltip:
+                liveSet.isPublic ? 'Remove from Market' : 'Offer in Market',
+            onPressed: _isPublishing
+                ? null
+                : () => liveSet.isPublic
+                    ? _removeFromMarket(liveSet)
+                    : _offerInMarket(liveSet),
+          ),
           IconButton(
             icon: const Icon(Icons.download_outlined),
             tooltip: 'Export set',
@@ -769,6 +855,97 @@ class _SectionHeader extends StatelessWidget {
                 ?.copyWith(color: Theme.of(context).colorScheme.outline),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Bottom sheet shown when the user taps "Offer in Market".
+// Returns true when the user confirms publishing, null/false on dismiss.
+// The options list is intentionally extensible: future acquisition types
+// (subscriptions, pricing) will appear here alongside Allow Clone.
+// ---------------------------------------------------------------------------
+class _MarketPublishSheet extends StatefulWidget {
+  final CardSet cardSet;
+  const _MarketPublishSheet({required this.cardSet});
+
+  @override
+  State<_MarketPublishSheet> createState() => _MarketPublishSheetState();
+}
+
+class _MarketPublishSheetState extends State<_MarketPublishSheet> {
+  // Allow Clone is the only option in this phase — on and not yet toggleable.
+  // Kept as state so future options can be wired in without restructuring.
+  final bool _allowClone = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle bar.
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            Text('Offer in Market', style: theme.textTheme.titleLarge),
+            const SizedBox(height: 8),
+            Text(
+              'Make "${widget.cardSet.name}" visible in the Market tab so '
+              'other users can discover and acquire it.',
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 20),
+
+            // Options — each future acquisition type appears here as a tile.
+            Text('Options', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 4),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Allow Clone'),
+              subtitle: const Text(
+                  'Users can copy this set into their own library.'),
+              value: _allowClone,
+              // Not yet user-toggleable — the only supported type in this phase.
+              onChanged: null,
+            ),
+
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    icon: const Icon(Icons.storefront_outlined),
+                    label: const Text('Offer in Market'),
+                    onPressed: () => Navigator.of(context).pop(true),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

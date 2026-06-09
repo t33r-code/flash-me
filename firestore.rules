@@ -52,12 +52,32 @@ service cloud.firestore {
           request.resource.data.createdBy == request.auth.uid;
     }
 
-    // Card sets are private to the owning user.
+    // Card sets are owned by their creator but public sets are readable by
+    // any authenticated user so they can be browsed in the Market tab.
     match /sets/{setId} {
-      allow read, update, delete: if isAuth() &&
+      allow read: if isAuth() && (
+          resource.data.userId == request.auth.uid ||
+          resource.data.isPublic == true);
+      allow update, delete: if isAuth() &&
           resource.data.userId == request.auth.uid;
       allow create: if isAuth() &&
           request.resource.data.userId == request.auth.uid;
+    }
+
+    // Acquisition records link a market set to a user's acquired copy.
+    // Any authenticated user may create a record for themselves.
+    // Reads are restricted to the acquirer and the original creator.
+    // Records are immutable after creation (no update).
+    // Deletion is allowed by the acquirer (needed for future subscription cancellation).
+    match /setAcquisitions/{acquisitionId} {
+      allow create: if isAuth() &&
+          request.resource.data.acquiredByUserId == request.auth.uid;
+      allow read: if isAuth() && (
+          resource.data.acquiredByUserId == request.auth.uid ||
+          resource.data.originalUserId == request.auth.uid);
+      allow delete: if isAuth() &&
+          resource.data.acquiredByUserId == request.auth.uid;
+      allow update: if false;
     }
 
     // Templates are private to the user who created them.

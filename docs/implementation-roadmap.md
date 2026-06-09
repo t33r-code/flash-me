@@ -567,11 +567,11 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 
 **Design**: [docs/design.md — Marketplace MVP](design.md#marketplace-mvp)
 
-#### Mk-1 — Firestore Infrastructure
-- [ ] Update `sets` security rules: allow read for any authenticated user when `isPublic == true`
-- [ ] Deploy `setAcquisitions` collection rules: any authenticated user may create a record for themselves; reads restricted to involved user IDs
-- [ ] Deploy Firestore indexes: `sets (isPublic ASC, createdAt DESC)`, `setAcquisitions (originalSetId ASC, acquiredAt DESC)`, `setAcquisitions (acquiredByUserId ASC, acquiredAt DESC)`
-- [ ] Add `acquisitionCount: int` (default 0) to `CardSet` model and Firestore serialisation
+#### Mk-1 — Firestore Infrastructure ✅
+- [x] Update `sets` security rules: allow read for any authenticated user when `isPublic == true`
+- [x] Deploy `setAcquisitions` collection rules: any authenticated user may create a record for themselves; reads restricted to involved user IDs
+- [x] Deploy Firestore indexes: `sets (isPublic ASC, createdAt DESC)`, `setAcquisitions (originalSetId ASC, acquiredAt DESC)`, `setAcquisitions (acquiredByUserId ASC, acquiredAt DESC)`
+- [x] Add `acquisitionCount: int` (default 0) to `CardSet` model and Firestore serialisation
 
 #### Mk-2 — Publish / Unpublish
 - [ ] "Offer in Market" action on Set detail screen — opens a bottom sheet with publication options

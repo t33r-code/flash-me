@@ -93,6 +93,30 @@
       ]
     },
     {
+      "collectionGroup": "sets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isPublic", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "setAcquisitions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "originalSetId", "order": "ASCENDING" },
+        { "fieldPath": "acquiredAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "setAcquisitions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "acquiredByUserId", "order": "ASCENDING" },
+        { "fieldPath": "acquiredAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "cards",
       "queryScope": "COLLECTION",
       "fields": [

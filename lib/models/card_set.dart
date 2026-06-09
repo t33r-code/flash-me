@@ -2,16 +2,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 // A named collection of flash cards, stored in Firestore under sets/{setId}.
 // Actual card membership is tracked in the setCards join collection, not here.
-// cardCount is denormalized here for cheap display (avoids counting setCards).
+// cardCount and acquisitionCount are denormalized here for cheap display.
 class CardSet {
   final String id; // Firestore document ID
   final String userId; // uid of the owning user
   final String name; // e.g. "Spanish Verbs"
   final String? description; // markdown-formatted text; rendered with flutter_markdown
   final int cardCount; // denormalized: kept in sync by CardSetService
+  final int acquisitionCount; // denormalized: incremented on each clone/subscription, never decremented
   final DateTime createdAt;
   final DateTime updatedAt;
-  final bool isPublic; // reserved for future sharing features
+  final bool isPublic; // true = visible in the Market tab
   final List<String> tags; // optional labels, e.g. ["verbs", "beginner"]
   final String? color; // optional hex color for UI differentiation
   final String? nativeLanguage; // ISO 639-1 code for the user's native language
@@ -23,6 +24,7 @@ class CardSet {
     required this.name,
     this.description,
     required this.cardCount,
+    this.acquisitionCount = 0,
     required this.createdAt,
     required this.updatedAt,
     this.isPublic = false,
@@ -40,6 +42,7 @@ class CardSet {
       name: data['name'] as String? ?? '',
       description: data['description'] as String?,
       cardCount: data['cardCount'] as int? ?? 0,
+      acquisitionCount: data['acquisitionCount'] as int? ?? 0,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       updatedAt: (data['updatedAt'] as Timestamp).toDate(),
       isPublic: data['isPublic'] as bool? ?? false,
@@ -55,6 +58,7 @@ class CardSet {
         'name': name,
         'description': description,
         'cardCount': cardCount,
+        'acquisitionCount': acquisitionCount,
         'createdAt': Timestamp.fromDate(createdAt),
         'updatedAt': Timestamp.fromDate(updatedAt),
         'isPublic': isPublic,
@@ -70,6 +74,7 @@ class CardSet {
         'name': name,
         'description': description,
         'cardCount': cardCount,
+        'acquisitionCount': acquisitionCount,
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
         'isPublic': isPublic,
@@ -85,6 +90,7 @@ class CardSet {
     String? name,
     String? description,
     int? cardCount,
+    int? acquisitionCount,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isPublic,
@@ -99,6 +105,7 @@ class CardSet {
         name: name ?? this.name,
         description: description ?? this.description,
         cardCount: cardCount ?? this.cardCount,
+        acquisitionCount: acquisitionCount ?? this.acquisitionCount,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
         isPublic: isPublic ?? this.isPublic,

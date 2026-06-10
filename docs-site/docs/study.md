@@ -1,4 +1,4 @@
-# Study Mode { #study }
+﻿# Study Mode { #study }
 
 Study sessions take you through the cards in a set one at a time, tracking which cards you know and which need more practice. Sessions are saved automatically, so you can pause and resume whenever you like.
 
@@ -27,7 +27,7 @@ If a session for this set is already in progress, you'll also see a **Resume** b
 
 ## Resuming a Session { #resume-session }
 
-Tap **Resume** on the setup screen. Flash Me restores the exact card you were on, all your Skip/Review marks, and any answers you'd already entered. Nothing is lost when you pause.
+Tap **Resume** on the setup screen. Agora restores the exact card you were on, all your Skip/Review marks, and any answers you'd already entered. Nothing is lost when you pause.
 
 ---
 
@@ -55,7 +55,7 @@ After tapping **More**, any interactive fields on the card become active:
 
 ### Text Input { #study-text-input }
 
-Type your answer and tap **Check** (or press Enter). Flash Me tells you whether you're correct and, if not, shows the accepted answer(s). Tap **Try Again** to re-attempt before moving on.
+Type your answer and tap **Check** (or press Enter). Agora tells you whether you're correct and, if not, shows the accepted answer(s). Tap **Try Again** to re-attempt before moving on.
 
 ### Multiple Choice { #study-multiple-choice }
 
@@ -82,7 +82,7 @@ Tap **Next** (or **Finish session** on the last card) to advance.
 
 ## Session Summary { #session-summary }
 
-When you finish the last card, Flash Me shows a **Session Complete** screen with:
+When you finish the last card, Agora shows a **Session Complete** screen with:
 
 - Cards studied, Skip count, Review count
 - Session duration

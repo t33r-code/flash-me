@@ -1,4 +1,4 @@
-# Account & Settings { #account }
+﻿# Account & Settings { #account }
 
 Account settings and app preferences live in the **Profile** tab (:material-account-circle-outline:).
 
@@ -14,7 +14,7 @@ Enter your email address and password on the sign-in screen, then tap **Sign In*
 
 ### Google Sign-In { #sign-in-google }
 
-Tap **Sign in with Google** on the sign-in screen and choose your Google account. If it's your first time, your Flash Me account is created automatically.
+Tap **Sign in with Google** on the sign-in screen and choose your Google account. If it's your first time, your Agora account is created automatically.
 
 ---
 
@@ -36,7 +36,7 @@ Your display name is shown on your profile screen.
 
 ## Theme { #dark-mode }
 
-Flash Me supports light, dark, and system-default themes.
+Agora supports light, dark, and system-default themes.
 
 1. Tap the **Profile** tab (:material-account-circle-outline:).
 2. Under **Theme**, tap one of the three options:

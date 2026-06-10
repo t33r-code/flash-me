@@ -1,6 +1,6 @@
-# Design Discussions
+﻿# Design Discussions
 
-This document tracks design discussions and decisions for the Flash Me project.
+This document tracks design discussions and decisions for the Agora project.
 
 ## Table of Contents
 - [Architecture Decisions](#architecture-decisions)

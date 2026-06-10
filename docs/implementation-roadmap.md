@@ -1,6 +1,6 @@
-# Flash Me - Implementation Roadmap
+﻿# Agora - Implementation Roadmap
 
-This document tracks the phased implementation of Flash Me, organised into three versioned releases. **Alpha 0.1** covers the core app (authentication through study mode and import/export). **Alpha 0.2** picks up everything deferred from Alpha 0.1 — tag infrastructure, search/filter, comprehensive testing, accessibility, documentation, and deployment prep. **Beta 0.1** covers the content marketplace and long-term platform features.
+This document tracks the phased implementation of Agora, organised into three versioned releases. **Alpha 0.1** covers the core app (authentication through study mode and import/export). **Alpha 0.2** picks up everything deferred from Alpha 0.1 — tag infrastructure, search/filter, comprehensive testing, accessibility, documentation, and deployment prep. **Beta 0.1** covers the content marketplace and long-term platform features.
 
 ## Overview
 

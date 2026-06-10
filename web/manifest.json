@@ -1,6 +1,6 @@
 {
-    "name": "flash_me_temp",
-    "short_name": "flash_me_temp",
+    "name": "Agora",
+    "short_name": "Agora",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

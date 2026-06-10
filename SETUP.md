@@ -1,6 +1,6 @@
-# Flash Me Flutter Project Setup
+﻿# Agora Flutter Project Setup
 
-This document outlines the setup steps for the Flash Me Flutter project.
+This document outlines the setup steps for the Agora Flutter project.
 
 ## Project Structure
 

@@ -1,7 +1,7 @@
 
 class AppConstants {
   // App name and version
-  static const String appName = 'Flash Me';
+  static const String appName = 'Agora';
   static const String appVersion = '1.0.0';
 
   // Firestore collection names
@@ -75,7 +75,7 @@ class AppStrings {
   static const String close = 'Close';
 
   // Auth
-  static const String welcome = 'Welcome to Flash Me';
+  static const String welcome = 'Welcome to Agora';
   static const String signUp = 'Sign Up';
   static const String signIn = 'Sign In';
   static const String signOut = 'Sign Out';

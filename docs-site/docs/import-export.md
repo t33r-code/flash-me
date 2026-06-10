@@ -1,6 +1,6 @@
-# Import & Export { #data }
+﻿# Import & Export { #data }
 
-Flash Me can export your card sets as ZIP files and import them back — useful for backing up your data, moving sets between accounts, or sharing sets with others.
+Agora can export your card sets as ZIP files and import them back — useful for backing up your data, moving sets between accounts, or sharing sets with others.
 
 To get to the Import & Export screen: tap the **Profile** tab (:material-account-circle-outline:) and tap **Import & Export**.
 
@@ -11,7 +11,7 @@ To get to the Import & Export screen: tap the **Profile** tab (:material-account
 The Import & Export screen lists all your sets with checkboxes.
 
 1. Tick the sets you want to export. Tap **Select all** to tick everything at once.
-2. Tap **Export N sets**. Flash Me builds a single ZIP archive containing all selected sets and opens your device's share sheet so you can save or send it.
+2. Tap **Export N sets**. Agora builds a single ZIP archive containing all selected sets and opens your device's share sheet so you can save or send it.
 
 The export counter updates as you select: *3 of 7 selected*, and the button label reflects your selection (*Export 3 sets*).
 
@@ -32,7 +32,7 @@ Every export automatically includes **all** of your Card Templates and Question 
 ### Choosing a File { #import-file }
 
 1. Tap **Choose ZIP file…** at the top of the Import & Export screen.
-2. Pick a Flash Me ZIP file from your device. Flash Me analyses it immediately and shows the [Import Preview](#import-preview).
+2. Pick a Agora ZIP file from your device. Agora analyses it immediately and shows the [Import Preview](#import-preview).
 
 ### Import Preview { #import-preview }
 
@@ -56,18 +56,18 @@ Tap **Import** to apply the changes. When the import finishes, a summary shows h
 
 ### Supported File Format { #import-format }
 
-Flash Me imports ZIP files that were exported by Flash Me. The archive contains a `cards.json` file describing the sets and cards, plus a `media/` folder for any attached images or audio. Both single-set and multi-set archives are supported.
+Agora imports ZIP files that were exported by Agora. The archive contains a `cards.json` file describing the sets and cards, plus a `media/` folder for any attached images or audio. Both single-set and multi-set archives are supported.
 
-Manually created or edited ZIP files are also supported. Flash Me is lenient about common hand-authoring quirks:
+Manually created or edited ZIP files are also supported. Agora is lenient about common hand-authoring quirks:
 
 - **Trailing commas** before `]` or `}` are accepted.
 - Both `questions` and the legacy `fields` key are recognised.
 
-If Flash Me can't parse the file, it shows an error and no changes are made.
+If Agora can't parse the file, it shows an error and no changes are made.
 
 ### Templates in Import Files { #import-templates }
 
-When Flash Me imports a ZIP, any Card Templates and Question Templates defined in the file are created in your account **before** cards are processed. Templates that already exist (matched by Import ID for Question Templates, by name for Card Templates) are left unchanged — no duplicates are created.
+When Agora imports a ZIP, any Card Templates and Question Templates defined in the file are created in your account **before** cards are processed. Templates that already exist (matched by Import ID for Question Templates, by name for Card Templates) are left unchanged — no duplicates are created.
 
 This means you can share a complete learning pack — templates and cards — as a single ZIP, and the recipient gets everything set up automatically.
 
@@ -81,7 +81,7 @@ If you have a [Question Template](cards.md#question-templates) with an **Import 
 
 The `##` prefix identifies the value as a template reference. The part after `##` must match the Import ID of one of your Question Templates exactly. Any answer fields you include alongside it (`correctIndex`, `correctAnswers`, `correctOrder`, `wordBank`) override the template's defaults for that card.
 
-The template can either already exist in your account **or** be defined in the same import file — Flash Me resolves `##id` references after processing any templates in the file, so a self-contained pack works without any prior setup.
+The template can either already exist in your account **or** be defined in the same import file — Agora resolves `##id` references after processing any templates in the file, so a self-contained pack works without any prior setup.
 
 !!! warning "Unknown template IDs"
     If the referenced Import ID doesn't match any template in your account or in the import file itself, the import fails immediately and no changes are made. Check the spelling of the ID and ensure the template is defined before retrying.

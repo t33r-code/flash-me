@@ -1,6 +1,6 @@
-# Getting Started { #getting-started }
+﻿# Getting Started { #getting-started }
 
-Flash Me is a flashcard app for language learning. Create cards with words and phrases, organise them into sets, and study them in sessions that track your progress.
+Agora is a flashcard app for language learning. Create cards with words and phrases, organise them into sets, and study them in sessions that track your progress.
 
 ---
 
@@ -21,7 +21,7 @@ Prefer to use your Google account instead?
 
 1. On the sign-in screen, tap **Sign in with Google**.
 2. Choose your Google account from the picker.
-3. Flash Me creates your account automatically on the first sign-in — no separate registration step needed.
+3. Agora creates your account automatically on the first sign-in — no separate registration step needed.
 
 !!! tip
     You can use Google Sign-In even if you originally registered with email and password, as long as you use the same email address.

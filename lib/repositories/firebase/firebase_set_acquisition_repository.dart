@@ -173,10 +173,9 @@ class FirebaseSetAcquisitionRepository implements SetAcquisitionRepository {
     return snap.docs.first.data()['acquiredCardId'] as String;
   }
 
-  // Resolve a flash card for the cloner:
-  //   • Content match (primaryWord + translation) → link the existing card,
-  //     no cardAcquisitions record (it's a pre-existing library card).
-  //   • No match → copy the card and write a cardAcquisitions record.
+  // Copy a flash card into the cloner's library and record its provenance.
+  // Always copies — same primaryWord+translation does not mean same card
+  // (the market card may have richer additional fields).
   // Returns null if the source card can't be read.
   Future<String?> _resolveFlashCard(
       String sourceCardId, String clonerId) async {
@@ -186,24 +185,6 @@ class FirebaseSetAcquisitionRepository implements SetAcquisitionRepository {
         .get();
     if (!sourceDoc.exists) return null;
     final data = sourceDoc.data()!;
-    final primaryWord = data['primaryWord'] as String? ?? '';
-    final translation = data['translation'] as String? ?? '';
-
-    // Search the cloner's library for a content match.
-    final existing = await _db
-        .collection(AppConstants.cardsCollection)
-        .where('createdBy', isEqualTo: clonerId)
-        .where('primaryWord', isEqualTo: primaryWord)
-        .where('translation', isEqualTo: translation)
-        .limit(1)
-        .get();
-
-    if (existing.docs.isNotEmpty) {
-      // Pre-existing card — link without recording provenance.
-      return existing.docs.first.id;
-    }
-
-    // No match — copy the card and record its provenance.
     final now = DateTime.now();
     final newRef = _db.collection(AppConstants.cardsCollection).doc();
     await newRef.set({

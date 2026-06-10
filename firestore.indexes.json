@@ -9,15 +9,6 @@
       ]
     },
     {
-      "collectionGroup": "cards",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "createdBy", "order": "ASCENDING" },
-        { "fieldPath": "primaryWord", "order": "ASCENDING" },
-        { "fieldPath": "translation", "order": "ASCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "sets",
       "queryScope": "COLLECTION",
       "fields": [

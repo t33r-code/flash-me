@@ -1450,7 +1450,7 @@ cardAcquisitions/{id}
   acquiredAt:       timestamp
 ```
 
-Flash cards that are **content-matched** against the cloner's existing library (by `[primaryWord, translation]`) are linked without a `cardAcquisitions` record — they are pre-existing library cards, not market acquisitions. A record is written only when a new card document is created.
+Every card copied during a clone — flash card or workbook card — gets a `cardAcquisitions` record. Flash cards are always copied rather than content-matched: same `[primaryWord, translation]` does not mean same card (the market card may have richer additional fields).
 
 ### Indexes
 

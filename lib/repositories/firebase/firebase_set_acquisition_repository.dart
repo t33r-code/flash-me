@@ -40,8 +40,6 @@ class FirebaseSetAcquisitionRepository implements SetAcquisitionRepository {
           .get();
 
       // --- 3. Resolve each card into a cardId owned by the cloner -----------
-      // cardEntries is an ordered list of (cardId, cardType) to put in the
-      // new set. We build it by iterating source setCards in addedAt order.
       final cardEntries = <({String cardId, String cardType})>[];
 
       for (final link in setCardsSnap.docs) {
@@ -50,14 +48,25 @@ class FirebaseSetAcquisitionRepository implements SetAcquisitionRepository {
         final cardType = linkData['cardType'] as String? ??
             AppConstants.cardTypeFlashcard;
 
+        // Step 3a: check cardAcquisitions — covers re-cloning and overlapping sets.
+        final previouslyAcquired =
+            await _lookupCardAcquisition(sourceCardId, clonerId);
+        if (previouslyAcquired != null) {
+          cardEntries.add((cardId: previouslyAcquired, cardType: cardType));
+          continue;
+        }
+
+        // Step 3b: type-specific resolution (also writes cardAcquisitions when copying).
         if (cardType == AppConstants.cardTypeFlashcard) {
-          // Flash card: dedup by [primaryWord, translation] in cloner's library.
           final resolvedId = await _resolveFlashCard(sourceCardId, clonerId);
-          if (resolvedId != null) cardEntries.add((cardId: resolvedId, cardType: cardType));
+          if (resolvedId != null) {
+            cardEntries.add((cardId: resolvedId, cardType: cardType));
+          }
         } else if (cardType == AppConstants.cardTypeWorkbook) {
-          // Workbook card: always copy — no reliable dedup key yet.
           final copiedId = await _copyWorkbookCard(sourceCardId, clonerId);
-          if (copiedId != null) cardEntries.add((cardId: copiedId, cardType: cardType));
+          if (copiedId != null) {
+            cardEntries.add((cardId: copiedId, cardType: cardType));
+          }
         }
       }
 
@@ -73,7 +82,7 @@ class FirebaseSetAcquisitionRepository implements SetAcquisitionRepository {
         acquisitionCount: 0,
         createdAt: now,
         updatedAt: now,
-        isPublic: false, // cloned sets start private
+        isPublic: false,
         tags: sourceSet.tags,
         color: sourceSet.color,
         nativeLanguage: sourceSet.nativeLanguage,
@@ -82,9 +91,6 @@ class FirebaseSetAcquisitionRepository implements SetAcquisitionRepository {
 
       // --- 5. Write set + setCards + acquisition record + counter -----------
       // Batch in groups of 249 to stay under the 500-op Firestore limit.
-      // We write the set doc, up to 248 setCards, then overflow to further
-      // batches. The acquisition record and counter update go in a final batch.
-
       final firstBatch = _db.batch();
       firstBatch.set(setRef, clonedSet.toFirestore());
 
@@ -120,7 +126,7 @@ class FirebaseSetAcquisitionRepository implements SetAcquisitionRepository {
         await batch.commit();
       }
 
-      // Final batch: acquisition record + acquisitionCount increment.
+      // Final batch: set-level acquisition record + acquisitionCount increment.
       final finalBatch = _db.batch();
       final acquisitionRef =
           _db.collection(AppConstants.setAcquisitionsCollection).doc();
@@ -150,37 +156,35 @@ class FirebaseSetAcquisitionRepository implements SetAcquisitionRepository {
     }
   }
 
-  // Try to find an existing flash card in the cloner's library that matches
-  // [primaryWord, translation]. If found, return its ID. If not, copy the
-  // source card (new document, createdBy = cloner) and return the new ID.
+  // --- Private helpers -------------------------------------------------------
+
+  // Check whether the cloner already has a cardAcquisitions record for
+  // [sourceCardId]. Returns the acquired card's ID, or null if not found.
+  // This is the universal dedup key — works for any card type.
+  Future<String?> _lookupCardAcquisition(
+      String sourceCardId, String clonerId) async {
+    final snap = await _db
+        .collection(AppConstants.cardAcquisitionsCollection)
+        .where('acquiredByUserId', isEqualTo: clonerId)
+        .where('originalCardId', isEqualTo: sourceCardId)
+        .limit(1)
+        .get();
+    if (snap.docs.isEmpty) return null;
+    return snap.docs.first.data()['acquiredCardId'] as String;
+  }
+
+  // Copy a flash card into the cloner's library and record its provenance.
+  // Always copies — same primaryWord+translation does not mean same card
+  // (the market card may have richer additional fields).
   // Returns null if the source card can't be read.
   Future<String?> _resolveFlashCard(
       String sourceCardId, String clonerId) async {
-    // Read the source flash card (open read — any authenticated user can read).
     final sourceDoc = await _db
         .collection(AppConstants.cardsCollection)
         .doc(sourceCardId)
         .get();
     if (!sourceDoc.exists) return null;
     final data = sourceDoc.data()!;
-    final primaryWord = data['primaryWord'] as String? ?? '';
-    final translation = data['translation'] as String? ?? '';
-
-    // Search the cloner's library for a matching card.
-    final existing = await _db
-        .collection(AppConstants.cardsCollection)
-        .where('createdBy', isEqualTo: clonerId)
-        .where('primaryWord', isEqualTo: primaryWord)
-        .where('translation', isEqualTo: translation)
-        .limit(1)
-        .get();
-
-    if (existing.docs.isNotEmpty) {
-      // Re-use the cloner's existing card — no copy needed.
-      return existing.docs.first.id;
-    }
-
-    // No match — copy the card into the cloner's library.
     final now = DateTime.now();
     final newRef = _db.collection(AppConstants.cardsCollection).doc();
     await newRef.set({
@@ -189,10 +193,19 @@ class FirebaseSetAcquisitionRepository implements SetAcquisitionRepository {
       'createdAt': Timestamp.fromDate(now),
       'updatedAt': Timestamp.fromDate(now),
     });
+    await _writeCardAcquisition(
+      sourceCardId: sourceCardId,
+      acquiredCardId: newRef.id,
+      cardType: AppConstants.cardTypeFlashcard,
+      clonerId: clonerId,
+      now: now,
+    );
     return newRef.id;
   }
 
-  // Copy a workbook card into the cloner's library — always a new document.
+  // Copy a workbook card into the cloner's library and record its provenance.
+  // Workbook cards have no content-based dedup key — cardAcquisitions is the
+  // only dedup mechanism (checked before this method is called).
   // Returns null if the source card can't be read.
   Future<String?> _copyWorkbookCard(
       String sourceCardId, String clonerId) async {
@@ -210,6 +223,31 @@ class FirebaseSetAcquisitionRepository implements SetAcquisitionRepository {
       'createdAt': Timestamp.fromDate(now),
       'updatedAt': Timestamp.fromDate(now),
     });
+    await _writeCardAcquisition(
+      sourceCardId: sourceCardId,
+      acquiredCardId: newRef.id,
+      cardType: AppConstants.cardTypeWorkbook,
+      clonerId: clonerId,
+      now: now,
+    );
     return newRef.id;
+  }
+
+  // Write a single cardAcquisitions provenance record.
+  Future<void> _writeCardAcquisition({
+    required String sourceCardId,
+    required String acquiredCardId,
+    required String cardType,
+    required String clonerId,
+    required DateTime now,
+  }) async {
+    final ref = _db.collection(AppConstants.cardAcquisitionsCollection).doc();
+    await ref.set({
+      'acquiredByUserId': clonerId,
+      'originalCardId': sourceCardId,
+      'originalCardType': cardType,
+      'acquiredCardId': acquiredCardId,
+      'acquiredAt': Timestamp.fromDate(now),
+    });
   }
 }

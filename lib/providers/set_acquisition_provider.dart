@@ -23,9 +23,15 @@ final userAcquisitionsProvider =
       .where('acquiredByUserId', isEqualTo: uid)
       .orderBy('acquiredAt', descending: true)
       .snapshots()
-      .map((snap) => {
-            for (final doc in snap.docs)
-              (doc.data()['originalSetId'] as String):
-                  SetAcquisition.fromFirestore(doc),
-          });
+      .map((snap) {
+        // Use putIfAbsent so the first doc (most recent, due to DESC order)
+        // wins when the same set has been cloned more than once.
+        final result = <String, SetAcquisition>{};
+        for (final doc in snap.docs) {
+          final originalSetId = doc.data()['originalSetId'] as String;
+          result.putIfAbsent(
+              originalSetId, () => SetAcquisition.fromFirestore(doc));
+        }
+        return result;
+      });
 });

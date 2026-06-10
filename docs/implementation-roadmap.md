@@ -600,11 +600,11 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [x] `SetAcquisitionRepository` abstract interface + `FirebaseSetAcquisitionRepository`
 - [x] `setAcquisitionRepositoryProvider`
 
-#### Mk-5 — (Fast follow) Card Acquisition Tracking
-- [ ] Design `cardAcquisitions` collection: universal card dedup key independent of card type or field structure
-- [ ] `cardAcquisitions` Firestore rules + indexes
-- [ ] Update clone logic to use `cardAcquisitions` for workbook card dedup and to record card-level provenance
-- [ ] Abstract over card type so any future card type is supported without bespoke dedup logic
+#### Mk-5 — (Fast follow) Card Acquisition Tracking ✅
+- [x] Design `cardAcquisitions` collection: universal card dedup key independent of card type or field structure
+- [x] `cardAcquisitions` Firestore rules + indexes
+- [x] Update clone logic to use `cardAcquisitions` for workbook card dedup and to record card-level provenance
+- [x] Abstract over card type so any future card type is supported without bespoke dedup logic
 
 ---
 

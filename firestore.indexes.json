@@ -131,6 +131,14 @@
         { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "tags", "arrayConfig": "CONTAINS" }
       ]
+    },
+    {
+      "collectionGroup": "cardAcquisitions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "acquiredByUserId", "order": "ASCENDING" },
+        { "fieldPath": "originalCardId", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

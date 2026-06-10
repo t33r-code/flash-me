@@ -1437,12 +1437,28 @@ Tapping **Clone** on a market set opens a dedicated confirmation screen (not a g
 
 The cloner's set is fully editable and evolves independently. No ongoing link to the original is maintained in this phase.
 
+#### `cardAcquisitions/{id}` — card-level provenance (Mk-5)
+
+Records every card that is **copied** (not just linked) during a clone. Used as a universal dedup key: if a user clones a second set containing the same source card, they get their existing copy rather than a duplicate.
+
+```
+cardAcquisitions/{id}
+  acquiredByUserId: string  ← cloner uid
+  originalCardId:   string  ← source card document ID
+  originalCardType: string  ← 'flashcard' | 'workbook'
+  acquiredCardId:   string  ← resulting card in cloner's library
+  acquiredAt:       timestamp
+```
+
+Flash cards that are **content-matched** against the cloner's existing library (by `[primaryWord, translation]`) are linked without a `cardAcquisitions` record — they are pre-existing library cards, not market acquisitions. A record is written only when a new card document is created.
+
 ### Indexes
 
 ```
-setAcquisitions: (originalSetId ASC, acquiredAt DESC)  ← creator report
-setAcquisitions: (acquiredByUserId ASC, acquiredAt DESC)  ← acquirer history
-sets:            (isPublic ASC, createdAt DESC)  ← market browse
+setAcquisitions:  (originalSetId ASC, acquiredAt DESC)       ← creator report
+setAcquisitions:  (acquiredByUserId ASC, acquiredAt DESC)    ← acquirer history
+sets:             (isPublic ASC, createdAt DESC)              ← market browse
+cardAcquisitions: (acquiredByUserId ASC, originalCardId ASC) ← dedup lookup
 ```
 
 ---

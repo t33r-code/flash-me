@@ -1,6 +1,6 @@
-# Flash Me - Design Specification
+﻿# Agora - Design Specification
 
-This document outlines the design for all major features of the Flash Me application. Each section provides detailed design specifications and serves as the basis for creating implementation plans.
+This document outlines the design for all major features of the Agora application. Each section provides detailed design specifications and serves as the basis for creating implementation plans.
 
 ## Table of Contents
 - [Authorization and Basic User Accounts](#authorization-and-basic-user-accounts)
@@ -904,7 +904,7 @@ This shorthand is an alternative to the full question definition — both forms 
 #### Import Functionality
 
 **Import Formats Supported:**
-- ZIP archive containing `cards.json` plus `media/` folder (Flash Me standard format)
+- ZIP archive containing `cards.json` plus `media/` folder (Agora standard format)
 
 **Import Workflow:**
 1. User navigates to "Import Sets"
@@ -994,7 +994,7 @@ See [implementation roadmap — Phase 6](implementation-roadmap.md) for the full
 
 ### Overview
 
-Study is the core use case of Flash Me. Rather than being a secondary action buried inside a set's detail screen, it lives as a first-class tab in the main navigation bar (centre position: **Sets | Cards | Study | Templates | Profile**).
+Study is the core use case of Agora. Rather than being a secondary action buried inside a set's detail screen, it lives as a first-class tab in the main navigation bar (centre position: **Sets | Cards | Study | Templates | Profile**).
 
 ### Study Mode Cards
 
@@ -1274,7 +1274,7 @@ See [implementation roadmap — Phase 5](implementation-roadmap.md) for the full
 
 ### Overview
 
-Flash Me tracks two complementary signals of user performance to enable future adaptive study features:
+Agora tracks two complementary signals of user performance to enable future adaptive study features:
 
 1. **User-initiated marks (Skip / Review)** — explicit, per-card judgements made by the user during study. Durable across sessions; represent the user's own assessment of each card.
 2. **Question result history** — automatic, per-field recordings of success and failure on interactive questions. Capture objective performance data over time.
@@ -1483,7 +1483,7 @@ cardAcquisitions: (acquiredByUserId ASC, originalCardId ASC) ← dedup lookup
 
 ### Purpose
 
-The marketplace allows users to publish their content — sets and lessons — for other users to discover, study, and build upon. It transforms Flash Me from a personal study tool into a collaborative learning platform.
+The marketplace allows users to publish their content — sets and lessons — for other users to discover, study, and build upon. It transforms Agora from a personal study tool into a collaborative learning platform.
 
 This section exists in the design document now because several early architectural decisions are shaped by it:
 - The [global tag system](#tag-system) was designed for marketplace discoverability, not just personal organisation.

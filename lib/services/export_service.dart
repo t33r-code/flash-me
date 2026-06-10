@@ -98,7 +98,7 @@ class ExportService {
     return _deliver(
       Uint8List.fromList(zipBytes),
       '${safeName}_$date.zip',
-      shareSubject: 'Flash Me: ${cardSet.name}',
+      shareSubject: 'Agora: ${cardSet.name}',
     );
   }
 
@@ -180,8 +180,8 @@ class ExportService {
 
     return _deliver(
       Uint8List.fromList(zipBytes),
-      'flash_me_${_dateStamp()}.zip',
-      shareSubject: 'Flash Me export',
+      'agora_${_dateStamp()}.zip',
+      shareSubject: 'Agora export',
     );
   }
 

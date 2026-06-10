@@ -45,7 +45,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
           _SectionHeader(title: 'Import', icon: Icons.upload_file_outlined),
           const SizedBox(height: 8),
           Text(
-            'Import a ZIP archive exported from Flash Me. '
+            'Import a ZIP archive exported from Agora. '
             'New sets are created automatically; existing sets are '
             'matched by name.',
             style: theme.textTheme.bodyMedium,
@@ -71,7 +71,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
           const SizedBox(height: 8),
           Text(
             'Select sets to export as a ZIP archive. '
-            'The archive can be re-imported into any Flash Me account.',
+            'The archive can be re-imported into any Agora account.',
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 12),

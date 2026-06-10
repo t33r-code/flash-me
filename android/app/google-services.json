@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1012255770120:android:88276a8d818e94d020f3bd",
+        "mobilesdk_app_id": "1:1012255770120:android:e59e1a011f585cc220f3bd",
         "android_client_info": {
-          "package_name": "com.example.flash_me_temp"
+          "package_name": "com.t33r.agora"
         }
       },
       "oauth_client": [
@@ -31,10 +31,10 @@
               "client_type": 3
             },
             {
-              "client_id": "1012255770120-g06g1csvtkuiin3quhs4mqg0365t00vn.apps.googleusercontent.com",
+              "client_id": "1012255770120-6mqr8upsgjsouge0cpbqlvpegni1ub72.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.example.flashMeTemp"
+                "bundle_id": "com.t33r.agora"
               }
             }
           ]

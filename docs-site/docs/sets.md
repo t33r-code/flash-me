@@ -1,4 +1,4 @@
-# Sets { #sets }
+﻿# Sets { #sets }
 
 Sets are collections of cards that you study together. A card can belong to multiple sets, and removing a card from a set never deletes the card itself.
 
@@ -77,7 +77,7 @@ Tap the :material-delete-outline: **delete icon** in the top-right corner of the
 
 ## Exporting a Set { #export-set }
 
-Tap the :material-download-outline: **download icon** in the top-right corner of the set detail screen. Flash Me builds a ZIP archive containing all the cards in the set (including any attached images or audio) and opens your device's share sheet so you can save or send it.
+Tap the :material-download-outline: **download icon** in the top-right corner of the set detail screen. Agora builds a ZIP archive containing all the cards in the set (including any attached images or audio) and opens your device's share sheet so you can save or send it.
 
 See [Import & Export](import-export.md) for how to import a ZIP file and the full export format details.
 
@@ -111,8 +111,8 @@ Each card in the set is copied into your library. If a card from the same source
 
 If the creator has added or updated cards since you cloned a set, you can pull those changes into your copy without creating a new set.
 
-1. Tap the set tile in the **Market** tab. Because you have already cloned it, Flash Me shows the **update screen** instead of the clone confirmation.
-2. Flash Me checks the source set for changes. This takes a moment.
+1. Tap the set tile in the **Market** tab. Because you have already cloned it, Agora shows the **update screen** instead of the clone confirmation.
+2. Agora checks the source set for changes. This takes a moment.
 3. One of two outcomes:
     - **Updates available** — the screen shows how many new cards have been added and how many existing cards have been updated. Tap **Update My Copy** to apply them.
     - **Up to date** — your copy already matches the current source. Tap **OK** to dismiss.

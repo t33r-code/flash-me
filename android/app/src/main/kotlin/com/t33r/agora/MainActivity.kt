@@ -1,4 +1,4 @@
-package com.example.flash_me_temp
+package com.t33r.agora
 
 import io.flutter.embedding.android.FlutterActivity
 

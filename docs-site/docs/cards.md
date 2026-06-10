@@ -1,6 +1,6 @@
-# Cards { #cards }
+﻿# Cards { #cards }
 
-Flash Me has two card types:
+Agora has two card types:
 
 - **Flash Cards** — a primary word, its translation, and optional extra fields. The classic flashcard format.
 - **Workbook Cards** — a prompt followed by one or more structured questions (text input, multiple choice, or word order). Good for grammar exercises, reading comprehension, and drills.
@@ -32,7 +32,7 @@ Shows a label; the answer is hidden until the learner taps it. Good for grammar 
 
 #### Text Input { #field-text-input }
 
-The learner types an answer and Flash Me checks it.
+The learner types an answer and Agora checks it.
 
 - **Field name** — the prompt shown above the input (e.g. *Conjugation — yo form*).
 - **Correct answers** — one or more accepted answers, comma-separated (e.g. *hablo, Hablo*). Useful for allowing accent variants.
@@ -62,7 +62,7 @@ Tap the **Native language** or **Target language** pickers to tag a card with it
 
 ### Tags { #card-tags }
 
-Tags help you organise and filter cards. Start typing in the tags field and Flash Me suggests matching tags that you or other users have already used — tap a suggestion to add it. To create a brand-new tag, type it and press **Enter** (or tap the **+** button). You can paste several comma-separated tags at once, and a card can have any number of tags.
+Tags help you organise and filter cards. Start typing in the tags field and Agora suggests matching tags that you or other users have already used — tap a suggestion to add it. To create a brand-new tag, type it and press **Enter** (or tap the **+** button). You can paste several comma-separated tags at once, and a card can have any number of tags.
 
 Tags are stored in a simplified form — lowercased with spaces turned into hyphens (e.g. *Spanish Verbs* becomes *spanish-verbs*) — so the same tag always matches regardless of how it was typed.
 

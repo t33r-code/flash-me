@@ -1,4 +1,4 @@
-# Flash Me — Claude Code Guide
+﻿# Agora — Claude Code Guide
 
 ## What this project is
 A multi-platform Flutter flashcard app for language learning. Cards have a primary field (foreign word → translation reveal) plus additional fields of three types: **reveal-on-click**, **text input** (validated), and **multiple choice**. Cards are grouped into sets; users study sets in sessions that are tracked and resumable.

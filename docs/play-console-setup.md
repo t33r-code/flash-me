@@ -1,6 +1,6 @@
-# Google Play Console Setup
+﻿# Google Play Console Setup
 
-One-time setup guide for registering a Play Console account, creating the Flash Me app, and wiring up CI/CD access for GitHub Actions.
+One-time setup guide for registering a Play Console account, creating the Agora app, and wiring up CI/CD access for GitHub Actions.
 
 ---
 
@@ -22,7 +22,7 @@ Once your account is active:
 
 1. Click **Create app**
 2. Fill in:
-   - App name: `Flash Me`
+   - App name: `Agora`
    - Default language: English
    - App or game: App
    - Free or paid: Free

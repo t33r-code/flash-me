@@ -1426,20 +1426,21 @@ Filtering and search within the Market tab are deferred to Beta 0.1 (requires fu
 
 ### Clone Operation
 
-Tapping **Clone** on a market set opens a dedicated confirmation screen (not a generic dialog — designed to accommodate preview details in future iterations). Confirming performs:
+Tapping a market set tile opens a dedicated confirmation screen. Confirming performs:
 
-1. Create a new `CardSet` document under the cloner's `userId` (same name, description, tags, color, language pair)
+1. Create a new `CardSet` document under the cloner's `userId` (same name, description, tags, color, language pair; `isPublic: false`)
 2. For each card in the original set:
-   - **Flash cards** — match against the cloner's library by `[primaryWord, translation]`; link existing card if found, copy (new document, `createdBy` = cloner) if not
-   - **Workbook cards** — always copy (no reliable dedup key yet; universal card dedup via `cardAcquisitions` is a fast-follow in Mk-5)
+   - Check `cardAcquisitions` for `(acquiredByUserId == cloner, originalCardId == sourceCardId)` — if a record exists, reuse the previously acquired card (handles overlapping sets and re-clones without duplicating)
+   - Otherwise, copy the card into the cloner's library (any card type) and write a `cardAcquisitions` provenance record
+   - Flash cards are **always** copied; same `[primaryWord, translation]` does not mean same card (the market card may have richer additional fields)
 3. Write a `setAcquisitions` record
 4. Increment `acquisitionCount` on the original set
 
-The cloner's set is fully editable and evolves independently. No ongoing link to the original is maintained in this phase.
+The cloner's set is fully editable and evolves independently. No ongoing link to the original is maintained.
 
-#### `cardAcquisitions/{id}` — card-level provenance (Mk-5)
+#### `cardAcquisitions/{id}` — card-level provenance
 
-Records every card that is **copied** (not just linked) during a clone. Used as a universal dedup key: if a user clones a second set containing the same source card, they get their existing copy rather than a duplicate.
+Records every card copied during a clone. Serves as the universal dedup key for any card type: if the user later clones a second set that contains the same source card, they receive their existing copy rather than a new duplicate.
 
 ```
 cardAcquisitions/{id}
@@ -1450,7 +1451,20 @@ cardAcquisitions/{id}
   acquiredAt:       timestamp
 ```
 
-Every card copied during a clone — flash card or workbook card — gets a `cardAcquisitions` record. Flash cards are always copied rather than content-matched: same `[primaryWord, translation]` does not mean same card (the market card may have richer additional fields).
+### Re-clone / Update Flow
+
+When a user taps a market set they have **already cloned**, the app detects the prior acquisition via `setAcquisitions` and shows an update screen instead of the clone confirmation.
+
+**Diff check** (`checkForUpdates`): for each card currently in the source set:
+- No `cardAcquisitions` record → **new card** (added to the source after the original clone)
+- Record exists, source card `updatedAt` > cloner's copy `updatedAt` → **updated card**
+- Record exists, timestamps equal or cloner's copy is newer → no change
+
+**Outcomes:**
+- **Updates available** — shows new card count and updated card count. "Update My Copy" applies changes in place: new cards are copied and linked into the existing cloned set; updated cards are fully overwritten with the source data (preserving the cloner's `createdBy` and `createdAt`). No new set is created.
+- **Up to date** — shows a confirmation; only an OK button is offered.
+
+Cards **removed** from the source set are intentionally ignored — the cloner's copy is independent. Full sync of removals is reserved for the future subscription feature.
 
 ### Indexes
 

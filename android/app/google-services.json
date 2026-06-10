@@ -14,6 +14,50 @@
       },
       "oauth_client": [
         {
+          "client_id": "1012255770120-fs666f5dju609gc9kcpivdennj33jm1f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.flash_me_temp",
+            "certificate_hash": "180e2110d6c0829d749d0f0c6dfcee349a4e7e4b"
+          }
+        },
+        {
+          "client_id": "1012255770120-dj4ehp8bgqosc39mithqm0lanhg9dpu3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBXxsvHsPnDrQXrSidC6Z72CZ1qYKn52_I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1012255770120-dj4ehp8bgqosc39mithqm0lanhg9dpu3.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1012255770120-g06g1csvtkuiin3quhs4mqg0365t00vn.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.flashMeTemp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1012255770120:android:e59e1a011f585cc220f3bd",
+        "android_client_info": {
+          "package_name": "com.t33r.agora"
+        }
+      },
+      "oauth_client": [
+        {
           "client_id": "1012255770120-dj4ehp8bgqosc39mithqm0lanhg9dpu3.apps.googleusercontent.com",
           "client_type": 3
         }

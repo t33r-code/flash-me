@@ -41,7 +41,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBXxsvHsPnDrQXrSidC6Z72CZ1qYKn52_I',
-    appId: '1:1012255770120:android:88276a8d818e94d020f3bd',
+    appId: '1:1012255770120:android:e59e1a011f585cc220f3bd',
     messagingSenderId: '1012255770120',
     projectId: 'flash-me-7a1a2',
     storageBucket: 'flash-me-7a1a2.firebasestorage.app',
@@ -49,22 +49,24 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAaDzOQrbFQb6kqPap0gw3OwpWxQISwEh0',
-    appId: '1:1012255770120:ios:ee9041eaaaa4c21c20f3bd',
+    appId: '1:1012255770120:ios:35b3767d4f9ca9a620f3bd',
     messagingSenderId: '1012255770120',
     projectId: 'flash-me-7a1a2',
     storageBucket: 'flash-me-7a1a2.firebasestorage.app',
-    iosClientId: '1012255770120-g06g1csvtkuiin3quhs4mqg0365t00vn.apps.googleusercontent.com',
-    iosBundleId: 'com.example.flashMeTemp',
+    androidClientId: '1012255770120-fs666f5dju609gc9kcpivdennj33jm1f.apps.googleusercontent.com',
+    iosClientId: '1012255770120-6mqr8upsgjsouge0cpbqlvpegni1ub72.apps.googleusercontent.com',
+    iosBundleId: 'com.t33r.agora',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyAaDzOQrbFQb6kqPap0gw3OwpWxQISwEh0',
-    appId: '1:1012255770120:ios:ee9041eaaaa4c21c20f3bd',
+    appId: '1:1012255770120:ios:35b3767d4f9ca9a620f3bd',
     messagingSenderId: '1012255770120',
     projectId: 'flash-me-7a1a2',
     storageBucket: 'flash-me-7a1a2.firebasestorage.app',
-    iosClientId: '1012255770120-g06g1csvtkuiin3quhs4mqg0365t00vn.apps.googleusercontent.com',
-    iosBundleId: 'com.example.flashMeTemp',
+    androidClientId: '1012255770120-fs666f5dju609gc9kcpivdennj33jm1f.apps.googleusercontent.com',
+    iosClientId: '1012255770120-6mqr8upsgjsouge0cpbqlvpegni1ub72.apps.googleusercontent.com',
+    iosBundleId: 'com.t33r.agora',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

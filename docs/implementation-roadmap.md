@@ -606,6 +606,15 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [x] Update clone logic to use `cardAcquisitions` for workbook card dedup and to record card-level provenance
 - [x] Abstract over card type so any future card type is supported without bespoke dedup logic
 
+#### Mk-6 — Re-clone / Update Flow ✅
+- [x] Detect when user taps a market set they have previously cloned
+- [x] Show "You Already Have This Set" screen instead of clone confirmation
+- [x] Async diff check: compare source set cards against user's acquisition via `cardAcquisitions` + `updatedAt`
+- [x] Updates available: show new/updated counts + "Update My Copy" button (updates in place, no new set)
+- [x] Up to date: show confirmation + OK button
+- [x] `SetAcquisitionRepository.checkForUpdates()` + `applySetUpdate()` + `setUpdateDiffProvider`
+- [x] Removed cards from source are intentionally ignored (clone is independent; full sync is for future subscription feature)
+
 ---
 
 ### Study Enhancements

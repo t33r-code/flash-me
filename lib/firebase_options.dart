@@ -71,12 +71,12 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions windows = FirebaseOptions(
     apiKey: 'AIzaSyA9Dzy9XLGDOkrKJKLyiNt6R3b1ATjWL48',
-    appId: '1:1012255770120:web:d06cb6c0291fbca420f3bd',
+    appId: '1:1012255770120:web:91dfefea46e6f3f520f3bd',
     messagingSenderId: '1012255770120',
     projectId: 'flash-me-7a1a2',
     authDomain: 'flash-me-7a1a2.firebaseapp.com',
     storageBucket: 'flash-me-7a1a2.firebasestorage.app',
-    measurementId: 'G-H43LKCT202',
+    measurementId: 'G-W0RSVBFF18',
   );
 
   static const FirebaseOptions linux = FirebaseOptions(

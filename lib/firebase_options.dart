@@ -31,12 +31,12 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyA9Dzy9XLGDOkrKJKLyiNt6R3b1ATjWL48',
-    appId: '1:1012255770120:web:f0317d53d431870020f3bd',
+    appId: '1:1012255770120:web:0d60f98d6bbb665020f3bd',
     messagingSenderId: '1012255770120',
     projectId: 'flash-me-7a1a2',
     authDomain: 'flash-me-7a1a2.firebaseapp.com',
     storageBucket: 'flash-me-7a1a2.firebasestorage.app',
-    measurementId: 'G-K74BZCDSZD',
+    measurementId: 'G-M0RZS04E1X',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
@@ -71,12 +71,12 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions windows = FirebaseOptions(
     apiKey: 'AIzaSyA9Dzy9XLGDOkrKJKLyiNt6R3b1ATjWL48',
-    appId: '1:1012255770120:web:0d60f98d6bbb665020f3bd',
+    appId: '1:1012255770120:web:d06cb6c0291fbca420f3bd',
     messagingSenderId: '1012255770120',
     projectId: 'flash-me-7a1a2',
     authDomain: 'flash-me-7a1a2.firebaseapp.com',
     storageBucket: 'flash-me-7a1a2.firebasestorage.app',
-    measurementId: 'G-M0RZS04E1X',
+    measurementId: 'G-H43LKCT202',
   );
 
   static const FirebaseOptions linux = FirebaseOptions(

@@ -683,8 +683,13 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 
 ### Deployment Preparation
 - [ ] Set up CI/CD pipeline
-- [ ] Configure build and signing certificates (iOS, Android)
-- [ ] Set up app store deployment process
+- **Android signing**
+  - [x] Generate upload keystore (`keytool`) and store outside repo
+  - [x] Configure `android/app/build.gradle.kts` to load `key.properties`; falls back to debug signing when file absent
+  - [x] Add `android/key.properties.example` template (committed); `key.properties` itself is gitignored
+  - [ ] Register upload keystore SHA-1 in Firebase Console (Android app)
+- **iOS signing** — deferred indefinitely (in scope for future release)
+- [ ] Set up app store deployment process (Google Play Console — create listing, internal test track, upload signed AAB)
 - [ ] Create release notes template
 - [x] Set up analytics/crash reporting (Firebase Crashlytics) — `firebase_crashlytics ^5.2.3`; wired to Flutter errors, platform errors, and zone errors; disabled in debug builds
 - [x] Set up user feedback mechanism — in-app Send Report dialog; submissions stored in Firestore `feedback/` collection

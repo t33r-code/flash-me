@@ -670,6 +670,17 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [x] Graceful fallback — unknown context defaults to help home page
 - [x] Coverage — help entry points on all main screens (Cards, Sets, Study, Templates, Import/Export, Profile)
 
+### In-App Feedback & Issue Reporting
+
+**Goal**: Allow test users to submit feedback or report issues from within the app without involving their personal email.
+
+- [x] Firestore `feedback/` collection — write-only for authenticated users; no client reads (reviewed via admin SDK)
+- [x] `FeedbackItem` model — fields: userId, userEmail, displayName, context, type, subject, body, platform, timestamp, logs?, status
+- [x] `FeedbackRepository` + `FirebaseFeedbackRepository` + `feedbackRepositoryProvider`
+- [x] `LogBuffer` singleton — ring buffer of last 150 log lines; `AppLogger` writes to it alongside `debugPrint`
+- [x] `FeedbackDialog` — Feedback / Issue toggle (SegmentedButton), subject field, body field, "Include app logs" checkbox; context recorded from the screen it was opened from
+- [x] `HelpMenuButton` updated — adds "Send Report" item alongside "Help"; opens dialog with current `HelpContext`
+
 ### Deployment Preparation
 - [ ] Set up CI/CD pipeline
 - [ ] Configure build and signing certificates (iOS, Android)

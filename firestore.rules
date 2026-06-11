@@ -135,6 +135,14 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Feedback submissions are write-once by authenticated users.
+    // Reads and mutations are blocked for all clients — reviewed via admin SDK only.
+    match /feedback/{docId} {
+      allow create: if isAuth() &&
+          request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if false;
+    }
+
     // Workbook cards follow the same read policy as flash cards above.
     match /workbookCards/{cardId} {
       allow read: if isAuth();

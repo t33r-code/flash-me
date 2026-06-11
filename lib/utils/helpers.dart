@@ -1,27 +1,58 @@
 import 'package:flutter/material.dart';
 
+// Ring buffer of the last 150 log lines; populated by AppLogger.
+// The feedback dialog reads this when the user checks "Include app logs".
+class LogBuffer {
+  static final LogBuffer _instance = LogBuffer._internal();
+  factory LogBuffer() => _instance;
+  LogBuffer._internal();
+
+  static const _maxLines = 150;
+  final _lines = <String>[];
+
+  void add(String line) {
+    _lines.add(line);
+    if (_lines.length > _maxLines) _lines.removeAt(0);
+  }
+
+  // Returns all buffered lines joined by newlines.
+  String dump() => _lines.join('\n');
+}
+
 class AppLogger {
+  static final _buffer = LogBuffer();
+
   static void info(String message) {
-    debugPrint('ℹ️ INFO: $message');
+    const prefix = 'ℹ️ INFO';
+    debugPrint('$prefix: $message');
+    _buffer.add('$prefix: $message');
   }
 
   static void debug(String message) {
-    debugPrint('🐛 DEBUG: $message');
+    const prefix = '🐛 DEBUG';
+    debugPrint('$prefix: $message');
+    _buffer.add('$prefix: $message');
   }
 
   static void warning(String message) {
-    debugPrint('⚠️ WARNING: $message');
+    const prefix = '⚠️ WARNING';
+    debugPrint('$prefix: $message');
+    _buffer.add('$prefix: $message');
   }
 
   static void error(String message, [StackTrace? stackTrace]) {
-    debugPrint('❌ ERROR: $message');
+    const prefix = '❌ ERROR';
+    debugPrint('$prefix: $message');
+    _buffer.add('$prefix: $message');
     if (stackTrace != null) {
       debugPrintStack(stackTrace: stackTrace);
     }
   }
 
   static void success(String message) {
-    debugPrint('✅ SUCCESS: $message');
+    const prefix = '✅ SUCCESS';
+    debugPrint('$prefix: $message');
+    _buffer.add('$prefix: $message');
   }
 }
 

@@ -4,7 +4,7 @@ description: "A multi-platform flashcard application for language learning."
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 0.2.0+1
 
 environment:
   sdk: ^3.11.5

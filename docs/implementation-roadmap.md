@@ -686,7 +686,7 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [ ] Configure build and signing certificates (iOS, Android)
 - [ ] Set up app store deployment process
 - [ ] Create release notes template
-- [ ] Set up analytics/crash reporting (Firebase Crashlytics)
+- [x] Set up analytics/crash reporting (Firebase Crashlytics) — `firebase_crashlytics ^5.2.3`; wired to Flutter errors, platform errors, and zone errors; disabled in debug builds
 - [x] Set up user feedback mechanism — in-app Send Report dialog; submissions stored in Firestore `feedback/` collection
 
 ---

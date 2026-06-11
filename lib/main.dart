@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,6 +25,38 @@ void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+    // Crashlytics is only supported on Android, iOS, and macOS.
+    // Windows, Linux, and Web have no native plugin — guard every call.
+    final crashlyticsSupported = !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.macOS);
+
+    if (crashlyticsSupported) {
+      // Disable collection in debug builds so dev crashes don't reach the dashboard.
+      await FirebaseCrashlytics.instance
+          .setCrashlyticsCollectionEnabled(!kDebugMode);
+    }
+
+    // Flutter framework errors (widget build failures, rendering errors, etc.).
+    FlutterError.onError = (errorDetails) {
+      AppLogger.error('Flutter error: ${errorDetails.exceptionAsString()}',
+          errorDetails.stack);
+      if (crashlyticsSupported) {
+        FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+      }
+    };
+
+    // Dart async errors that escape Flutter's zone (platform channel callbacks, etc.).
+    PlatformDispatcher.instance.onError = (error, stack) {
+      AppLogger.error('Platform error: $error', stack);
+      if (crashlyticsSupported) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      }
+      return true;
+    };
+
     // Google Sign-In requires native support (Android/iOS) or a configured
     // OAuth client ID (web). Skip on desktop; catch on web in case the client
     // ID meta tag is absent — email/password auth still works without it.
@@ -46,7 +79,15 @@ void main() {
       child: const MyApp(),
     ));
   }, (error, stack) {
-    AppLogger.error('Unhandled error: $error', stack);
+    // Zone-level errors — last-resort catch for anything not handled above.
+    AppLogger.error('Unhandled zone error: $error', stack);
+    // crashlyticsSupported is not in scope here; re-evaluate inline.
+    if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.macOS)) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    }
   });
 }
 

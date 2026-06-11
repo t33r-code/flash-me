@@ -24,6 +24,8 @@ plugins {
     id("com.google.gms.google-services") version("4.4.2") apply false
     id("com.google.firebase.crashlytics") version("3.0.3") apply false
     // END: FlutterFire Configuration
+    // KGP declared for plugins that haven't migrated to Flutter's Built-in Kotlin yet.
+    // Remove once all plugins in pubspec.yaml no longer apply KGP directly.
     id("org.jetbrains.kotlin.android") version "2.2.20" apply false
 }
 

@@ -41,6 +41,7 @@ class AppConstants {
   static const String workbookCardsCollection = 'workbookCards';
   static const String setAcquisitionsCollection = 'setAcquisitions';
   static const String cardAcquisitionsCollection = 'cardAcquisitions';
+  static const String feedbackCollection = 'feedback';
 
   // Session status
   static const String sessionStatusInProgress = 'in_progress';

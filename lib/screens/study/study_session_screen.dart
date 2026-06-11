@@ -613,6 +613,7 @@ class _WordCardState extends State<_WordCard> {
                           ),
                           const SizedBox(height: 28),
                           // NEXT skips ahead unmarked; MORE enters full reveal.
+                          // More is hidden when the card has no questions.
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -620,11 +621,13 @@ class _WordCardState extends State<_WordCard> {
                                 onPressed: widget.onNext,
                                 child: const Text('Next'),
                               ),
-                              const SizedBox(width: 16),
-                              FilledButton(
-                                onPressed: widget.onMore,
-                                child: const Text('More'),
-                              ),
+                              if (widget.card.questions.isNotEmpty) ...[
+                                const SizedBox(width: 16),
+                                FilledButton(
+                                  onPressed: widget.onMore,
+                                  child: const Text('More'),
+                                ),
+                              ],
                             ],
                           ),
                         ],

@@ -446,7 +446,7 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 
 ### Known Defects
 - [x] Display Skip / Review indication on card revisit — when navigating back to a card already marked in this session, the current mark (skip/review) is not shown on the card
-- [ ] "More" button visible on flash cards with no questions — should be hidden (or disabled) when `card.questions` is empty, so only "Next" shows
+- [x] "More" button visible on flash cards with no questions — hidden via `if (widget.card.questions.isNotEmpty)` guard in `_WordCard`
 
 ### Auth & Account
 - [ ] Implement account linking logic for multiple auth providers
@@ -627,7 +627,7 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [ ] Card preloading for smooth performance
 
 ### Import/Export
-- [ ] CSV → card import (development / bulk-seeding tool; not user-facing)
+- [x] CSV → card import (development / bulk-seeding tool; not user-facing)
 - [x] Run tag upsert for every imported tag
 - [ ] Test full round-trip (export → import → verify data integrity) (requires Firebase emulator setup)
 

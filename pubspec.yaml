@@ -53,6 +53,9 @@ dependencies:
   # HTTP (for API calls if needed)
   http: ^1.1.0
 
+  # URL launching (used for in-app help links)
+  url_launcher: ^6.3.0
+
   # Connectivity
   connectivity_plus: ^7.1.1
   web: ^1.1.1

@@ -658,6 +658,18 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [ ] Add code comments and documentation
 - [ ] Create architecture documentation
 
+### In-App Help & Contextual Launch
+
+**Goal**: Allow users to open the help site from within the app, landing on the page most relevant to where they are.
+
+- [x] Help site infrastructure — confirm hosting and stable base URL for the docs site
+- [x] `HelpService` — maps screen/context identifiers to help URLs; single place to update if URLs change
+- [x] Help button placement — overflow menu (`⋮`) on all main screens
+- [x] Context passing — each screen provides a `HelpContext` enum value; `HelpService` resolves it to the correct URL
+- [x] Launch mechanism — open URL in the system browser via `url_launcher`; Android `<queries>` block added for https
+- [x] Graceful fallback — unknown context defaults to help home page
+- [x] Coverage — help entry points on all main screens (Cards, Sets, Study, Templates, Import/Export, Profile)
+
 ### Deployment Preparation
 - [ ] Set up CI/CD pipeline
 - [ ] Configure build and signing certificates (iOS, Android)

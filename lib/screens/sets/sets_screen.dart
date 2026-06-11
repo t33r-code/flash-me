@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_set.dart';
+import 'package:flash_me/widgets/help_menu_button.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/set_acquisition_provider.dart';
@@ -66,6 +67,7 @@ class _SetsScreenState extends ConsumerState<SetsScreen>
                 _sortItem(_SortOrder.cardCount, 'Card count', Icons.numbers),
               ],
             ),
+          const HelpMenuButton(HelpContext.sets),
         ],
         bottom: TabBar(
           controller: _tabController,

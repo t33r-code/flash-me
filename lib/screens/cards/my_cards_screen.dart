@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/flash_card.dart';
+import 'package:flash_me/widgets/help_menu_button.dart';
 import 'package:flash_me/models/workbook_card.dart';
 import 'package:flash_me/providers/card_provider.dart';
 import 'package:flash_me/providers/workbook_card_provider.dart';
@@ -132,7 +133,10 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
     final filteredWorkbook = _filterWorkbook(allWorkbook);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Cards')),
+      appBar: AppBar(
+        title: const Text('My Cards'),
+        actions: const [HelpMenuButton(HelpContext.cards)],
+      ),
       body: Column(
         children: [
           // Search bar.

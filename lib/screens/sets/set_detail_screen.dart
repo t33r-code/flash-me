@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_set.dart';
+import 'package:flash_me/widgets/help_menu_button.dart';
 import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/models/workbook_card.dart';
 import 'package:flash_me/providers/auth_provider.dart';
@@ -380,6 +381,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
             tooltip: 'Study this set',
             onPressed: _study,
           ),
+          const HelpMenuButton(HelpContext.sets),
         ],
       ),
       body: body,

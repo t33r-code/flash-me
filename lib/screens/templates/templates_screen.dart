@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_question.dart';
+import 'package:flash_me/widgets/help_menu_button.dart';
 import 'package:flash_me/models/card_template.dart';
 import 'package:flash_me/models/question_template.dart';
 import 'package:flash_me/providers/template_provider.dart';
@@ -19,6 +20,7 @@ class TemplatesScreen extends ConsumerWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Templates'),
+          actions: const [HelpMenuButton(HelpContext.templates)],
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Card Templates'),

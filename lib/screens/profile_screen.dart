@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/providers/auth_provider.dart';
+import 'package:flash_me/widgets/help_menu_button.dart';
 import 'package:flash_me/providers/theme_provider.dart';
 import 'package:flash_me/screens/data/data_screen.dart';
 import 'package:flash_me/utils/helpers.dart';
@@ -90,6 +91,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 setState(() => _isEditing = true);
               },
             ),
+          const HelpMenuButton(HelpContext.account),
         ],
       ),
       body: appUser.when(

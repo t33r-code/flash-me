@@ -628,7 +628,7 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 
 ### Import/Export
 - [ ] CSV → card import (development / bulk-seeding tool; not user-facing)
-- [ ] Run tag upsert for every imported tag
+- [x] Run tag upsert for every imported tag
 - [ ] Test full round-trip (export → import → verify data integrity) (requires Firebase emulator setup)
 
 ### Responsive Design & Device Testing
@@ -652,11 +652,11 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [ ] Prepare for localization (structure for multiple languages)
 
 ### Documentation
-- [ ] Create user documentation/help
-- [ ] Document API endpoints and data structures
-- [ ] Create developer setup guide
-- [ ] Add code comments and documentation
-- [ ] Create architecture documentation
+- [x] Create user documentation/help — help site deployed at https://flash-me-7a1a2.web.app (6 pages covering all features)
+- [x] Document API endpoints and data structures — Firestore data model fully documented in `docs/design.md`
+- [x] Create developer setup guide — `SETUP.md` at project root
+- [x] Add code comments and documentation — inline comments maintained throughout per project style guide
+- [x] Create architecture documentation — code map and key decisions in `CLAUDE.md`; full design rationale in `docs/design.md`
 
 ### In-App Help & Contextual Launch
 
@@ -687,7 +687,7 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [ ] Set up app store deployment process
 - [ ] Create release notes template
 - [ ] Set up analytics/crash reporting (Firebase Crashlytics)
-- [ ] Set up user feedback mechanism
+- [x] Set up user feedback mechanism — in-app Send Report dialog; submissions stored in Firestore `feedback/` collection
 
 ---
 

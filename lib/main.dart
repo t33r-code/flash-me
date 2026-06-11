@@ -26,21 +26,34 @@ void main() {
     WidgetsFlutterBinding.ensureInitialized();
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-    // Disable Crashlytics in debug builds so test crashes don't pollute the dashboard.
-    await FirebaseCrashlytics.instance
-        .setCrashlyticsCollectionEnabled(!kDebugMode);
+    // Crashlytics is only supported on Android, iOS, and macOS.
+    // Windows, Linux, and Web have no native plugin — guard every call.
+    final crashlyticsSupported = !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.macOS);
+
+    if (crashlyticsSupported) {
+      // Disable collection in debug builds so dev crashes don't reach the dashboard.
+      await FirebaseCrashlytics.instance
+          .setCrashlyticsCollectionEnabled(!kDebugMode);
+    }
 
     // Flutter framework errors (widget build failures, rendering errors, etc.).
     FlutterError.onError = (errorDetails) {
       AppLogger.error('Flutter error: ${errorDetails.exceptionAsString()}',
           errorDetails.stack);
-      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+      if (crashlyticsSupported) {
+        FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+      }
     };
 
     // Dart async errors that escape Flutter's zone (platform channel callbacks, etc.).
     PlatformDispatcher.instance.onError = (error, stack) {
       AppLogger.error('Platform error: $error', stack);
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      if (crashlyticsSupported) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      }
       return true;
     };
 
@@ -68,7 +81,13 @@ void main() {
   }, (error, stack) {
     // Zone-level errors — last-resort catch for anything not handled above.
     AppLogger.error('Unhandled zone error: $error', stack);
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    // crashlyticsSupported is not in scope here; re-evaluate inline.
+    if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.macOS)) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    }
   });
 }
 

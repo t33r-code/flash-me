@@ -8,6 +8,8 @@ Implementation progress: `docs/implementation-roadmap.md`
 
 > **Documentation discipline:** Whenever implementation diverges from or extends the original design — new fields, changed behaviour, renamed concepts, new data models — update **both** `docs/design.md` and `docs/implementation-roadmap.md` in the same branch and commit as the code change. The two documents must stay in sync with each other and with the codebase at all times.
 >
+> **IMPORTANT — Play Store declarations:** Whenever a change could affect the Google Play Data Safety section or app content declarations, explicitly prompt the user to **TAKE ACTION** and update the Play Console. This includes (but is not limited to): adding payments or in-app purchases, adding advertising, collecting new categories of user data (location, contacts, new personal info fields, etc.), adding social or sharing features, adding new third-party SDKs that collect data, or changing how existing data is used. Do not assume the Play Console will update itself — flag it every time.
+>
 > **Help site discipline:** Whenever a change affects something user-visible — new screens, new features, renamed UI elements, changed flows, removed functionality — update the relevant page(s) in `docs-site/docs/` in the same branch and commit. This does not apply to internal refactors, bug fixes that don't change observable behaviour, or backend-only changes. The help site pages and their stable anchor IDs are:
 > - `docs-site/docs/index.md` — Getting Started
 > - `docs-site/docs/cards.md` — Flash Cards, Templates, Workbook Cards

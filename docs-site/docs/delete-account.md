@@ -1,11 +1,18 @@
 # Delete Your Account
 
-If you would like to delete your Agora account and all associated data, please send an email to **t33r.code@gmail.com** with the subject line:
+You can delete your account directly from within the app.
 
-**Delete my Agora account**
+## Delete from the app
 
-Include the email address associated with your account. We will delete your account and all associated data (cards, sets, templates, study sessions, and any uploaded images or audio) within 30 days of receiving your request.
+1. Open the app and go to **Profile** (tap your avatar or the profile icon)
+2. Scroll to the bottom and tap **Delete Account**
+3. Review the confirmation message and tap **Delete my account**
+
+Your account and all associated data will be permanently deleted immediately. This cannot be undone.
+
+!!! warning "What gets deleted"
+    Deleting your account permanently removes all of your cards, sets, templates, study history, and uploaded images and audio. Any sets you published to the Marketplace will be unpublished first.
 
 ---
 
-> **Note:** Account deletion is permanent and cannot be undone. If you simply want to sign out, you can do so from the Account & Settings screen in the app.
+> **Note:** If you simply want to sign out, tap **Sign Out** on the Profile screen — this does not delete your account or data.

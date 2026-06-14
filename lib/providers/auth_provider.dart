@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/user.dart';
 import 'package:flash_me/repositories/auth_repository.dart';
 import 'package:flash_me/repositories/firebase/firebase_auth_repository.dart';
+import 'package:flash_me/services/account_deletion_service.dart';
 
 // Bind the abstract AuthRepository to its Firebase implementation.
 // To swap providers, change FirebaseAuthRepository to a different class here.
@@ -29,3 +30,10 @@ final creatorDisplayNameProvider =
     FutureProvider.family<String?, String>((ref, userId) {
   return ref.read(authRepositoryProvider).getUserDisplayName(userId);
 });
+
+// Service that orchestrates full account deletion across Firestore, Storage,
+// and Firebase Auth. Kept here rather than in a separate provider file since
+// it depends on auth lifecycle and is closely related to auth state.
+final accountDeletionServiceProvider = Provider<AccountDeletionService>(
+  (_) => AccountDeletionService(),
+);

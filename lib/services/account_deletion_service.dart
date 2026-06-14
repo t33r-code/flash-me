@@ -62,8 +62,8 @@ class AccountDeletionService {
         .get();
 
     for (final doc in [...cardsSnap.docs, ...workbookCardsSnap.docs]) {
-      await _deleteStorageFile(doc.data()['primaryImageUrl'] as String?);
-      await _deleteStorageFile(doc.data()['primaryAudioUrl'] as String?);
+      await _deleteStorageFile(doc.data()['primaryImageUrl'] as String?, userId);
+      await _deleteStorageFile(doc.data()['primaryAudioUrl'] as String?, userId);
     }
     AppLogger.info('AccountDeletionService: Storage files deleted');
 
@@ -119,10 +119,14 @@ class AccountDeletionService {
   }
 
   // Delete a Storage file by download URL; silently ignores missing files.
-  Future<void> _deleteStorageFile(String? url) async {
+  // Skips files not owned by userId — cloned cards inherit the original
+  // creator's Storage URLs, which only the original creator may delete.
+  Future<void> _deleteStorageFile(String? url, String userId) async {
     if (url == null) return;
+    final ref = _storage.refFromURL(url);
+    if (!ref.fullPath.startsWith('users/$userId/')) return;
     try {
-      await _storage.refFromURL(url).delete();
+      await ref.delete();
     } on FirebaseException catch (e) {
       if (e.code != 'object-not-found') {
         AppLogger.error('AccountDeletionService: Storage delete failed: $e');

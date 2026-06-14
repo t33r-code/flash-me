@@ -2,14 +2,13 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Card media — images and audio clips attached to flash cards.
-    // Path: users/{userId}/cards/{cardId}/{fileName}
+    // All user-owned media files.
+    // Path: users/{userId}/... (any depth)
     //
-    // Reads are open to any authenticated user — consistent with the Firestore
-    // card read policy (card IDs are not guessable; future sharing requires
-    // that a user with a legitimate card ID can also read its media).
-    // Writes are restricted to the owning user (matched by path).
-    match /users/{userId}/cards/{cardId}/{fileName} {
+    // Reads are open to any authenticated user — card IDs are not guessable,
+    // and shared/marketplace content must be readable by other users.
+    // Writes (create, update, delete) are restricted to the owning user only.
+    match /users/{userId}/{allPaths=**} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId;
     }

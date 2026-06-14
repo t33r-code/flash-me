@@ -214,5 +214,6 @@ Remaining Phase 1 items: account linking (deferred), Google Sign-In testing on r
 - **Branch naming**: `feature/<name>`, `chore/<name>`, `fix/<name>`
 - **Default branch**: `main`
 - **PRs**: squash-merge, delete branch after merge
+- **Commit messages**: ALWAYS include the GitHub issue number of the work being implemented, e.g. `feat: add account deletion (#77)`. Every commit must be traceable to an issue.
 - **Firestore rules changes**: always deploy after merging (`firebase deploy --only firestore:rules`)
 - **Roadmap**: update task checkboxes as work is completed; commit the change in the same branch as the work

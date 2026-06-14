@@ -141,6 +141,9 @@ class AccountDeletionService {
       for (final ref in refs.skip(i).take(400)) {
         batch.delete(ref);
       }
+      AppLogger.info(
+          'AccountDeletionService: committing batch ${i ~/ 400 + 1} '
+          '(${refs.skip(i).take(400).length} docs)');
       await batch.commit();
     }
   }

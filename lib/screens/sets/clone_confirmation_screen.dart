@@ -5,6 +5,7 @@ import 'package:flash_me/models/set_acquisition.dart';
 import 'package:flash_me/models/set_update_diff.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/set_acquisition_provider.dart';
+import 'package:flash_me/utils/exceptions.dart';
 import 'package:flash_me/utils/helpers.dart';
 
 // ---------------------------------------------------------------------------
@@ -190,9 +191,15 @@ class _CloneConfirmationScreenState
                   ),
                 ),
               ),
-              error: (_, _) => const Text(
-                'Could not check for updates. Please try again later.',
-              ),
+              error: (err, _) {
+                // Source set missing means the creator's account was deleted.
+                final isGone = err is AppException && err.code == 'set-not-found';
+                return Text(
+                  isGone
+                      ? 'This set is no longer available — the creator\'s account has been deleted.'
+                      : 'Could not check for updates. Please try again later.',
+                );
+              },
               data: (diff) => diff.hasChanges
                   ? _buildUpdatesAvailable(uid, prior.acquiredSetId, diff)
                   : _buildUpToDate(),

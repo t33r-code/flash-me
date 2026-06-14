@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/providers/auth_provider.dart';
+import 'package:flash_me/utils/exceptions.dart';
 import 'package:flash_me/widgets/help_menu_button.dart';
 import 'package:flash_me/providers/theme_provider.dart';
 import 'package:flash_me/screens/data/data_screen.dart';
@@ -20,6 +21,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _isLoading = false;
   bool _isEditing = false;
   bool _isSigningOut = false;
+  bool _isDeletingAccount = false;
 
   @override
   void dispose() {
@@ -68,6 +70,67 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
     // On success, authStateProvider fires and main.dart replaces this screen —
     // no need to reset _isSigningOut since the widget will be unmounted.
+  }
+
+  // Shows a two-step confirmation dialog before deleting the account.
+  Future<void> _confirmAndDeleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: Icon(Icons.warning_rounded,
+            color: Theme.of(ctx).colorScheme.error, size: 36),
+        title: const Text('Delete account?'),
+        content: const Text(
+          'This will permanently delete:\n'
+          '• All your cards and card sets\n'
+          '• All templates and study history\n'
+          '• Your profile and account\n\n'
+          'Public sets you have published will be unpublished first. '
+          'This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            child: const Text('Delete my account'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _deleteAccount();
+  }
+
+  Future<void> _deleteAccount() async {
+    final uid = ref.read(authStateProvider).asData?.value;
+    if (uid == null) return;
+
+    setState(() => _isDeletingAccount = true);
+    try {
+      await ref.read(accountDeletionServiceProvider).deleteAccount(uid);
+      // Auth account deleted — authStateProvider fires and navigates away automatically.
+    } on AppException catch (e) {
+      if (!mounted) return;
+      setState(() => _isDeletingAccount = false);
+      final message = e.code == 'requires-recent-login'
+          ? 'Please sign out and sign back in before deleting your account.'
+          : 'Failed to delete account: ${e.message}';
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isDeletingAccount = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Failed to delete account. Please try again.')),
+      );
+    }
   }
 
   @override
@@ -232,7 +295,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ],
               const SizedBox(height: 32),
               OutlinedButton.icon(
-                onPressed: _isSigningOut ? null : _signOut,
+                onPressed: _isSigningOut || _isDeletingAccount ? null : _signOut,
                 icon: _isSigningOut
                     ? const SizedBox(
                         width: 16,
@@ -244,6 +307,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: theme.colorScheme.error,
                   side: BorderSide(color: theme.colorScheme.error),
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Danger zone — separate visually from Sign Out
+              OutlinedButton.icon(
+                onPressed: _isDeletingAccount || _isSigningOut
+                    ? null
+                    : _confirmAndDeleteAccount,
+                icon: _isDeletingAccount
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.delete_forever_outlined),
+                label: const Text('Delete Account'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: theme.colorScheme.error,
+                  side: BorderSide(color: theme.colorScheme.error.withValues(alpha: 0.4)),
                   minimumSize: const Size(double.infinity, 48),
                 ),
               ),

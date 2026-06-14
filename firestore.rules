@@ -77,13 +77,15 @@ service cloud.firestore {
     }
 
     // Card-level provenance records — one per card copied during a clone.
-    // Immutable after creation; used as dedup key for re-cloning.
+    // Immutable after creation (no updates); acquirer may delete on account deletion.
     match /cardAcquisitions/{id} {
       allow create: if isAuth() &&
           request.resource.data.acquiredByUserId == request.auth.uid;
       allow read: if isAuth() &&
           resource.data.acquiredByUserId == request.auth.uid;
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if isAuth() &&
+          resource.data.acquiredByUserId == request.auth.uid;
     }
 
     // Acquisition records link a market set to a user's acquired copy.

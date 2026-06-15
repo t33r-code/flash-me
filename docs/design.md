@@ -1057,14 +1057,17 @@ users/{userId}/studySessions/{sessionId}
       - revealedFields: array<fieldId> (which reveal fields have been revealed)
       - textInputAnswers: map<fieldId, userAnswer>
       - multipleChoiceAnswers: map<fieldId, selectedIndex>
-      - markedKnown: boolean
-      - markedUnknown: boolean
+      - markedKnown: boolean (Skip mark — persistent flag, not session scoring)
+      - markedUnknown: boolean (Review mark — persistent flag, not session scoring)
       - attempts: integer
+      - primaryResult: string? ('known' | 'unknown' | null) — recall self-evaluation; null = unscored. Flashcards only.
   - cardSequence: array<cardId> (order of cards in this session)
   - currentCardIndex: integer
   - totalCardsStudied: integer
-  - cardsKnown: integer
-  - cardsUnknown: integer
+  - cardsKnown: integer (count of primaryResult == 'known' — "Knew it")
+  - cardsUnknown: integer (count of primaryResult == 'unknown' — "Not yet")
+  - questionsCorrect: integer (first-attempt-correct additional-field questions this session)
+  - questionsTotal: integer (distinct additional-field questions answered this session)
   - sessionStats: object
     - avgTimePerCard: float (milliseconds)
     - totalTimeSpent: integer (milliseconds)
@@ -1128,7 +1131,7 @@ users/{userId}/studySessions/{sessionId}
 │  └─────────────────────────────────┘ │
 ├─────────────────────────────────────┤
 │ ◀ Previous    [Review] [Skip]       │
-│                              Next ▶  │
+│                                   ▶  │
 └─────────────────────────────────────┘
 ```
 
@@ -1137,11 +1140,22 @@ users/{userId}/studySessions/{sessionId}
 The primary field reveal is a three-step progression that keeps the word visually stable while progressively exposing more content:
 
 - **Phase 1 — Word shown:** Primary word displayed prominently; a "Tap to reveal" hint appears beneath it. Additional fields are not yet visible.
-- **On tap → Phase 2 — Translation revealed:** The translation fades in below the word in-place (the word does not move). Two buttons appear:
-  - **NEXT** — advance to the next card without interacting with any additional fields and without marking the card.
-  - **MORE** — expand to the full card view.
-- **Phase 3 — Fully revealed:** All additional fields slide in and become interactive. Skip / Review mark buttons in the navigation bar become active. The user can answer text input and multiple choice fields, and mark the card.
+- **On tap → Phase 2 — Translation revealed:** The translation fades in below the word in-place (the word does not move). Controls appear:
+  - **Knew it / Not yet** (row 1) — self-evaluation of the recall (see below). Selecting one highlights it and scores the card; it does **not** advance.
+  - **MORE** (row 2, full width) — expand to the full card view. Shown only when the card has additional fields.
+- **Phase 3 — Fully revealed:** All additional fields slide in and become interactive. The user can answer text input and multiple choice fields. Skip / Review mark buttons in the navigation bar remain available.
+- Advancing to the next card is done via the navigation-bar arrow (▶); there is no separate Next button.
 - Not timed; the user controls each reveal step.
+
+**Primary-Field Self-Evaluation (Knew it / Not yet):**
+
+The primary word is a recall exercise with no objective answer to check, so the user self-reports:
+
+- **Knew it** — recalled the word before revealing. **Not yet** — did not.
+- Stored per card per session in `CardSessionData.primaryResult` (`known` / `unknown` / null-if-unscored). This is **independent** of the Skip/Review marks (`markedKnown`/`markedUnknown`), which are persistent cross-session flags, not session scoring.
+- Selecting a value does not advance and does not gate **More** — a user may report "Not yet" on the word and still answer the card's gender/conjugation questions. Recall and question scores are tracked separately.
+- A flashcard advanced without a selection counts as **skipped** in the summary.
+- Workbook cards have no primary recall, so they never set `primaryResult` and are excluded from the Knew it / Not yet / Skipped tally.
 
 **Reveal-on-Click Field:**
 - Shows label/question
@@ -1180,9 +1194,10 @@ The primary field reveal is a three-step progression that keeps the word visuall
   - Disabled on first card
   - User can review and modify answers from previous attempts
   
-- **Next Button**: Go to next card in sequence
-  - Disabled on last card
-  - Moves to next card regardless of whether current card is fully answered
+- **Next (arrow ▶)**: Go to next card in sequence
+  - On the last card it becomes **Finish session** (check-circle icon), completing the session
+  - Moves to next card regardless of whether the current card is fully answered or self-evaluated
+  - There is no separate "Next" text button — the navigation-bar arrow is the sole advance control
 
 - **Skip Button** (amber, check-circle): Mark current card as known / skip in future
   - Flag card in cardProgress; also persisted globally in `cardMarks`

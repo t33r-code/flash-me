@@ -57,6 +57,11 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   // True after the workbook card fetch completes (or if there are none to fetch).
   bool _workbookCardsLoaded = false;
 
+  // Question keys ('{cardId}_{questionId}') already counted toward the session
+  // score. Ensures first-attempt-only scoring — retries via "Try Again" and
+  // re-answers after back-navigation don't re-count.
+  final Set<String> _countedQuestions = {};
+
   @override
   void initState() {
     super.initState();
@@ -157,19 +162,10 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     updated[_currentCardId] =
         data.copyWith(markedKnown: newSkip, markedUnknown: newReview);
 
-    // Recount totals from the full progress map after the change.
-    int known = 0, unknown = 0;
-    for (final d in updated.values) {
-      if (d.markedKnown) known++;
-      if (d.markedUnknown) unknown++;
-    }
-
+    // Skip/Review are persistent per-card marks only — they no longer drive the
+    // session score. cardsKnown/cardsUnknown are set by _setPrimaryResult instead.
     setState(() {
-      _session = _session.copyWith(
-        cardProgress: updated,
-        cardsKnown: known,
-        cardsUnknown: unknown,
-      );
+      _session = _session.copyWith(cardProgress: updated);
     });
 
     // Persist the mark globally — fire-and-forget, errors don't interrupt study.
@@ -183,6 +179,38 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
       repo.removeMark(_uid, cardId).ignore();
     }
 
+    _scheduleAutoSave();
+  }
+
+  // Records the user's self-evaluation of the primary word recall for the
+  // current card. Sets primaryResult and recomputes the session known/not-yet
+  // tallies. Does not auto-advance — the user proceeds via the nav arrow, and
+  // may still tap More to answer the card's questions afterwards.
+  void _setPrimaryResult(String result) {
+    final updated = Map<String, CardSessionData>.from(_session.cardProgress);
+    updated[_currentCardId] = _currentCardData.copyWith(
+      primaryResult: result,
+      status: AppConstants.cardStatusAnswered,
+    );
+
+    // Recount from the full progress map. Workbook cards never set primaryResult,
+    // so this is inherently flashcard-only.
+    int known = 0, unknown = 0;
+    for (final d in updated.values) {
+      if (d.primaryResult == AppConstants.primaryResultKnown) {
+        known++;
+      } else if (d.primaryResult == AppConstants.primaryResultUnknown) {
+        unknown++;
+      }
+    }
+
+    setState(() {
+      _session = _session.copyWith(
+        cardProgress: updated,
+        cardsKnown: known,
+        cardsUnknown: unknown,
+      );
+    });
     _scheduleAutoSave();
   }
 
@@ -369,9 +397,10 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
                       : _WordCard(
                           key: ValueKey('$_currentIndex-word'),
                           card: flashCard,
+                          selectedResult: _currentCardData.primaryResult,
+                          onSelfEval: _setPrimaryResult,
                           onMore: () =>
                               setState(() => _fullyRevealed = true),
-                          onNext: _next,
                         ),
                 );
               },
@@ -397,6 +426,20 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   // Persists a success/fail outcome for a question — fire-and-forget.
   // Key format: '{cardId}_{questionId}' — consistent across flash and workbook cards.
   void _recordQuestionResult(CardQuestion question, bool correct) {
+    final key = '${_currentCardId}_${question.questionId}';
+
+    // Session score: count each question once, on its first attempt only.
+    if (_countedQuestions.add(key)) {
+      setState(() {
+        _session = _session.copyWith(
+          questionsTotal: _session.questionsTotal + 1,
+          questionsCorrect: _session.questionsCorrect + (correct ? 1 : 0),
+        );
+      });
+      _scheduleAutoSave();
+    }
+
+    // Global rolling-window history records every attempt (including retries).
     ref.read(questionResultRepositoryProvider).recordResult(
       userId: _uid,
       cardId: _currentCardId,
@@ -444,7 +487,6 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
               key: ValueKey('$_currentIndex-wb-prompt'),
               card: card,
               onMore: () => setState(() => _fullyRevealed = true),
-              onNext: _next,
             ),
     );
   }
@@ -469,18 +511,25 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
 
 // ---------------------------------------------------------------------------
 // _WordCard — handles both the pre-reveal (word only) and translation-revealed
-// (word + translation + MORE/NEXT) states internally, so the primary word
-// never moves.  AnimatedCrossFade fades the hint out and the translation in
-// below the word — no widget swap, no AnimatedSwitcher flash.
-// onMore  → parent triggers full slide-in reveal (additional fields).
-// onNext  → parent advances to the next card, leaving this card unmarked.
+// (word + translation + self-eval + MORE) states internally, so the primary
+// word never moves.  AnimatedCrossFade fades the hint out and the translation
+// in below the word — no widget swap, no AnimatedSwitcher flash.
+// onSelfEval → parent records Knew it / Not yet for the recall portion.
+// onMore     → parent triggers full slide-in reveal (additional fields).
+// selectedResult → the card's current primaryResult, to highlight the choice.
 // ---------------------------------------------------------------------------
 class _WordCard extends StatefulWidget {
   final FlashCard card;
+  final String? selectedResult;
+  final void Function(String result) onSelfEval;
   final VoidCallback onMore;
-  final VoidCallback onNext;
-  const _WordCard(
-      {super.key, required this.card, required this.onMore, required this.onNext});
+  const _WordCard({
+    super.key,
+    required this.card,
+    required this.selectedResult,
+    required this.onSelfEval,
+    required this.onMore,
+  });
 
   @override
   State<_WordCard> createState() => _WordCardState();
@@ -508,6 +557,7 @@ class _WordCardState extends State<_WordCard> {
   Widget build(BuildContext context) {
     final card = widget.card;
     final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Center(
       child: SingleChildScrollView(
@@ -612,24 +662,50 @@ class _WordCardState extends State<_WordCard> {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 28),
-                          // NEXT skips ahead unmarked; MORE enters full reveal.
-                          // More is hidden when the card has no questions.
+                          // Row 1: self-evaluate recall. Selecting one highlights
+                          // it and scores the card; the user advances via the
+                          // nav arrow (no auto-advance), and may still tap More.
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              OutlinedButton(
-                                onPressed: widget.onNext,
-                                child: const Text('Next'),
-                              ),
-                              if (widget.card.questions.isNotEmpty) ...[
-                                const SizedBox(width: 16),
-                                FilledButton(
-                                  onPressed: widget.onMore,
-                                  child: const Text('More'),
+                              Expanded(
+                                child: _SelfEvalButton(
+                                  label: 'Knew it',
+                                  icon: Icons.check,
+                                  color: isDark
+                                      ? Colors.green[400]!
+                                      : Colors.green[700]!,
+                                  selected: widget.selectedResult ==
+                                      AppConstants.primaryResultKnown,
+                                  onTap: () => widget.onSelfEval(
+                                      AppConstants.primaryResultKnown),
                                 ),
-                              ],
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _SelfEvalButton(
+                                  label: 'Not yet',
+                                  icon: Icons.close,
+                                  color: scheme.error,
+                                  selected: widget.selectedResult ==
+                                      AppConstants.primaryResultUnknown,
+                                  onTap: () => widget.onSelfEval(
+                                      AppConstants.primaryResultUnknown),
+                                ),
+                              ),
                             ],
                           ),
+                          // Row 2: More enters full reveal — full-width, and
+                          // only shown when the card has questions to answer.
+                          if (widget.card.questions.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton(
+                                onPressed: widget.onMore,
+                                child: const Text('More'),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       crossFadeState: _translationVisible
@@ -645,6 +721,51 @@ class _WordCardState extends State<_WordCard> {
         ),          // Card
       ),            // SingleChildScrollView
     );              // Center
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _SelfEvalButton — Knew it / Not yet toggle shown after the reveal.
+// Filled in its semantic colour when selected; outlined otherwise.
+// Selecting scores the card; the user advances separately via the nav arrow.
+// ---------------------------------------------------------------------------
+class _SelfEvalButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _SelfEvalButton({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final style = ButtonStyle(
+      side: WidgetStatePropertyAll(BorderSide(color: color)),
+      // Selected → solid colour fill with white content; idle → outlined.
+      backgroundColor:
+          WidgetStatePropertyAll(selected ? color : Colors.transparent),
+      foregroundColor:
+          WidgetStatePropertyAll(selected ? Colors.white : color),
+    );
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: OutlinedButton.icon(
+        onPressed: onTap,
+        style: style,
+        icon: Icon(icon, size: 18),
+        label: Text(label),
+      ),
+    );
   }
 }
 
@@ -983,15 +1104,14 @@ class _FieldLabel extends StatelessWidget {
 
 // ---------------------------------------------------------------------------
 // _WorkbookPromptCard — pre-reveal state for a workbook card.
-// Shows the prompt text and question count; More enters the questions phase,
-// Next advances without engaging (same pattern as _WordCard).
+// Shows the prompt text and question count; More enters the questions phase.
+// Advancing without engaging is done via the nav arrow (no Next button).
 // ---------------------------------------------------------------------------
 class _WorkbookPromptCard extends StatelessWidget {
   final WorkbookCard card;
   final VoidCallback onMore;
-  final VoidCallback onNext;
   const _WorkbookPromptCard(
-      {super.key, required this.card, required this.onMore, required this.onNext});
+      {super.key, required this.card, required this.onMore});
 
   @override
   Widget build(BuildContext context) {
@@ -1023,15 +1143,10 @@ class _WorkbookPromptCard extends StatelessWidget {
                       ?.copyWith(color: scheme.onSurfaceVariant),
                 ),
                 const Divider(height: 32),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    OutlinedButton(
-                        onPressed: onNext, child: const Text('Next')),
-                    const SizedBox(width: 16),
-                    FilledButton(
-                        onPressed: onMore, child: const Text('More')),
-                  ],
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                      onPressed: onMore, child: const Text('More')),
                 ),
               ],
             ),

@@ -183,11 +183,27 @@ class _StudySessionSummaryScreenState
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final studied = widget.session.totalCardsStudied;
     final known = widget.session.cardsKnown;
     final unknown = widget.session.cardsUnknown;
-    final knownPct = studied > 0 ? (known / studied * 100).round() : 0;
-    final unknownPct = studied > 0 ? (unknown / studied * 100).round() : 0;
+
+    // Flashcard count = total studied minus workbook cards (which have no recall
+    // self-evaluation). "Skipped" = flashcards seen but not self-evaluated.
+    final workbookCount = widget.session.cardTypeMap.values
+        .where((t) => t == AppConstants.cardTypeWorkbook)
+        .length;
+    final flashcardsStudied = (studied - workbookCount).clamp(0, studied);
+    final skipped = (flashcardsStudied - known - unknown).clamp(0, studied);
+
+    final knownPct =
+        flashcardsStudied > 0 ? (known / flashcardsStudied * 100).round() : 0;
+    final unknownPct =
+        flashcardsStudied > 0 ? (unknown / flashcardsStudied * 100).round() : 0;
+
+    final questionsTotal = widget.session.questionsTotal;
+    final questionsCorrect = widget.session.questionsCorrect;
+
     final duration =
         _formatDuration(widget.session.sessionStats.totalTimeSpent);
 
@@ -242,18 +258,34 @@ class _StudySessionSummaryScreenState
                       ),
                       const Divider(height: 24),
                       _StatRow(
-                        icon: Icons.check_circle_outline,
-                        iconColor: Colors.amber[700],
-                        label: 'Skip',
+                        icon: Icons.check,
+                        iconColor:
+                            isDark ? Colors.green[400] : Colors.green[700],
+                        label: 'Knew it',
                         value: '$known  ($knownPct%)',
                       ),
                       const SizedBox(height: 8),
                       _StatRow(
-                        icon: Icons.flag_outlined,
-                        iconColor: Colors.green[700],
-                        label: 'Review',
+                        icon: Icons.close,
+                        iconColor: scheme.error,
+                        label: 'Not yet',
                         value: '$unknown  ($unknownPct%)',
                       ),
+                      const SizedBox(height: 8),
+                      _StatRow(
+                        icon: Icons.remove,
+                        label: 'Skipped',
+                        value: '$skipped',
+                      ),
+                      // Question score — only shown if the session had questions.
+                      if (questionsTotal > 0) ...[
+                        const Divider(height: 24),
+                        _StatRow(
+                          icon: Icons.quiz_outlined,
+                          label: 'Questions',
+                          value: '$questionsCorrect / $questionsTotal',
+                        ),
+                      ],
                       const Divider(height: 24),
                       _StatRow(
                         icon: Icons.timer_outlined,

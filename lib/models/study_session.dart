@@ -65,12 +65,17 @@ class CardSessionData {
   final bool markedKnown;   // true = user tapped Skip for this card
   final bool markedUnknown; // true = user tapped Review for this card
   final int attempts;       // how many times the user has tried to answer this card
+  // Self-evaluation of the primary word recall: AppConstants.primaryResult*
+  // ('known' / 'unknown'), or null if the user advanced without self-evaluating.
+  // Only meaningful for flashcards — workbook cards leave this null.
+  final String? primaryResult;
 
   const CardSessionData({
     this.status = AppConstants.cardStatusNotStarted,
     this.markedKnown = false,
     this.markedUnknown = false,
     this.attempts = 0,
+    this.primaryResult,
   });
 
   factory CardSessionData.fromJson(Map<String, dynamic> json) =>
@@ -79,6 +84,7 @@ class CardSessionData {
         markedKnown: json['markedKnown'] as bool? ?? false,
         markedUnknown: json['markedUnknown'] as bool? ?? false,
         attempts: json['attempts'] as int? ?? 0,
+        primaryResult: json['primaryResult'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -86,6 +92,7 @@ class CardSessionData {
         'markedKnown': markedKnown,
         'markedUnknown': markedUnknown,
         'attempts': attempts,
+        'primaryResult': primaryResult,
       };
 
   CardSessionData copyWith({
@@ -93,12 +100,14 @@ class CardSessionData {
     bool? markedKnown,
     bool? markedUnknown,
     int? attempts,
+    String? primaryResult,
   }) =>
       CardSessionData(
         status: status ?? this.status,
         markedKnown: markedKnown ?? this.markedKnown,
         markedUnknown: markedUnknown ?? this.markedUnknown,
         attempts: attempts ?? this.attempts,
+        primaryResult: primaryResult ?? this.primaryResult,
       );
 }
 
@@ -119,8 +128,14 @@ class StudySession {
   final List<String> cardSequence;
   final int currentCardIndex; // index into cardSequence
   final int totalCardsStudied;
+  // Self-evaluation tallies for the flashcard recall portion (primaryResult).
+  // cardsKnown = "Knew it", cardsUnknown = "Not yet". Workbook cards excluded.
   final int cardsKnown;
   final int cardsUnknown;
+  // First-attempt question score across the session (flash + workbook questions).
+  // Each distinct question counts once; retries via "Try Again" don't re-count.
+  final int questionsCorrect;
+  final int questionsTotal;
   final SessionStats sessionStats;
   // Whether the card sequence was shuffled when this session was created.
   // Used by the summary screen to re-apply the same setting on Study Again.
@@ -141,6 +156,8 @@ class StudySession {
     required this.totalCardsStudied,
     required this.cardsKnown,
     required this.cardsUnknown,
+    this.questionsCorrect = 0,
+    this.questionsTotal = 0,
     required this.sessionStats,
     this.shuffled = false,
     this.cardTypeMap = const {},
@@ -168,6 +185,8 @@ class StudySession {
       totalCardsStudied: data['totalCardsStudied'] as int? ?? 0,
       cardsKnown: data['cardsKnown'] as int? ?? 0,
       cardsUnknown: data['cardsUnknown'] as int? ?? 0,
+      questionsCorrect: data['questionsCorrect'] as int? ?? 0,
+      questionsTotal: data['questionsTotal'] as int? ?? 0,
       sessionStats: data['sessionStats'] != null
           ? SessionStats.fromJson(
               data['sessionStats'] as Map<String, dynamic>)
@@ -191,6 +210,8 @@ class StudySession {
         'totalCardsStudied': totalCardsStudied,
         'cardsKnown': cardsKnown,
         'cardsUnknown': cardsUnknown,
+        'questionsCorrect': questionsCorrect,
+        'questionsTotal': questionsTotal,
         'sessionStats': sessionStats.toJson(),
         'shuffled': shuffled,
         'cardTypeMap': cardTypeMap,
@@ -208,6 +229,8 @@ class StudySession {
     int? totalCardsStudied,
     int? cardsKnown,
     int? cardsUnknown,
+    int? questionsCorrect,
+    int? questionsTotal,
     SessionStats? sessionStats,
     bool? shuffled,
     Map<String, String>? cardTypeMap,
@@ -224,6 +247,8 @@ class StudySession {
         totalCardsStudied: totalCardsStudied ?? this.totalCardsStudied,
         cardsKnown: cardsKnown ?? this.cardsKnown,
         cardsUnknown: cardsUnknown ?? this.cardsUnknown,
+        questionsCorrect: questionsCorrect ?? this.questionsCorrect,
+        questionsTotal: questionsTotal ?? this.questionsTotal,
         sessionStats: sessionStats ?? this.sessionStats,
         shuffled: shuffled ?? this.shuffled,
         cardTypeMap: cardTypeMap ?? this.cardTypeMap,

@@ -24,6 +24,13 @@ class AppConstants {
   static const String resultSuccess = 'success';
   static const String resultFail = 'fail';
   static const String resultUnseen = 'unseen';
+
+  // Primary-field self-evaluation — stored in CardSessionData.primaryResult.
+  // Captures whether the user recalled the flashcard word before revealing it.
+  // Distinct from the Skip/Review marks (markedKnown/markedUnknown), which are
+  // persistent per-card flags for future filtered study, not session scoring.
+  static const String primaryResultKnown = 'known';
+  static const String primaryResultUnknown = 'unknown';
   // Rolling window size for question results.
   static const int questionResultsWindowSize = 5;
 

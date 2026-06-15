@@ -37,15 +37,30 @@ Each card goes through up to three stages:
 
 **1. Primary word** — the foreign word (or image/audio if the card uses media). Tap the card to move to the next stage.
 
-**2. Translation revealed** — the translation fades in. Two buttons appear:
+**2. Translation revealed** — the translation fades in, along with:
 
-- **More** — expands the full card to show all extra fields and (for Flash Cards) makes the Skip/Review buttons active.
-- **Next** — skip straight to the next card without reviewing the extra fields.
+- **Knew it** / **Not yet** — self-evaluate whether you recalled the word before revealing it (see [Scoring Your Recall](#self-eval) below).
+- **More** — expands the full card to show all extra fields (only shown when the card has extra fields).
 
-**3. Full card** — all fields are shown and interactive. The **Skip** and **Review** buttons are now available.
+To move to the next card, use the **:material-chevron-right:** arrow at the bottom of the screen.
+
+**3. Full card** — all fields are shown and interactive.
 
 !!! note "Show Word"
     Some cards are configured to hide the primary word until you're ready. Tap **Show Word** to reveal it before proceeding.
+
+---
+
+## Scoring Your Recall { #self-eval }
+
+When the translation is revealed, tell Agora how you did:
+
+- **Knew it** :material-check: — you recalled the word correctly.
+- **Not yet** :material-close: — you didn't recall it.
+
+Your choice is highlighted and counts toward the session score. It does **not** advance the card, so you can still tap **More** to answer the card's extra fields afterwards — for example, you might not have recalled the word but still want to answer its gender question. The two are scored independently.
+
+If you advance without choosing either, the card's recall is counted as **skipped**.
 
 ---
 
@@ -74,9 +89,9 @@ After tapping **More**, two marking buttons appear at the bottom of the screen:
 - **Skip** :material-check-circle-outline: — you knew the card. It's marked and you move on.
 - **Review** :material-flag-outline: — needs more practice. Marked for your reference in the session summary.
 
-These marks are saved permanently across sessions — they're visible next time you study the same card, so you can see at a glance which cards have been tricky.
+These marks are saved permanently across sessions — they're visible next time you study the same card, so you can see at a glance which cards have been tricky. They are separate from the **Knew it / Not yet** recall score above: Skip/Review are long-lived flags for future study, while Knew it/Not yet score the current session.
 
-Tap **Next** (or **Finish session** on the last card) to advance.
+Tap the **:material-chevron-right:** arrow (or **:material-check-circle-outline: Finish session** on the last card) to advance.
 
 ---
 
@@ -84,9 +99,10 @@ Tap **Next** (or **Finish session** on the last card) to advance.
 
 When you finish the last card, Agora shows a **Session Complete** screen with:
 
-- Cards studied, Skip count, Review count
+- Cards studied
+- **Knew it** / **Not yet** / **Skipped** — your recall self-evaluation across the set's Flash Cards
+- **Questions** — how many extra-field questions you answered correctly on the first attempt (shown only if the session had questions)
 - Session duration
-- The date and time
 
 From here you can tap **Study Again** to immediately start a new shuffled session, or **Done** to return to the setup screen.
 
@@ -94,4 +110,4 @@ From here you can tap **Study Again** to immediately start a new shuffled sessio
 
 ## Session History { #session-history }
 
-Tap the :material-history: history icon in the top-right corner of the setup screen to see a list of all past sessions for this set — date, duration, and Skip/Review counts for each.
+Tap the :material-history: history icon in the top-right corner of the setup screen to see a list of all past sessions for this set — date, completion status, cards studied, and duration for each.

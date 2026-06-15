@@ -297,6 +297,14 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 - [x] Session history list: per-set list of past sessions from sessionHistoryProvider
 - [x] Session history entry: date, duration, known/unknown counts, completion status
 
+##### Phase 5e — Primary-field self-evaluation scoring (#84) (complete)
+- [x] **Knew it / Not yet** buttons on the translation-revealed view — self-report recall; selecting scores the card without auto-advancing
+- [x] Removed the **Next** text button (flash + workbook prompt); the nav-bar arrow is the sole advance control
+- [x] `CardSessionData.primaryResult` (`known`/`unknown`/null) — recall result, independent of Skip/Review marks
+- [x] Decoupled session score from Skip/Review: `cardsKnown`/`cardsUnknown` now count `primaryResult` (flashcards only)
+- [x] `StudySession.questionsCorrect`/`questionsTotal` — first-attempt-only question score across the session
+- [x] Summary screen: **Knew it / Not yet / Skipped** + **Questions X/Y** rows (Skipped = flashcards seen but not self-evaluated; workbook cards excluded from recall tally)
+
 ##### Advanced features (deferred)
 - [ ] Offline support with local caching *(→ deferred to Alpha 0.2)*
 - [ ] Haptic feedback for answer results *(→ deferred to Alpha 0.2)*

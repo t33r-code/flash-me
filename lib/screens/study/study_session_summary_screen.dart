@@ -283,7 +283,7 @@ class _StudySessionSummaryScreenState
                         _StatRow(
                           icon: Icons.quiz_outlined,
                           label: 'Questions',
-                          value: '$questionsCorrect / $questionsTotal',
+                          value: '$questionsCorrect / $questionsTotal  (${(questionsCorrect / questionsTotal * 100).round()}%)',
                         ),
                       ],
                       const Divider(height: 24),

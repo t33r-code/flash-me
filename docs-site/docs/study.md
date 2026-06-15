@@ -100,7 +100,7 @@ When you finish the last card, Agora shows a **Session Complete** screen with:
 
 - Cards studied
 - **Knew it** / **Not yet** / **Skipped** — your recall self-evaluation across the set's Flash Cards
-- **Questions** — how many extra-field questions you answered correctly on the first attempt (shown only if the session had questions)
+- **Questions** — how many extra-field questions you answered correctly on the first attempt, shown as `X / Y  (Z%)` (shown only if the session had questions)
 - Session duration
 
 From here you can tap **Study Again** to immediately start a new shuffled session, or **Done** to return to the setup screen.

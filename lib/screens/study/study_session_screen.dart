@@ -401,6 +401,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
                           onSelfEval: _setPrimaryResult,
                           onMore: () =>
                               setState(() => _fullyRevealed = true),
+                          onNext: _next,
                         ),
                 );
               },
@@ -511,11 +512,12 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
 
 // ---------------------------------------------------------------------------
 // _WordCard — handles both the pre-reveal (word only) and translation-revealed
-// (word + translation + self-eval + MORE) states internally, so the primary
-// word never moves.  AnimatedCrossFade fades the hint out and the translation
-// in below the word — no widget swap, no AnimatedSwitcher flash.
+// (word + translation + self-eval + MORE + NEXT) states internally, so the
+// primary word never moves.  AnimatedCrossFade fades the hint out and the
+// translation in below the word — no widget swap, no AnimatedSwitcher flash.
 // onSelfEval → parent records Knew it / Not yet for the recall portion.
 // onMore     → parent triggers full slide-in reveal (additional fields).
+// onNext     → parent advances to the next card (same as nav-bar arrow).
 // selectedResult → the card's current primaryResult, to highlight the choice.
 // ---------------------------------------------------------------------------
 class _WordCard extends StatefulWidget {
@@ -523,12 +525,14 @@ class _WordCard extends StatefulWidget {
   final String? selectedResult;
   final void Function(String result) onSelfEval;
   final VoidCallback onMore;
+  final VoidCallback onNext;
   const _WordCard({
     super.key,
     required this.card,
     required this.selectedResult,
     required this.onSelfEval,
     required this.onMore,
+    required this.onNext,
   });
 
   @override
@@ -706,6 +710,17 @@ class _WordCardState extends State<_WordCard> {
                               ),
                             ),
                           ],
+                          // Row 3: Next — diminished treatment so the nav-bar
+                          // arrow remains the primary advance gesture, but the
+                          // button is reachable without moving the thumb.
+                          const SizedBox(height: 12),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size(double.infinity, 48),
+                            ),
+                            onPressed: widget.onNext,
+                            child: const Text('Next'),
+                          ),
                         ],
                       ),
                       crossFadeState: _translationVisible

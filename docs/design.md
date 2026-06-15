@@ -1143,8 +1143,9 @@ The primary field reveal is a three-step progression that keeps the word visuall
 - **On tap → Phase 2 — Translation revealed:** The translation fades in below the word in-place (the word does not move). Controls appear:
   - **Knew it / Not yet** (row 1) — self-evaluation of the recall (see below). Selecting one highlights it and scores the card; it does **not** advance.
   - **MORE** (row 2, full width) — expand to the full card view. Shown only when the card has additional fields.
+  - **Next** (row 3, full width, secondary/text style) — advance to the next card. The navigation-bar arrow (▶) does the same.
 - **Phase 3 — Fully revealed:** All additional fields slide in and become interactive. The user can answer text input and multiple choice fields. Skip / Review mark buttons in the navigation bar remain available.
-- Advancing to the next card is done via the navigation-bar arrow (▶); there is no separate Next button.
+- Advancing to the next card: the **Next** button in the revealed view (row 3) or the navigation-bar arrow (▶).
 - Not timed; the user controls each reveal step.
 
 **Primary-Field Self-Evaluation (Knew it / Not yet):**
@@ -1197,7 +1198,7 @@ The primary word is a recall exercise with no objective answer to check, so the 
 - **Next (arrow ▶)**: Go to next card in sequence
   - On the last card it becomes **Finish session** (check-circle icon), completing the session
   - Moves to next card regardless of whether the current card is fully answered or self-evaluated
-  - There is no separate "Next" text button — the navigation-bar arrow is the sole advance control
+  - The **Next** text button in the translation-revealed view is a secondary shortcut for the same action
 
 - **Skip Button** (amber, check-circle): Mark current card as known / skip in future
   - Flag card in cardProgress; also persisted globally in `cardMarks`

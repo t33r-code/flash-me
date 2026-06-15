@@ -41,8 +41,7 @@ Each card goes through up to three stages:
 
 - **Knew it** / **Not yet** — self-evaluate whether you recalled the word before revealing it (see [Scoring Your Recall](#self-eval) below).
 - **More** — expands the full card to show all extra fields (only shown when the card has extra fields).
-
-To move to the next card, use the **:material-chevron-right:** arrow at the bottom of the screen.
+- **Next** — advances to the next card. You can also use the **:material-chevron-right:** arrow at the bottom of the screen.
 
 **3. Full card** — all fields are shown and interactive.
 

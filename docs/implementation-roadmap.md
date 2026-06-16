@@ -690,7 +690,11 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [x] `HelpMenuButton` updated — adds "Send Report" item alongside "Help"; opens dialog with current `HelpContext`
 
 ### Deployment Preparation
-- [ ] Set up CI/CD pipeline
+- [x] Set up CI/CD pipeline — three GitHub Actions workflows:
+  - `pr_check.yml`: `flutter analyze lib/` + `flutter test` on every PR to main
+  - `build_verify.yml`: signed AAB build on every push to main (artifact retained 14 days; not published)
+  - `release.yml`: signed AAB build + Play Store internal-track upload on `v*` tag push
+  - Secrets required in GitHub repo: `KEYSTORE_BASE64`, `KEY_ALIAS`, `KEY_PASSWORD`, `STORE_PASSWORD`, `PLAY_SERVICE_ACCOUNT_JSON`
 - **Android signing**
   - [x] Generate upload keystore (`keytool`) and store outside repo
   - [x] Configure `android/app/build.gradle.kts` to load `key.properties`; falls back to debug signing when file absent

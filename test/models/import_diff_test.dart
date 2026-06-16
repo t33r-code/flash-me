@@ -20,7 +20,7 @@ void main() {
         id: id,
         primaryWord: word,
         translation: 'hello',
-        fields: [],
+        questions: [],
         createdAt: baseDate,
         updatedAt: baseDate,
         createdBy: 'user-1',

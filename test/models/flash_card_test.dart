@@ -1,17 +1,16 @@
-import 'package:flash_me/models/card_field.dart';
+import 'package:flash_me/models/card_question.dart';
 import 'package:flash_me/models/flash_card.dart';
-import 'package:flash_me/utils/constants.dart';
 import 'package:test/test.dart';
 
 void main() {
   final baseDate = DateTime(2024, 1, 15);
 
-  // Minimal valid card for tests that don't need specific field values.
+  // Minimal valid card for tests that don't need specific question values.
   FlashCard makeCard() => FlashCard(
         id: 'card-1',
         primaryWord: 'hola',
         translation: 'hello',
-        fields: [],
+        questions: [],
         createdAt: baseDate,
         updatedAt: baseDate,
         createdBy: 'user-1',
@@ -26,7 +25,7 @@ void main() {
       expect(json['primaryWord'], equals('hola'));
       expect(json['translation'], equals('hello'));
       expect(json['createdBy'], equals('user-1'));
-      expect(json['fields'], isEmpty);
+      expect(json['questions'], isEmpty);
       expect(json['tags'], isEmpty);
     });
 
@@ -70,18 +69,20 @@ void main() {
       expect(json['updatedAt'], equals(baseDate.toIso8601String()));
     });
 
-    test('serializes nested CardField list', () {
-      final field = CardField(
-        fieldId: 'f1',
-        name: 'Pronunciation',
-        type: AppConstants.fieldTypeReveal,
-        content: const RevealContent(answer: 'oh-lah'),
+    test('serializes nested CardQuestion list', () {
+      final question = TextInputQuestion(
+        questionId: 'q1',
+        prompt: 'Pronunciation',
+        correctAnswers: ['oh-lah'],
       );
-      final json = makeCard().copyWith(fields: [field]).toJson();
-      final fieldsList = json['fields'] as List;
-      expect(fieldsList.length, equals(1));
-      expect(fieldsList[0]['name'], equals('Pronunciation'));
-      expect((fieldsList[0]['content'] as Map)['answer'], equals('oh-lah'));
+      final json = makeCard().copyWith(questions: [question]).toJson();
+      final questionsList = json['questions'] as List;
+      expect(questionsList.length, equals(1));
+      expect(questionsList[0]['prompt'], equals('Pronunciation'));
+      expect(
+        (questionsList[0]['content'] as Map)['correctAnswers'],
+        equals(['oh-lah']),
+      );
     });
   });
 

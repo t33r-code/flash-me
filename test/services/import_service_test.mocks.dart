@@ -3,13 +3,20 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i5;
+import 'dart:async' as _i7;
 
 import 'package:flash_me/models/card_set.dart' as _i2;
+import 'package:flash_me/models/card_template.dart' as _i5;
 import 'package:flash_me/models/flash_card.dart' as _i3;
-import 'package:flash_me/repositories/card_repository.dart' as _i6;
-import 'package:flash_me/repositories/card_set_repository.dart' as _i4;
+import 'package:flash_me/models/question_template.dart' as _i4;
+import 'package:flash_me/models/set_card.dart' as _i8;
+import 'package:flash_me/repositories/card_repository.dart' as _i9;
+import 'package:flash_me/repositories/card_set_repository.dart' as _i6;
+import 'package:flash_me/repositories/question_template_repository.dart'
+    as _i11;
+import 'package:flash_me/repositories/template_repository.dart' as _i12;
 import 'package:mockito/mockito.dart' as _i1;
+import 'package:mockito/src/dummies.dart' as _i10;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -36,77 +43,90 @@ class _FakeFlashCard_1 extends _i1.SmartFake implements _i3.FlashCard {
     : super(parent, parentInvocation);
 }
 
+class _FakeQuestionTemplate_2 extends _i1.SmartFake
+    implements _i4.QuestionTemplate {
+  _FakeQuestionTemplate_2(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeCardTemplate_3 extends _i1.SmartFake implements _i5.CardTemplate {
+  _FakeCardTemplate_3(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
 /// A class which mocks [CardSetRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCardSetRepository extends _i1.Mock implements _i4.CardSetRepository {
+class MockCardSetRepository extends _i1.Mock implements _i6.CardSetRepository {
   MockCardSetRepository() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i5.Future<_i2.CardSet> createSet(_i2.CardSet? cardSet) =>
+  _i7.Future<_i2.CardSet> createSet(_i2.CardSet? cardSet) =>
       (super.noSuchMethod(
             Invocation.method(#createSet, [cardSet]),
-            returnValue: _i5.Future<_i2.CardSet>.value(
+            returnValue: _i7.Future<_i2.CardSet>.value(
               _FakeCardSet_0(this, Invocation.method(#createSet, [cardSet])),
             ),
           )
-          as _i5.Future<_i2.CardSet>);
+          as _i7.Future<_i2.CardSet>);
 
   @override
-  _i5.Future<_i2.CardSet?> getSet(String? setId) =>
+  _i7.Future<_i2.CardSet?> getSet(String? setId) =>
       (super.noSuchMethod(
             Invocation.method(#getSet, [setId]),
-            returnValue: _i5.Future<_i2.CardSet?>.value(),
+            returnValue: _i7.Future<_i2.CardSet?>.value(),
           )
-          as _i5.Future<_i2.CardSet?>);
+          as _i7.Future<_i2.CardSet?>);
 
   @override
-  _i5.Stream<List<_i2.CardSet>> watchUserSets(String? userId) =>
+  _i7.Stream<List<_i2.CardSet>> watchUserSets(String? userId) =>
       (super.noSuchMethod(
             Invocation.method(#watchUserSets, [userId]),
-            returnValue: _i5.Stream<List<_i2.CardSet>>.empty(),
+            returnValue: _i7.Stream<List<_i2.CardSet>>.empty(),
           )
-          as _i5.Stream<List<_i2.CardSet>>);
+          as _i7.Stream<List<_i2.CardSet>>);
 
   @override
-  _i5.Future<void> updateSet(_i2.CardSet? cardSet) =>
+  _i7.Future<void> updateSet(_i2.CardSet? cardSet) =>
       (super.noSuchMethod(
             Invocation.method(#updateSet, [cardSet]),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i7.Future<void>);
 
   @override
-  _i5.Future<void> deleteSet(String? setId, String? userId) =>
+  _i7.Future<void> deleteSet(String? setId, String? userId) =>
       (super.noSuchMethod(
             Invocation.method(#deleteSet, [setId, userId]),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i7.Future<void>);
 
   @override
-  _i5.Future<void> addCardToSet({
+  _i7.Future<void> addCardToSet({
     required String? setId,
     required String? cardId,
     required String? userId,
+    String? cardType = 'flashcard',
   }) =>
       (super.noSuchMethod(
             Invocation.method(#addCardToSet, [], {
               #setId: setId,
               #cardId: cardId,
               #userId: userId,
+              #cardType: cardType,
             }),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i7.Future<void>);
 
   @override
-  _i5.Future<void> removeCardFromSet({
+  _i7.Future<void> removeCardFromSet({
     required String? setId,
     required String? cardId,
     required String? userId,
@@ -117,131 +137,163 @@ class MockCardSetRepository extends _i1.Mock implements _i4.CardSetRepository {
               #cardId: cardId,
               #userId: userId,
             }),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i7.Future<void>);
 
   @override
-  _i5.Future<void> addCardsToSet({
+  _i7.Future<void> addCardsToSet({
     required String? setId,
     required List<String>? cardIds,
     required String? userId,
+    String? cardType = 'flashcard',
   }) =>
       (super.noSuchMethod(
             Invocation.method(#addCardsToSet, [], {
               #setId: setId,
               #cardIds: cardIds,
               #userId: userId,
+              #cardType: cardType,
             }),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i7.Future<void>);
 
   @override
-  _i5.Stream<List<String>> watchCardIdsInSet(String? setId, String? userId) =>
+  _i7.Stream<List<String>> watchCardIdsInSet(String? setId, String? userId) =>
       (super.noSuchMethod(
             Invocation.method(#watchCardIdsInSet, [setId, userId]),
-            returnValue: _i5.Stream<List<String>>.empty(),
+            returnValue: _i7.Stream<List<String>>.empty(),
           )
-          as _i5.Stream<List<String>>);
+          as _i7.Stream<List<String>>);
 
   @override
-  _i5.Stream<List<_i3.FlashCard>> watchCardsInSet(
+  _i7.Stream<List<_i3.FlashCard>> watchCardsInSet(
     String? setId,
     String? userId,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#watchCardsInSet, [setId, userId]),
-            returnValue: _i5.Stream<List<_i3.FlashCard>>.empty(),
+            returnValue: _i7.Stream<List<_i3.FlashCard>>.empty(),
           )
-          as _i5.Stream<List<_i3.FlashCard>>);
+          as _i7.Stream<List<_i3.FlashCard>>);
 
   @override
-  _i5.Future<_i2.CardSet?> findSetByName(String? name, String? userId) =>
+  _i7.Stream<List<_i8.SetCard>> watchSetCards(String? setId, String? userId) =>
+      (super.noSuchMethod(
+            Invocation.method(#watchSetCards, [setId, userId]),
+            returnValue: _i7.Stream<List<_i8.SetCard>>.empty(),
+          )
+          as _i7.Stream<List<_i8.SetCard>>);
+
+  @override
+  _i7.Stream<List<_i2.CardSet>> watchPublicSets() =>
+      (super.noSuchMethod(
+            Invocation.method(#watchPublicSets, []),
+            returnValue: _i7.Stream<List<_i2.CardSet>>.empty(),
+          )
+          as _i7.Stream<List<_i2.CardSet>>);
+
+  @override
+  _i7.Future<_i2.CardSet?> findSetByName(String? name, String? userId) =>
       (super.noSuchMethod(
             Invocation.method(#findSetByName, [name, userId]),
-            returnValue: _i5.Future<_i2.CardSet?>.value(),
+            returnValue: _i7.Future<_i2.CardSet?>.value(),
           )
-          as _i5.Future<_i2.CardSet?>);
+          as _i7.Future<_i2.CardSet?>);
 
   @override
-  _i5.Future<List<_i2.CardSet>> getSetsContainingCard(
+  _i7.Future<List<_i2.CardSet>> getSetsContainingCard(
     String? cardId,
     String? userId,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#getSetsContainingCard, [cardId, userId]),
-            returnValue: _i5.Future<List<_i2.CardSet>>.value(<_i2.CardSet>[]),
+            returnValue: _i7.Future<List<_i2.CardSet>>.value(<_i2.CardSet>[]),
           )
-          as _i5.Future<List<_i2.CardSet>>);
+          as _i7.Future<List<_i2.CardSet>>);
 }
 
 /// A class which mocks [CardRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCardRepository extends _i1.Mock implements _i6.CardRepository {
+class MockCardRepository extends _i1.Mock implements _i9.CardRepository {
   MockCardRepository() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i5.Future<_i3.FlashCard> createCard(_i3.FlashCard? card) =>
+  String generateId() =>
+      (super.noSuchMethod(
+            Invocation.method(#generateId, []),
+            returnValue: _i10.dummyValue<String>(
+              this,
+              Invocation.method(#generateId, []),
+            ),
+          )
+          as String);
+
+  @override
+  _i7.Future<_i3.FlashCard> createCard(_i3.FlashCard? card) =>
       (super.noSuchMethod(
             Invocation.method(#createCard, [card]),
-            returnValue: _i5.Future<_i3.FlashCard>.value(
+            returnValue: _i7.Future<_i3.FlashCard>.value(
               _FakeFlashCard_1(this, Invocation.method(#createCard, [card])),
             ),
           )
-          as _i5.Future<_i3.FlashCard>);
+          as _i7.Future<_i3.FlashCard>);
 
   @override
-  _i5.Future<_i3.FlashCard?> getCard(String? cardId) =>
+  _i7.Future<_i3.FlashCard?> getCard(String? cardId) =>
       (super.noSuchMethod(
             Invocation.method(#getCard, [cardId]),
-            returnValue: _i5.Future<_i3.FlashCard?>.value(),
+            returnValue: _i7.Future<_i3.FlashCard?>.value(),
           )
-          as _i5.Future<_i3.FlashCard?>);
+          as _i7.Future<_i3.FlashCard?>);
 
   @override
-  _i5.Stream<List<_i3.FlashCard>> watchUserCards(String? userId) =>
+  _i7.Stream<List<_i3.FlashCard>> watchUserCards(String? userId) =>
       (super.noSuchMethod(
             Invocation.method(#watchUserCards, [userId]),
-            returnValue: _i5.Stream<List<_i3.FlashCard>>.empty(),
+            returnValue: _i7.Stream<List<_i3.FlashCard>>.empty(),
           )
-          as _i5.Stream<List<_i3.FlashCard>>);
+          as _i7.Stream<List<_i3.FlashCard>>);
 
   @override
-  _i5.Future<List<_i3.FlashCard>> getCardsByIds(List<String>? cardIds) =>
+  _i7.Future<List<_i3.FlashCard>> getCardsByIds(
+    List<String>? cardIds,
+    String? userId,
+  ) =>
       (super.noSuchMethod(
-            Invocation.method(#getCardsByIds, [cardIds]),
-            returnValue: _i5.Future<List<_i3.FlashCard>>.value(
+            Invocation.method(#getCardsByIds, [cardIds, userId]),
+            returnValue: _i7.Future<List<_i3.FlashCard>>.value(
               <_i3.FlashCard>[],
             ),
           )
-          as _i5.Future<List<_i3.FlashCard>>);
+          as _i7.Future<List<_i3.FlashCard>>);
 
   @override
-  _i5.Future<void> updateCard(_i3.FlashCard? card) =>
+  _i7.Future<void> updateCard(_i3.FlashCard? card) =>
       (super.noSuchMethod(
             Invocation.method(#updateCard, [card]),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i7.Future<void>);
 
   @override
-  _i5.Future<void> deleteCard(String? cardId) =>
+  _i7.Future<void> deleteCard(String? cardId) =>
       (super.noSuchMethod(
             Invocation.method(#deleteCard, [cardId]),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
           )
-          as _i5.Future<void>);
+          as _i7.Future<void>);
 
   @override
-  _i5.Future<_i3.FlashCard?> findCardByWordAndTranslation(
+  _i7.Future<_i3.FlashCard?> findCardByWordAndTranslation(
     String? primaryWord,
     String? translation,
     String? userId,
@@ -252,7 +304,125 @@ class MockCardRepository extends _i1.Mock implements _i6.CardRepository {
               translation,
               userId,
             ]),
-            returnValue: _i5.Future<_i3.FlashCard?>.value(),
+            returnValue: _i7.Future<_i3.FlashCard?>.value(),
           )
-          as _i5.Future<_i3.FlashCard?>);
+          as _i7.Future<_i3.FlashCard?>);
+}
+
+/// A class which mocks [QuestionTemplateRepository].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockQuestionTemplateRepository extends _i1.Mock
+    implements _i11.QuestionTemplateRepository {
+  MockQuestionTemplateRepository() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i7.Stream<List<_i4.QuestionTemplate>> watchUserTemplates(String? userId) =>
+      (super.noSuchMethod(
+            Invocation.method(#watchUserTemplates, [userId]),
+            returnValue: _i7.Stream<List<_i4.QuestionTemplate>>.empty(),
+          )
+          as _i7.Stream<List<_i4.QuestionTemplate>>);
+
+  @override
+  _i7.Future<List<_i4.QuestionTemplate>> getUserTemplates(String? userId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getUserTemplates, [userId]),
+            returnValue: _i7.Future<List<_i4.QuestionTemplate>>.value(
+              <_i4.QuestionTemplate>[],
+            ),
+          )
+          as _i7.Future<List<_i4.QuestionTemplate>>);
+
+  @override
+  _i7.Future<_i4.QuestionTemplate> createTemplate(
+    _i4.QuestionTemplate? template,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#createTemplate, [template]),
+            returnValue: _i7.Future<_i4.QuestionTemplate>.value(
+              _FakeQuestionTemplate_2(
+                this,
+                Invocation.method(#createTemplate, [template]),
+              ),
+            ),
+          )
+          as _i7.Future<_i4.QuestionTemplate>);
+
+  @override
+  _i7.Future<void> updateTemplate(_i4.QuestionTemplate? template) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateTemplate, [template]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
+
+  @override
+  _i7.Future<void> deleteTemplate(String? templateId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteTemplate, [templateId]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
+}
+
+/// A class which mocks [TemplateRepository].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockTemplateRepository extends _i1.Mock
+    implements _i12.TemplateRepository {
+  MockTemplateRepository() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i7.Future<_i5.CardTemplate> createTemplate(_i5.CardTemplate? template) =>
+      (super.noSuchMethod(
+            Invocation.method(#createTemplate, [template]),
+            returnValue: _i7.Future<_i5.CardTemplate>.value(
+              _FakeCardTemplate_3(
+                this,
+                Invocation.method(#createTemplate, [template]),
+              ),
+            ),
+          )
+          as _i7.Future<_i5.CardTemplate>);
+
+  @override
+  _i7.Future<_i5.CardTemplate?> getTemplate(String? templateId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getTemplate, [templateId]),
+            returnValue: _i7.Future<_i5.CardTemplate?>.value(),
+          )
+          as _i7.Future<_i5.CardTemplate?>);
+
+  @override
+  _i7.Stream<List<_i5.CardTemplate>> watchUserTemplates(String? userId) =>
+      (super.noSuchMethod(
+            Invocation.method(#watchUserTemplates, [userId]),
+            returnValue: _i7.Stream<List<_i5.CardTemplate>>.empty(),
+          )
+          as _i7.Stream<List<_i5.CardTemplate>>);
+
+  @override
+  _i7.Future<void> updateTemplate(_i5.CardTemplate? template) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateTemplate, [template]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
+
+  @override
+  _i7.Future<void> deleteTemplate(String? templateId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteTemplate, [templateId]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 }

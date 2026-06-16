@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
-import 'package:flash_me/models/card_field.dart';
+import 'package:flash_me/models/card_question.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/repositories/card_repository.dart';
 import 'package:flash_me/repositories/card_set_repository.dart';
+import 'package:flash_me/repositories/question_template_repository.dart';
+import 'package:flash_me/repositories/template_repository.dart';
 import 'package:flash_me/services/import_service.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/exceptions.dart';
@@ -16,17 +18,26 @@ import 'package:test/test.dart';
 
 import 'import_service_test.mocks.dart';
 
-@GenerateMocks([CardSetRepository, CardRepository])
+@GenerateMocks([CardSetRepository, CardRepository, QuestionTemplateRepository, TemplateRepository])
 void main() {
   late MockCardSetRepository mockSetRepo;
   late MockCardRepository mockCardRepo;
+  late MockQuestionTemplateRepository mockQtRepo;
+  late MockTemplateRepository mockTemplateRepo;
   late ImportService service;
   final baseDate = DateTime(2024, 1, 15);
 
   setUp(() {
     mockSetRepo = MockCardSetRepository();
     mockCardRepo = MockCardRepository();
+    mockQtRepo = MockQuestionTemplateRepository();
+    mockTemplateRepo = MockTemplateRepository();
     service = ImportService();
+    // Default stubs for template lookups called on every analyze().
+    when(mockQtRepo.getUserTemplates(any))
+        .thenAnswer((_) async => []);
+    when(mockTemplateRepo.watchUserTemplates(any))
+        .thenAnswer((_) => Stream.value([]));
   });
 
   // Encode a cards.json root map into a valid ZIP archive.
@@ -66,7 +77,7 @@ void main() {
     String id = 'card-1',
     String primaryWord = 'hola',
     String translation = 'hello',
-    List<CardField> fields = const [],
+    List<CardQuestion> questions = const [],
     List<String> tags = const [],
     bool primaryWordHidden = false,
     String? primaryImageUrl,
@@ -77,7 +88,7 @@ void main() {
         translation: translation,
         primaryWordHidden: primaryWordHidden,
         primaryImageUrl: primaryImageUrl,
-        fields: fields,
+        questions: questions,
         tags: tags,
         createdAt: baseDate,
         updatedAt: baseDate,
@@ -107,6 +118,8 @@ void main() {
           userId: 'user-1',
           cardSetRepo: mockSetRepo,
           cardRepo: mockCardRepo,
+          questionTemplateRepo: mockQtRepo,
+          templateRepo: mockTemplateRepo,
         ),
         throwsA(isA<AppException>()
             .having((e) => e.message, 'message', contains('primaryWord'))),
@@ -121,6 +134,8 @@ void main() {
           userId: 'user-1',
           cardSetRepo: mockSetRepo,
           cardRepo: mockCardRepo,
+          questionTemplateRepo: mockQtRepo,
+          templateRepo: mockTemplateRepo,
         ),
         throwsA(isA<AppException>()
             .having((e) => e.message, 'message', contains('translation'))),
@@ -139,6 +154,8 @@ void main() {
           userId: 'user-1',
           cardSetRepo: mockSetRepo,
           cardRepo: mockCardRepo,
+          questionTemplateRepo: mockQtRepo,
+          templateRepo: mockTemplateRepo,
         ),
         throwsA(isA<AppException>()),
       );
@@ -152,6 +169,8 @@ void main() {
           userId: 'user-1',
           cardSetRepo: mockSetRepo,
           cardRepo: mockCardRepo,
+          questionTemplateRepo: mockQtRepo,
+          templateRepo: mockTemplateRepo,
         ),
         throwsA(isA<AppException>()),
       );
@@ -164,6 +183,8 @@ void main() {
           userId: 'user-1',
           cardSetRepo: mockSetRepo,
           cardRepo: mockCardRepo,
+          questionTemplateRepo: mockQtRepo,
+          templateRepo: mockTemplateRepo,
         ),
         throwsA(isA<AppException>()),
       );
@@ -190,6 +211,8 @@ void main() {
         userId: 'user-1',
         cardSetRepo: mockSetRepo,
         cardRepo: mockCardRepo,
+        questionTemplateRepo: mockQtRepo,
+        templateRepo: mockTemplateRepo,
       );
 
       final updated = analysis.setDiffs.first.updatedCards;
@@ -215,6 +238,8 @@ void main() {
         userId: 'user-1',
         cardSetRepo: mockSetRepo,
         cardRepo: mockCardRepo,
+        questionTemplateRepo: mockQtRepo,
+        templateRepo: mockTemplateRepo,
       );
 
       expect(analysis.setDiffs.first.updatedCards, isEmpty);
@@ -240,6 +265,8 @@ void main() {
         userId: 'user-1',
         cardSetRepo: mockSetRepo,
         cardRepo: mockCardRepo,
+        questionTemplateRepo: mockQtRepo,
+        templateRepo: mockTemplateRepo,
       );
 
       final updated = analysis.setDiffs.first.updatedCards;
@@ -266,6 +293,8 @@ void main() {
         userId: 'user-1',
         cardSetRepo: mockSetRepo,
         cardRepo: mockCardRepo,
+        questionTemplateRepo: mockQtRepo,
+        templateRepo: mockTemplateRepo,
       );
 
       final updated = analysis.setDiffs.first.updatedCards;
@@ -294,6 +323,8 @@ void main() {
         userId: 'user-1',
         cardSetRepo: mockSetRepo,
         cardRepo: mockCardRepo,
+        questionTemplateRepo: mockQtRepo,
+        templateRepo: mockTemplateRepo,
       );
 
       expect(analysis.setDiffs.first.newCards.length, equals(1));
@@ -318,6 +349,8 @@ void main() {
         userId: 'user-1',
         cardSetRepo: mockSetRepo,
         cardRepo: mockCardRepo,
+        questionTemplateRepo: mockQtRepo,
+        templateRepo: mockTemplateRepo,
       );
 
       expect(analysis.setDiffs.first.libraryLinkCards.length, equals(1));
@@ -331,15 +364,12 @@ void main() {
     test('detects changed field answer', () async {
       final set = existingSet();
       final card = existingCard(
-        fields: [
-          CardField(
-            fieldId: 'f1',
-            name: 'Gender',
-            type: AppConstants.fieldTypeMultipleChoice,
-            content: const MultipleChoiceContent(
-              options: ['m', 'f'],
-              correctIndex: 0,
-            ),
+        questions: [
+          MultipleChoiceQuestion(
+            questionId: 'q1',
+            prompt: 'Gender',
+            options: ['m', 'f'],
+            correctIndex: 0,
           ),
         ],
       );
@@ -375,6 +405,8 @@ void main() {
         userId: 'user-1',
         cardSetRepo: mockSetRepo,
         cardRepo: mockCardRepo,
+        questionTemplateRepo: mockQtRepo,
+        templateRepo: mockTemplateRepo,
       );
 
       final updated = analysis.setDiffs.first.updatedCards;
@@ -385,15 +417,12 @@ void main() {
     test('no change when field content is identical', () async {
       final set = existingSet();
       final card = existingCard(
-        fields: [
-          CardField(
-            fieldId: 'f1',
-            name: 'Gender',
-            type: AppConstants.fieldTypeMultipleChoice,
-            content: const MultipleChoiceContent(
-              options: ['m', 'f'],
-              correctIndex: 0,
-            ),
+        questions: [
+          MultipleChoiceQuestion(
+            questionId: 'q1',
+            prompt: 'Gender',
+            options: ['m', 'f'],
+            correctIndex: 0,
           ),
         ],
       );
@@ -402,6 +431,8 @@ void main() {
           .thenAnswer((_) async => set);
       when(mockSetRepo.watchCardsInSet('set-1', 'user-1'))
           .thenAnswer((_) => Stream.value([card]));
+      when(mockSetRepo.getSetsContainingCard('card-1', 'user-1'))
+          .thenAnswer((_) async => []);
 
       final zip = makeZip(singleSet('Test Set', [
         {
@@ -415,6 +446,7 @@ void main() {
               'content': {
                 'options': ['m', 'f'],
                 'correctIndex': 0, // same as existing
+                'displayMode': 'list', // matches MultipleChoiceQuestion.toJson default
                 'explanation': null,
               },
             },
@@ -427,6 +459,8 @@ void main() {
         userId: 'user-1',
         cardSetRepo: mockSetRepo,
         cardRepo: mockCardRepo,
+        questionTemplateRepo: mockQtRepo,
+        templateRepo: mockTemplateRepo,
       );
 
       expect(analysis.setDiffs.first.updatedCards, isEmpty);

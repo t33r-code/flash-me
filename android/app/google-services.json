@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "1012255770120-uo752h6mgvd0fk7ljdcg0iqp975hni4t.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.t33r.agora",
+            "certificate_hash": "f546c4834650e5fed47014e939880f4d262cf574"
+          }
+        },
+        {
           "client_id": "1012255770120-dj4ehp8bgqosc39mithqm0lanhg9dpu3.apps.googleusercontent.com",
           "client_type": 3
         }

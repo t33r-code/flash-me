@@ -49,8 +49,10 @@ app.*.map.json
 # Flutter DevTools local config (auto-generated, not project state)
 devtools_options.yaml
 
-# Claude Code local session state
-.claude/
+# Claude Code local session state — ignore personal settings but track shared commands
+.claude/*
+!.claude/commands/
+!.claude/commands/**
 
 # Firebase CLI local deployment cache (machine-specific, auto-regenerated)
 .firebase/

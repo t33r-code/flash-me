@@ -364,6 +364,156 @@ abstract class AppLocalizations {
   /// **'End Session'**
   String get actionEndSession;
 
+  /// No description provided for @messageErrorLoadingApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading app. Please restart.'**
+  String get messageErrorLoadingApp;
+
+  /// No description provided for @titleResetPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
+  String get titleResetPassword;
+
+  /// No description provided for @actionSendResetEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Reset Email'**
+  String get actionSendResetEmail;
+
+  /// No description provided for @messagePasswordResetSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset email sent. Check your inbox.'**
+  String get messagePasswordResetSent;
+
+  /// No description provided for @messageFailedSendResetEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send reset email. Please try again.'**
+  String get messageFailedSendResetEmail;
+
+  /// No description provided for @messageSignInToContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to continue'**
+  String get messageSignInToContinue;
+
+  /// No description provided for @messageCreateYourAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your account'**
+  String get messageCreateYourAccount;
+
+  /// No description provided for @validatorConfirmPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Please confirm your password'**
+  String get validatorConfirmPassword;
+
+  /// No description provided for @validatorPasswordsDoNotMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match'**
+  String get validatorPasswordsDoNotMatch;
+
+  /// No description provided for @labelOr.
+  ///
+  /// In en, this message translates to:
+  /// **'or'**
+  String get labelOr;
+
+  /// No description provided for @messageNoAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t have an account? '**
+  String get messageNoAccount;
+
+  /// No description provided for @messageHaveAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have an account? '**
+  String get messageHaveAccount;
+
+  /// No description provided for @errorInvalidCredential.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid email or password.'**
+  String get errorInvalidCredential;
+
+  /// No description provided for @errorEmailInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'An account with this email already exists.'**
+  String get errorEmailInUse;
+
+  /// No description provided for @errorWeakPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password is too weak. Use at least 6 characters.'**
+  String get errorWeakPassword;
+
+  /// No description provided for @errorInvalidEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid email address.'**
+  String get errorInvalidEmail;
+
+  /// No description provided for @errorTooManyRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please try again later.'**
+  String get errorTooManyRequests;
+
+  /// No description provided for @errorNetworkFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Network error. Check your connection.'**
+  String get errorNetworkFailed;
+
+  /// No description provided for @errorUnexpected.
+  ///
+  /// In en, this message translates to:
+  /// **'An unexpected error occurred.'**
+  String get errorUnexpected;
+
+  /// No description provided for @errorGoogleSignInFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Google sign-in failed. Please try again.'**
+  String get errorGoogleSignInFailed;
+
+  /// No description provided for @navSets.
+  ///
+  /// In en, this message translates to:
+  /// **'Sets'**
+  String get navSets;
+
+  /// No description provided for @navCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Cards'**
+  String get navCards;
+
+  /// No description provided for @navStudy.
+  ///
+  /// In en, this message translates to:
+  /// **'Study'**
+  String get navStudy;
+
+  /// No description provided for @navTemplates.
+  ///
+  /// In en, this message translates to:
+  /// **'Templates'**
+  String get navTemplates;
+
+  /// No description provided for @navProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get navProfile;
+
   /// No description provided for @actionImportSets.
   ///
   /// In en, this message translates to:

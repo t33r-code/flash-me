@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flash_me/l10n/app_localizations.dart';
+import 'package:flash_me/utils/extensions.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -115,8 +116,8 @@ class MyApp extends ConsumerWidget {
         ),
         error: (error, stackTrace) {
           AppLogger.error('Auth state error: $error', stackTrace);
-          return const Scaffold(
-            body: Center(child: Text('Error loading app. Please restart.')),
+          return Scaffold(
+            body: Center(child: Text(context.l10n.messageErrorLoadingApp)),
           );
         },
       ),

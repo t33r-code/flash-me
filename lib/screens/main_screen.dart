@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/screens/sets/sets_screen.dart';
 import 'package:flash_me/screens/cards/my_cards_screen.dart';
 import 'package:flash_me/screens/study/study_screen.dart';
@@ -48,31 +49,31 @@ class _MainScreenState extends State<MainScreen> {
         onTap: (i) => setState(() => _selectedIndex = i),
         // fixed type required to show labels for 4+ items
         type: BottomNavigationBarType.fixed,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.library_books_outlined),
-            activeIcon: Icon(Icons.library_books),
-            label: 'Sets',
+            icon: const Icon(Icons.library_books_outlined),
+            activeIcon: const Icon(Icons.library_books),
+            label: context.l10n.navSets,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.style_outlined),
-            activeIcon: Icon(Icons.style),
-            label: 'Cards',
+            icon: const Icon(Icons.style_outlined),
+            activeIcon: const Icon(Icons.style),
+            label: context.l10n.navCards,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.school_outlined),
-            activeIcon: Icon(Icons.school),
-            label: 'Study',
+            icon: const Icon(Icons.school_outlined),
+            activeIcon: const Icon(Icons.school),
+            label: context.l10n.navStudy,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.copy_all_outlined),
-            activeIcon: Icon(Icons.copy_all),
-            label: 'Templates',
+            icon: const Icon(Icons.copy_all_outlined),
+            activeIcon: const Icon(Icons.copy_all),
+            label: context.l10n.navTemplates,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.account_circle_outlined),
-            activeIcon: Icon(Icons.account_circle),
-            label: 'Profile',
+            icon: const Icon(Icons.account_circle_outlined),
+            activeIcon: const Icon(Icons.account_circle),
+            label: context.l10n.navProfile,
           ),
         ],
       ),

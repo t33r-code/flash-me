@@ -12,6 +12,10 @@ class FirebaseTemplateRepository implements TemplateRepository {
 
   @override
   Future<CardTemplate> createTemplate(CardTemplate template) async {
+    final errors = template.validate();
+    if (errors.isNotEmpty) {
+      throw AppException(errors.join('; '), code: 'validation-failed');
+    }
     try {
       final docRef =
           _firestore.collection(AppConstants.templatesCollection).doc();
@@ -55,6 +59,10 @@ class FirebaseTemplateRepository implements TemplateRepository {
 
   @override
   Future<void> updateTemplate(CardTemplate template) async {
+    final errors = template.validate();
+    if (errors.isNotEmpty) {
+      throw AppException(errors.join('; '), code: 'validation-failed');
+    }
     try {
       final updated = template.copyWith(updatedAt: DateTime.now());
       await _firestore

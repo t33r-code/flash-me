@@ -62,6 +62,10 @@ sealed class CardQuestion {
 
   Map<String, dynamic> toJson();
 
+  // Returns validation errors for this question.
+  // Pass isTemplate: true when validating templates — answer fields are nullable.
+  List<String> validate({bool isTemplate = false});
+
   // Generate a new questionId using Firestore's local ID generator (no network call).
   static String generateId() =>
       FirebaseFirestore.instance.collection('_').doc().id;
@@ -108,6 +112,15 @@ class TextInputQuestion extends CardQuestion {
           'exactMatch': exactMatch,
         },
       };
+
+  @override
+  List<String> validate({bool isTemplate = false}) {
+    if (isTemplate) return [];
+    if (correctAnswers == null || correctAnswers!.isEmpty) {
+      return ['text input question must have at least one correct answer'];
+    }
+    return [];
+  }
 
   TextInputQuestion copyWith({
     String? questionId,
@@ -172,6 +185,22 @@ class MultipleChoiceQuestion extends CardQuestion {
         },
       };
 
+  @override
+  List<String> validate({bool isTemplate = false}) {
+    if (isTemplate) return [];
+    final errors = <String>[];
+    if (options == null || options!.length < 2) {
+      errors.add('multiple choice question must have at least 2 options');
+    }
+    if (correctIndex == null) {
+      errors.add('multiple choice question must have a correct answer selected');
+    } else if (options != null && correctIndex! >= options!.length) {
+      errors.add(
+          'correct answer index $correctIndex is out of range (${options!.length} options)');
+    }
+    return errors;
+  }
+
   MultipleChoiceQuestion copyWith({
     String? questionId,
     String? prompt,
@@ -230,6 +259,27 @@ class WordOrderQuestion extends CardQuestion {
           'correctOrder': correctOrder,
         },
       };
+
+  @override
+  List<String> validate({bool isTemplate = false}) {
+    if (isTemplate) return [];
+    final errors = <String>[];
+    if (wordBank == null || wordBank!.isEmpty) {
+      errors.add('word order question must have a word bank');
+    }
+    if (correctOrder == null || correctOrder!.isEmpty) {
+      errors.add('word order question must have a correct order');
+    }
+    if (wordBank != null && correctOrder != null) {
+      final bankSet = wordBank!.toSet();
+      for (final word in correctOrder!) {
+        if (!bankSet.contains(word)) {
+          errors.add('correct order contains "$word" which is not in the word bank');
+        }
+      }
+    }
+    return errors;
+  }
 
   WordOrderQuestion copyWith({
     String? questionId,

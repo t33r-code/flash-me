@@ -17,6 +17,16 @@ class AppUser {
     this.lastLoginAt,
   });
 
+  // Email format is the only user-entered field; id and timestamps are system-supplied.
+  List<String> validate() {
+    final emailRegex =
+        RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    if (email.isEmpty || !emailRegex.hasMatch(email)) {
+      return ['a valid email address is required'];
+    }
+    return [];
+  }
+
   // Convert AppUser to JSON
   Map<String, dynamic> toJson() => {
     'id': id,

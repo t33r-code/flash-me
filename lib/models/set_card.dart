@@ -40,6 +40,9 @@ class SetCard {
     );
   }
 
+  // No user-entered fields — all values are system-supplied.
+  List<String> validate() => [];
+
   Map<String, dynamic> toFirestore() => {
         'setId': setId,
         'cardId': cardId,

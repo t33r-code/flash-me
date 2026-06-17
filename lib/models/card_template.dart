@@ -80,6 +80,18 @@ class CardTemplate {
         'updatedAt': updatedAt.toIso8601String(),
       };
 
+  // Returns validation errors for user-entered fields; empty list means safe to save.
+  List<String> validate() {
+    final errors = <String>[];
+    if (name.trim().isEmpty) errors.add('name is required');
+    for (var i = 0; i < questions.length; i++) {
+      for (final e in questions[i].validate(isTemplate: true)) {
+        errors.add('question ${i + 1}: $e');
+      }
+    }
+    return errors;
+  }
+
   CardTemplate copyWith({
     String? id,
     String? createdBy,

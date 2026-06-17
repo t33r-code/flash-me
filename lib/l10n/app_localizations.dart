@@ -675,6 +675,726 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dark'**
   String get labelThemeDark;
+
+  /// No description provided for @tabMySets.
+  ///
+  /// In en, this message translates to:
+  /// **'My Sets'**
+  String get tabMySets;
+
+  /// No description provided for @tabMarket.
+  ///
+  /// In en, this message translates to:
+  /// **'Market'**
+  String get tabMarket;
+
+  /// No description provided for @tooltipSortBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by'**
+  String get tooltipSortBy;
+
+  /// No description provided for @labelSortLastUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Last updated'**
+  String get labelSortLastUpdated;
+
+  /// No description provided for @labelSortName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get labelSortName;
+
+  /// No description provided for @labelSortCardCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Card count'**
+  String get labelSortCardCount;
+
+  /// No description provided for @tooltipCreateSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Create set'**
+  String get tooltipCreateSet;
+
+  /// No description provided for @hintSearchSets.
+  ///
+  /// In en, this message translates to:
+  /// **'Search sets…'**
+  String get hintSearchSets;
+
+  /// No description provided for @hintSearchMarket.
+  ///
+  /// In en, this message translates to:
+  /// **'Search market…'**
+  String get hintSearchMarket;
+
+  /// No description provided for @labelAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get labelAll;
+
+  /// No description provided for @messageNoSetsMatchSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'No sets match your search.'**
+  String get messageNoSetsMatchSearch;
+
+  /// No description provided for @errorFailedLoadSets.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load sets.'**
+  String get errorFailedLoadSets;
+
+  /// No description provided for @errorFailedLoadMarket.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load market.'**
+  String get errorFailedLoadMarket;
+
+  /// No description provided for @titleNoSetsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No sets yet'**
+  String get titleNoSetsYet;
+
+  /// No description provided for @messageNoSetsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap + to create your first set.'**
+  String get messageNoSetsHint;
+
+  /// No description provided for @titleMarketEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Market is empty'**
+  String get titleMarketEmpty;
+
+  /// No description provided for @messageMarketEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No sets have been published yet.\nPublish your own from a set\'s detail screen.'**
+  String get messageMarketEmpty;
+
+  /// No description provided for @tooltipOfferedInMarket.
+  ///
+  /// In en, this message translates to:
+  /// **'Offered in Market'**
+  String get tooltipOfferedInMarket;
+
+  /// No description provided for @labelInMarket.
+  ///
+  /// In en, this message translates to:
+  /// **'In Market'**
+  String get labelInMarket;
+
+  /// No description provided for @labelToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get labelToday;
+
+  /// No description provided for @labelYesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get labelYesterday;
+
+  /// No description provided for @labelMonthJan.
+  ///
+  /// In en, this message translates to:
+  /// **'Jan'**
+  String get labelMonthJan;
+
+  /// No description provided for @labelMonthFeb.
+  ///
+  /// In en, this message translates to:
+  /// **'Feb'**
+  String get labelMonthFeb;
+
+  /// No description provided for @labelMonthMar.
+  ///
+  /// In en, this message translates to:
+  /// **'Mar'**
+  String get labelMonthMar;
+
+  /// No description provided for @labelMonthApr.
+  ///
+  /// In en, this message translates to:
+  /// **'Apr'**
+  String get labelMonthApr;
+
+  /// No description provided for @labelMonthMay.
+  ///
+  /// In en, this message translates to:
+  /// **'May'**
+  String get labelMonthMay;
+
+  /// No description provided for @labelMonthJun.
+  ///
+  /// In en, this message translates to:
+  /// **'Jun'**
+  String get labelMonthJun;
+
+  /// No description provided for @labelMonthJul.
+  ///
+  /// In en, this message translates to:
+  /// **'Jul'**
+  String get labelMonthJul;
+
+  /// No description provided for @labelMonthAug.
+  ///
+  /// In en, this message translates to:
+  /// **'Aug'**
+  String get labelMonthAug;
+
+  /// No description provided for @labelMonthSep.
+  ///
+  /// In en, this message translates to:
+  /// **'Sep'**
+  String get labelMonthSep;
+
+  /// No description provided for @labelMonthOct.
+  ///
+  /// In en, this message translates to:
+  /// **'Oct'**
+  String get labelMonthOct;
+
+  /// No description provided for @labelMonthNov.
+  ///
+  /// In en, this message translates to:
+  /// **'Nov'**
+  String get labelMonthNov;
+
+  /// No description provided for @labelMonthDec.
+  ///
+  /// In en, this message translates to:
+  /// **'Dec'**
+  String get labelMonthDec;
+
+  /// No description provided for @labelAcquiredCloned.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloned {date}'**
+  String labelAcquiredCloned(String date);
+
+  /// No description provided for @labelAcquiredSubscribed.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscribed {date}'**
+  String labelAcquiredSubscribed(String date);
+
+  /// No description provided for @labelCardCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 card} other{{count} cards}}'**
+  String labelCardCount(int count);
+
+  /// No description provided for @labelQuestionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 question} other{{count} questions}}'**
+  String labelQuestionCount(int count);
+
+  /// No description provided for @titleNewSet.
+  ///
+  /// In en, this message translates to:
+  /// **'New Set'**
+  String get titleNewSet;
+
+  /// No description provided for @titleEditSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Set'**
+  String get titleEditSet;
+
+  /// No description provided for @labelSetNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Set name *'**
+  String get labelSetNameRequired;
+
+  /// No description provided for @hintSetNameExample.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Spanish Verbs'**
+  String get hintSetNameExample;
+
+  /// No description provided for @validatorSetNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Name is required'**
+  String get validatorSetNameRequired;
+
+  /// No description provided for @labelDescriptionOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Description (optional)'**
+  String get labelDescriptionOptional;
+
+  /// No description provided for @titleLanguagesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Languages'**
+  String get titleLanguagesSection;
+
+  /// No description provided for @labelTargetLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Target language (being studied)'**
+  String get labelTargetLanguage;
+
+  /// No description provided for @labelNativeLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Native language'**
+  String get labelNativeLanguage;
+
+  /// No description provided for @titleColorSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour'**
+  String get titleColorSection;
+
+  /// No description provided for @titleTagsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get titleTagsSection;
+
+  /// No description provided for @errorFailedSaveSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save set. Please try again.'**
+  String get errorFailedSaveSet;
+
+  /// No description provided for @actionSaveChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Changes'**
+  String get actionSaveChanges;
+
+  /// No description provided for @semanticsColorNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No colour'**
+  String get semanticsColorNone;
+
+  /// No description provided for @semanticsColorRed.
+  ///
+  /// In en, this message translates to:
+  /// **'Red'**
+  String get semanticsColorRed;
+
+  /// No description provided for @semanticsColorDeepOrange.
+  ///
+  /// In en, this message translates to:
+  /// **'Deep orange'**
+  String get semanticsColorDeepOrange;
+
+  /// No description provided for @semanticsColorAmber.
+  ///
+  /// In en, this message translates to:
+  /// **'Amber'**
+  String get semanticsColorAmber;
+
+  /// No description provided for @semanticsColorGreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get semanticsColorGreen;
+
+  /// No description provided for @semanticsColorTeal.
+  ///
+  /// In en, this message translates to:
+  /// **'Teal'**
+  String get semanticsColorTeal;
+
+  /// No description provided for @semanticsColorBlue.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get semanticsColorBlue;
+
+  /// No description provided for @semanticsColorIndigo.
+  ///
+  /// In en, this message translates to:
+  /// **'Indigo'**
+  String get semanticsColorIndigo;
+
+  /// No description provided for @semanticsColorPurple.
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get semanticsColorPurple;
+
+  /// No description provided for @semanticsColorPink.
+  ///
+  /// In en, this message translates to:
+  /// **'Pink'**
+  String get semanticsColorPink;
+
+  /// No description provided for @semanticsColorSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'{colorName}, selected'**
+  String semanticsColorSelected(String colorName);
+
+  /// No description provided for @titleDeleteSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Set'**
+  String get titleDeleteSet;
+
+  /// No description provided for @messageDeleteSetConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"? Cards are not deleted, only removed from this set.'**
+  String messageDeleteSetConfirm(String name);
+
+  /// No description provided for @errorFailedDeleteSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete set. Please try again.'**
+  String get errorFailedDeleteSet;
+
+  /// No description provided for @errorFailedRemoveCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to remove card.'**
+  String get errorFailedRemoveCard;
+
+  /// No description provided for @messagePreparingExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing export…'**
+  String get messagePreparingExport;
+
+  /// No description provided for @messageSavedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to {path}'**
+  String messageSavedTo(String path);
+
+  /// No description provided for @errorExportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed. Please try again.'**
+  String get errorExportFailed;
+
+  /// No description provided for @titleRemoveFromMarket.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from Market'**
+  String get titleRemoveFromMarket;
+
+  /// No description provided for @messageRemoveFromMarketAcquired.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" has been acquired by {count, plural, =1{1 user} other{{count} users}}. Removing it from the Market will not affect their copies — this set will simply stop appearing to new users.'**
+  String messageRemoveFromMarketAcquired(String name, int count);
+
+  /// No description provided for @messageRemoveFromMarketNoAcquisitions.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove \"{name}\" from the Market? It will no longer appear for other users.'**
+  String messageRemoveFromMarketNoAcquisitions(String name);
+
+  /// No description provided for @errorFailedPublish.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to publish. Please try again.'**
+  String get errorFailedPublish;
+
+  /// No description provided for @errorFailedRemoveFromMarket.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to remove from Market. Please try again.'**
+  String get errorFailedRemoveFromMarket;
+
+  /// No description provided for @tooltipRemoveFromMarket.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from Market'**
+  String get tooltipRemoveFromMarket;
+
+  /// No description provided for @tooltipOfferInMarket.
+  ///
+  /// In en, this message translates to:
+  /// **'Offer in Market'**
+  String get tooltipOfferInMarket;
+
+  /// No description provided for @tooltipExportSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Export set'**
+  String get tooltipExportSet;
+
+  /// No description provided for @tooltipDeleteSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete set'**
+  String get tooltipDeleteSet;
+
+  /// No description provided for @tooltipEditSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit set'**
+  String get tooltipEditSet;
+
+  /// No description provided for @tooltipStudyThisSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Study this set'**
+  String get tooltipStudyThisSet;
+
+  /// No description provided for @tooltipAddCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Add cards'**
+  String get tooltipAddCards;
+
+  /// No description provided for @titleNoCardsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No cards yet'**
+  String get titleNoCardsYet;
+
+  /// No description provided for @messageNoCardsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap + to add cards to this set.'**
+  String get messageNoCardsHint;
+
+  /// No description provided for @actionAddCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Cards'**
+  String get actionAddCards;
+
+  /// No description provided for @actionAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get actionAdd;
+
+  /// No description provided for @actionAddCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Add ({count})'**
+  String actionAddCount(int count);
+
+  /// No description provided for @errorFailedLoadCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load cards.'**
+  String get errorFailedLoadCards;
+
+  /// No description provided for @messageNoCardsYetTab.
+  ///
+  /// In en, this message translates to:
+  /// **'No cards yet. Create cards from the Cards tab.'**
+  String get messageNoCardsYetTab;
+
+  /// No description provided for @messageAllCardsInSet.
+  ///
+  /// In en, this message translates to:
+  /// **'All your cards are already in this set.'**
+  String get messageAllCardsInSet;
+
+  /// No description provided for @labelSectionFlashCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Flash Cards'**
+  String get labelSectionFlashCards;
+
+  /// No description provided for @labelSectionWorkbookCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Workbook Cards'**
+  String get labelSectionWorkbookCards;
+
+  /// No description provided for @labelDuplicateWordInSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate word — already in set'**
+  String get labelDuplicateWordInSet;
+
+  /// No description provided for @labelAlreadyInSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Already in set'**
+  String get labelAlreadyInSet;
+
+  /// No description provided for @labelAllowClone.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Clone'**
+  String get labelAllowClone;
+
+  /// No description provided for @messageAllowCloneSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Users can copy this set into their own library.'**
+  String get messageAllowCloneSubtitle;
+
+  /// No description provided for @titleOfferInMarket.
+  ///
+  /// In en, this message translates to:
+  /// **'Offer in Market'**
+  String get titleOfferInMarket;
+
+  /// No description provided for @messageOfferInMarketDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Make \"{name}\" visible in the Market tab so other users can discover and acquire it.'**
+  String messageOfferInMarketDescription(String name);
+
+  /// No description provided for @titleOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Options'**
+  String get titleOptions;
+
+  /// No description provided for @actionOfferInMarket.
+  ///
+  /// In en, this message translates to:
+  /// **'Offer in Market'**
+  String get actionOfferInMarket;
+
+  /// No description provided for @titleCloneSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Clone Set'**
+  String get titleCloneSet;
+
+  /// No description provided for @infoCloneAddedToMySets.
+  ///
+  /// In en, this message translates to:
+  /// **'A copy of this set is added to your My Sets.'**
+  String get infoCloneAddedToMySets;
+
+  /// No description provided for @infoCloneFullyEditable.
+  ///
+  /// In en, this message translates to:
+  /// **'Your copy is fully editable and independent.'**
+  String get infoCloneFullyEditable;
+
+  /// No description provided for @infoCloneNoChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes to the original won\'t affect your copy.'**
+  String get infoCloneNoChanges;
+
+  /// No description provided for @actionCloneToMySets.
+  ///
+  /// In en, this message translates to:
+  /// **'Clone to My Sets'**
+  String get actionCloneToMySets;
+
+  /// No description provided for @labelCloning.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloning…'**
+  String get labelCloning;
+
+  /// No description provided for @messageCloneSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" added to My Sets.'**
+  String messageCloneSuccess(String name);
+
+  /// No description provided for @errorFailedCloneSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to clone set. Please try again.'**
+  String get errorFailedCloneSet;
+
+  /// No description provided for @titleAlreadyHaveSet.
+  ///
+  /// In en, this message translates to:
+  /// **'You Already Have This Set'**
+  String get titleAlreadyHaveSet;
+
+  /// No description provided for @infoAlreadyHaveCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have a copy of this set in My Sets.'**
+  String get infoAlreadyHaveCopy;
+
+  /// No description provided for @messageCheckingForUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking for updates…'**
+  String get messageCheckingForUpdates;
+
+  /// No description provided for @messageSetNoLongerAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This set is no longer available — the creator\'s account has been deleted.'**
+  String get messageSetNoLongerAvailable;
+
+  /// No description provided for @messageCouldNotCheckUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not check for updates. Please try again later.'**
+  String get messageCouldNotCheckUpdates;
+
+  /// No description provided for @labelOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get labelOk;
+
+  /// No description provided for @messageNewCardsAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 new card added to the original since you cloned it.} other{{count} new cards added to the original since you cloned it.}}'**
+  String messageNewCardsAdded(int count);
+
+  /// No description provided for @messageCardsUpdatedSinceClone.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 card updated in the original since you cloned it.} other{{count} cards updated in the original since you cloned it.}}'**
+  String messageCardsUpdatedSinceClone(int count);
+
+  /// No description provided for @infoUpdateInPlace.
+  ///
+  /// In en, this message translates to:
+  /// **'Your existing set will be updated in place. No new set will be created.'**
+  String get infoUpdateInPlace;
+
+  /// No description provided for @actionUpdateMyCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Update My Copy'**
+  String get actionUpdateMyCopy;
+
+  /// No description provided for @labelUpdating.
+  ///
+  /// In en, this message translates to:
+  /// **'Updating…'**
+  String get labelUpdating;
+
+  /// No description provided for @messageUpdateSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" updated.'**
+  String messageUpdateSuccess(String name);
+
+  /// No description provided for @errorFailedUpdateSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update set. Please try again.'**
+  String get errorFailedUpdateSet;
+
+  /// No description provided for @infoUpToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Your copy is up to date.'**
+  String get infoUpToDate;
 }
 
 class _AppLocalizationsDelegate

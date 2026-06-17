@@ -310,4 +310,435 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get labelThemeDark => 'Dark';
+
+  @override
+  String get tabMySets => 'My Sets';
+
+  @override
+  String get tabMarket => 'Market';
+
+  @override
+  String get tooltipSortBy => 'Sort by';
+
+  @override
+  String get labelSortLastUpdated => 'Last updated';
+
+  @override
+  String get labelSortName => 'Name';
+
+  @override
+  String get labelSortCardCount => 'Card count';
+
+  @override
+  String get tooltipCreateSet => 'Create set';
+
+  @override
+  String get hintSearchSets => 'Search sets…';
+
+  @override
+  String get hintSearchMarket => 'Search market…';
+
+  @override
+  String get labelAll => 'All';
+
+  @override
+  String get messageNoSetsMatchSearch => 'No sets match your search.';
+
+  @override
+  String get errorFailedLoadSets => 'Failed to load sets.';
+
+  @override
+  String get errorFailedLoadMarket => 'Failed to load market.';
+
+  @override
+  String get titleNoSetsYet => 'No sets yet';
+
+  @override
+  String get messageNoSetsHint => 'Tap + to create your first set.';
+
+  @override
+  String get titleMarketEmpty => 'Market is empty';
+
+  @override
+  String get messageMarketEmpty =>
+      'No sets have been published yet.\nPublish your own from a set\'s detail screen.';
+
+  @override
+  String get tooltipOfferedInMarket => 'Offered in Market';
+
+  @override
+  String get labelInMarket => 'In Market';
+
+  @override
+  String get labelToday => 'Today';
+
+  @override
+  String get labelYesterday => 'Yesterday';
+
+  @override
+  String get labelMonthJan => 'Jan';
+
+  @override
+  String get labelMonthFeb => 'Feb';
+
+  @override
+  String get labelMonthMar => 'Mar';
+
+  @override
+  String get labelMonthApr => 'Apr';
+
+  @override
+  String get labelMonthMay => 'May';
+
+  @override
+  String get labelMonthJun => 'Jun';
+
+  @override
+  String get labelMonthJul => 'Jul';
+
+  @override
+  String get labelMonthAug => 'Aug';
+
+  @override
+  String get labelMonthSep => 'Sep';
+
+  @override
+  String get labelMonthOct => 'Oct';
+
+  @override
+  String get labelMonthNov => 'Nov';
+
+  @override
+  String get labelMonthDec => 'Dec';
+
+  @override
+  String labelAcquiredCloned(String date) {
+    return 'Cloned $date';
+  }
+
+  @override
+  String labelAcquiredSubscribed(String date) {
+    return 'Subscribed $date';
+  }
+
+  @override
+  String labelCardCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cards',
+      one: '1 card',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String labelQuestionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count questions',
+      one: '1 question',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get titleNewSet => 'New Set';
+
+  @override
+  String get titleEditSet => 'Edit Set';
+
+  @override
+  String get labelSetNameRequired => 'Set name *';
+
+  @override
+  String get hintSetNameExample => 'e.g. Spanish Verbs';
+
+  @override
+  String get validatorSetNameRequired => 'Name is required';
+
+  @override
+  String get labelDescriptionOptional => 'Description (optional)';
+
+  @override
+  String get titleLanguagesSection => 'Languages';
+
+  @override
+  String get labelTargetLanguage => 'Target language (being studied)';
+
+  @override
+  String get labelNativeLanguage => 'Native language';
+
+  @override
+  String get titleColorSection => 'Colour';
+
+  @override
+  String get titleTagsSection => 'Tags';
+
+  @override
+  String get errorFailedSaveSet => 'Failed to save set. Please try again.';
+
+  @override
+  String get actionSaveChanges => 'Save Changes';
+
+  @override
+  String get semanticsColorNone => 'No colour';
+
+  @override
+  String get semanticsColorRed => 'Red';
+
+  @override
+  String get semanticsColorDeepOrange => 'Deep orange';
+
+  @override
+  String get semanticsColorAmber => 'Amber';
+
+  @override
+  String get semanticsColorGreen => 'Green';
+
+  @override
+  String get semanticsColorTeal => 'Teal';
+
+  @override
+  String get semanticsColorBlue => 'Blue';
+
+  @override
+  String get semanticsColorIndigo => 'Indigo';
+
+  @override
+  String get semanticsColorPurple => 'Purple';
+
+  @override
+  String get semanticsColorPink => 'Pink';
+
+  @override
+  String semanticsColorSelected(String colorName) {
+    return '$colorName, selected';
+  }
+
+  @override
+  String get titleDeleteSet => 'Delete Set';
+
+  @override
+  String messageDeleteSetConfirm(String name) {
+    return 'Delete \"$name\"? Cards are not deleted, only removed from this set.';
+  }
+
+  @override
+  String get errorFailedDeleteSet => 'Failed to delete set. Please try again.';
+
+  @override
+  String get errorFailedRemoveCard => 'Failed to remove card.';
+
+  @override
+  String get messagePreparingExport => 'Preparing export…';
+
+  @override
+  String messageSavedTo(String path) {
+    return 'Saved to $path';
+  }
+
+  @override
+  String get errorExportFailed => 'Export failed. Please try again.';
+
+  @override
+  String get titleRemoveFromMarket => 'Remove from Market';
+
+  @override
+  String messageRemoveFromMarketAcquired(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count users',
+      one: '1 user',
+    );
+    return '\"$name\" has been acquired by $_temp0. Removing it from the Market will not affect their copies — this set will simply stop appearing to new users.';
+  }
+
+  @override
+  String messageRemoveFromMarketNoAcquisitions(String name) {
+    return 'Remove \"$name\" from the Market? It will no longer appear for other users.';
+  }
+
+  @override
+  String get errorFailedPublish => 'Failed to publish. Please try again.';
+
+  @override
+  String get errorFailedRemoveFromMarket =>
+      'Failed to remove from Market. Please try again.';
+
+  @override
+  String get tooltipRemoveFromMarket => 'Remove from Market';
+
+  @override
+  String get tooltipOfferInMarket => 'Offer in Market';
+
+  @override
+  String get tooltipExportSet => 'Export set';
+
+  @override
+  String get tooltipDeleteSet => 'Delete set';
+
+  @override
+  String get tooltipEditSet => 'Edit set';
+
+  @override
+  String get tooltipStudyThisSet => 'Study this set';
+
+  @override
+  String get tooltipAddCards => 'Add cards';
+
+  @override
+  String get titleNoCardsYet => 'No cards yet';
+
+  @override
+  String get messageNoCardsHint => 'Tap + to add cards to this set.';
+
+  @override
+  String get actionAddCards => 'Add Cards';
+
+  @override
+  String get actionAdd => 'Add';
+
+  @override
+  String actionAddCount(int count) {
+    return 'Add ($count)';
+  }
+
+  @override
+  String get errorFailedLoadCards => 'Failed to load cards.';
+
+  @override
+  String get messageNoCardsYetTab =>
+      'No cards yet. Create cards from the Cards tab.';
+
+  @override
+  String get messageAllCardsInSet => 'All your cards are already in this set.';
+
+  @override
+  String get labelSectionFlashCards => 'Flash Cards';
+
+  @override
+  String get labelSectionWorkbookCards => 'Workbook Cards';
+
+  @override
+  String get labelDuplicateWordInSet => 'Duplicate word — already in set';
+
+  @override
+  String get labelAlreadyInSet => 'Already in set';
+
+  @override
+  String get labelAllowClone => 'Allow Clone';
+
+  @override
+  String get messageAllowCloneSubtitle =>
+      'Users can copy this set into their own library.';
+
+  @override
+  String get titleOfferInMarket => 'Offer in Market';
+
+  @override
+  String messageOfferInMarketDescription(String name) {
+    return 'Make \"$name\" visible in the Market tab so other users can discover and acquire it.';
+  }
+
+  @override
+  String get titleOptions => 'Options';
+
+  @override
+  String get actionOfferInMarket => 'Offer in Market';
+
+  @override
+  String get titleCloneSet => 'Clone Set';
+
+  @override
+  String get infoCloneAddedToMySets =>
+      'A copy of this set is added to your My Sets.';
+
+  @override
+  String get infoCloneFullyEditable =>
+      'Your copy is fully editable and independent.';
+
+  @override
+  String get infoCloneNoChanges =>
+      'Changes to the original won\'t affect your copy.';
+
+  @override
+  String get actionCloneToMySets => 'Clone to My Sets';
+
+  @override
+  String get labelCloning => 'Cloning…';
+
+  @override
+  String messageCloneSuccess(String name) {
+    return '\"$name\" added to My Sets.';
+  }
+
+  @override
+  String get errorFailedCloneSet => 'Failed to clone set. Please try again.';
+
+  @override
+  String get titleAlreadyHaveSet => 'You Already Have This Set';
+
+  @override
+  String get infoAlreadyHaveCopy =>
+      'You already have a copy of this set in My Sets.';
+
+  @override
+  String get messageCheckingForUpdates => 'Checking for updates…';
+
+  @override
+  String get messageSetNoLongerAvailable =>
+      'This set is no longer available — the creator\'s account has been deleted.';
+
+  @override
+  String get messageCouldNotCheckUpdates =>
+      'Could not check for updates. Please try again later.';
+
+  @override
+  String get labelOk => 'OK';
+
+  @override
+  String messageNewCardsAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new cards added to the original since you cloned it.',
+      one: '1 new card added to the original since you cloned it.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String messageCardsUpdatedSinceClone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cards updated in the original since you cloned it.',
+      one: '1 card updated in the original since you cloned it.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get infoUpdateInPlace =>
+      'Your existing set will be updated in place. No new set will be created.';
+
+  @override
+  String get actionUpdateMyCopy => 'Update My Copy';
+
+  @override
+  String get labelUpdating => 'Updating…';
+
+  @override
+  String messageUpdateSuccess(String name) {
+    return '\"$name\" updated.';
+  }
+
+  @override
+  String get errorFailedUpdateSet => 'Failed to update set. Please try again.';
+
+  @override
+  String get infoUpToDate => 'Your copy is up to date.';
 }

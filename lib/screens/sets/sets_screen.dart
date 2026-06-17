@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flash_me/l10n/app_localizations.dart';
 import 'package:flash_me/models/card_set.dart';
+import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/widgets/help_menu_button.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
@@ -10,6 +12,24 @@ import 'package:flash_me/screens/sets/set_detail_screen.dart';
 import 'package:flash_me/screens/sets/set_form_screen.dart';
 
 enum _SortOrder { updated, name, cardCount }
+
+// Converts a DateTime to a short locale-aware relative date string.
+String _formatRelativeDate(DateTime dt, AppLocalizations l10n) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final d = DateTime(dt.year, dt.month, dt.day);
+  final diff = today.difference(d).inDays;
+  if (diff == 0) return l10n.labelToday;
+  if (diff == 1) return l10n.labelYesterday;
+  final months = [
+    l10n.labelMonthJan, l10n.labelMonthFeb, l10n.labelMonthMar,
+    l10n.labelMonthApr, l10n.labelMonthMay, l10n.labelMonthJun,
+    l10n.labelMonthJul, l10n.labelMonthAug, l10n.labelMonthSep,
+    l10n.labelMonthOct, l10n.labelMonthNov, l10n.labelMonthDec,
+  ];
+  if (dt.year == now.year) return '${months[dt.month - 1]} ${dt.day}';
+  return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
+}
 
 // ---------------------------------------------------------------------------
 // SetsScreen — outer shell with My Sets / Market tabs.
@@ -42,45 +62,40 @@ class _SetsScreenState extends ConsumerState<SetsScreen>
 
   bool get _onMySets => _tabController.index == 0;
 
-  String get _sortLabel => switch (_sortOrder) {
-        _SortOrder.updated => 'Last updated',
-        _SortOrder.name => 'Name',
-        _SortOrder.cardCount => 'Card count',
-      };
-
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sets'),
+        title: Text(l10n.navSets),
         actions: [
           // Sort menu is only relevant on the My Sets tab.
           if (_onMySets)
             PopupMenuButton<_SortOrder>(
               icon: const Icon(Icons.sort),
-              tooltip: 'Sort by',
+              tooltip: l10n.tooltipSortBy,
               initialValue: _sortOrder,
               onSelected: (v) => setState(() => _sortOrder = v),
               itemBuilder: (_) => [
-                _sortItem(_SortOrder.updated, 'Last updated', Icons.access_time),
-                _sortItem(_SortOrder.name, 'Name', Icons.sort_by_alpha),
-                _sortItem(_SortOrder.cardCount, 'Card count', Icons.numbers),
+                _sortItem(context, _SortOrder.updated, l10n.labelSortLastUpdated, Icons.access_time),
+                _sortItem(context, _SortOrder.name, l10n.labelSortName, Icons.sort_by_alpha),
+                _sortItem(context, _SortOrder.cardCount, l10n.labelSortCardCount, Icons.numbers),
               ],
             ),
           const HelpMenuButton(HelpContext.sets),
         ],
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'My Sets'),
-            Tab(text: 'Market'),
+          tabs: [
+            Tab(text: l10n.tabMySets),
+            Tab(text: l10n.tabMarket),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          _MySetsTab(sortOrder: _sortOrder, sortLabel: _sortLabel),
+          _MySetsTab(sortOrder: _sortOrder),
           const _MarketTab(),
         ],
       ),
@@ -91,7 +106,7 @@ class _SetsScreenState extends ConsumerState<SetsScreen>
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const SetFormScreen()),
               ),
-              tooltip: 'Create set',
+              tooltip: l10n.tooltipCreateSet,
               child: const Icon(Icons.add),
             )
           : null,
@@ -99,7 +114,7 @@ class _SetsScreenState extends ConsumerState<SetsScreen>
   }
 
   PopupMenuItem<_SortOrder> _sortItem(
-          _SortOrder value, String label, IconData icon) =>
+          BuildContext context, _SortOrder value, String label, IconData icon) =>
       PopupMenuItem(
         value: value,
         child: Row(
@@ -123,9 +138,8 @@ class _SetsScreenState extends ConsumerState<SetsScreen>
 // ---------------------------------------------------------------------------
 class _MySetsTab extends ConsumerStatefulWidget {
   final _SortOrder sortOrder;
-  final String sortLabel;
 
-  const _MySetsTab({required this.sortOrder, required this.sortLabel});
+  const _MySetsTab({required this.sortOrder});
 
   @override
   ConsumerState<_MySetsTab> createState() => _MySetsTabState();
@@ -173,10 +187,18 @@ class _MySetsTabState extends ConsumerState<_MySetsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final setsAsync = ref.watch(userSetsProvider);
     final allSets = setsAsync.asData?.value ?? [];
     final allTags = _allTags(allSets);
     final displaySets = _filterAndSort(allSets);
+
+    // Compute sort label from enum in build so context is available.
+    final sortLabel = switch (widget.sortOrder) {
+      _SortOrder.updated => l10n.labelSortLastUpdated,
+      _SortOrder.name => l10n.labelSortName,
+      _SortOrder.cardCount => l10n.labelSortCardCount,
+    };
 
     return Column(
       children: [
@@ -186,7 +208,7 @@ class _MySetsTabState extends ConsumerState<_MySetsTab> {
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search sets…',
+              hintText: l10n.hintSearchSets,
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
@@ -215,7 +237,7 @@ class _MySetsTabState extends ConsumerState<_MySetsTab> {
             child: Row(
               children: [
                 FilterChip(
-                  label: const Text('All'),
+                  label: Text(l10n.labelAll),
                   selected: _selectedTag == null,
                   onSelected: (_) => setState(() => _selectedTag = null),
                 ),
@@ -244,7 +266,7 @@ class _MySetsTabState extends ConsumerState<_MySetsTab> {
                     color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(width: 4),
                 Text(
-                  widget.sortLabel,
+                  sortLabel,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
@@ -256,7 +278,7 @@ class _MySetsTabState extends ConsumerState<_MySetsTab> {
           child: setsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, _) =>
-                const Center(child: Text('Failed to load sets.')),
+                Center(child: Text(l10n.errorFailedLoadSets)),
             data: (_) {
               if (allSets.isEmpty) return const _MySetsEmptyState();
               if (displaySets.isEmpty) {
@@ -264,7 +286,7 @@ class _MySetsTabState extends ConsumerState<_MySetsTab> {
                   child: Padding(
                     padding: const EdgeInsets.all(32),
                     child: Text(
-                      'No sets match your search.',
+                      l10n.messageNoSetsMatchSearch,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context)
                               .colorScheme
@@ -304,10 +326,11 @@ class _MySetsEmptyState extends StatelessWidget {
           children: [
             Icon(Icons.library_books_outlined, size: 80, color: onSurfaceVariant),
             const SizedBox(height: 16),
-            Text('No sets yet', style: Theme.of(context).textTheme.titleLarge),
+            Text(context.l10n.titleNoSetsYet,
+                style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(
-              'Tap + to create your first set.',
+              context.l10n.messageNoSetsHint,
               style: Theme.of(context)
                   .textTheme
                   .bodyMedium
@@ -333,23 +356,9 @@ class _SetTile extends StatelessWidget {
     return Color(int.parse('ff$h', radix: 16));
   }
 
-  String _relativeDate(DateTime dt) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final d = DateTime(dt.year, dt.month, dt.day);
-    final diff = today.difference(d).inDays;
-    if (diff == 0) return 'Today';
-    if (diff == 1) return 'Yesterday';
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    if (dt.year == now.year) return '${months[dt.month - 1]} ${dt.day}';
-    return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
-  }
-
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final color = cardSet.color != null ? _hexColor(cardSet.color!) : null;
@@ -435,7 +444,7 @@ class _SetTile extends StatelessWidget {
                       children: [
                         if (cardSet.isPublic)
                           Tooltip(
-                            message: 'Offered in Market',
+                            message: l10n.tooltipOfferedInMarket,
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -443,7 +452,7 @@ class _SetTile extends StatelessWidget {
                                     size: 12, color: scheme.primary),
                                 const SizedBox(width: 3),
                                 Text(
-                                  'In Market',
+                                  l10n.labelInMarket,
                                   style: textTheme.labelSmall
                                       ?.copyWith(color: scheme.primary),
                                 ),
@@ -457,14 +466,14 @@ class _SetTile extends StatelessWidget {
                                 ?.copyWith(color: scheme.onSurfaceVariant),
                           ),
                         Text(
-                          '$count card${count == 1 ? '' : 's'}',
+                          l10n.labelCardCount(count),
                           style: textTheme.bodySmall
                               ?.copyWith(color: scheme.onSurfaceVariant),
                         ),
                       ],
                     ),
                     Text(
-                      _relativeDate(cardSet.updatedAt),
+                      _formatRelativeDate(cardSet.updatedAt, l10n),
                       style: textTheme.bodySmall
                           ?.copyWith(color: scheme.onSurfaceVariant),
                     ),
@@ -525,6 +534,7 @@ class _MarketTabState extends ConsumerState<_MarketTab> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final setsAsync = ref.watch(publicSetsProvider);
     final allSets = setsAsync.asData?.value ?? [];
     final allTags = _allTags(allSets);
@@ -538,7 +548,7 @@ class _MarketTabState extends ConsumerState<_MarketTab> {
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search market…',
+              hintText: l10n.hintSearchMarket,
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
@@ -567,7 +577,7 @@ class _MarketTabState extends ConsumerState<_MarketTab> {
             child: Row(
               children: [
                 FilterChip(
-                  label: const Text('All'),
+                  label: Text(l10n.labelAll),
                   selected: _selectedTag == null,
                   onSelected: (_) => setState(() => _selectedTag = null),
                 ),
@@ -589,7 +599,7 @@ class _MarketTabState extends ConsumerState<_MarketTab> {
           child: setsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, _) =>
-                const Center(child: Text('Failed to load market.')),
+                Center(child: Text(l10n.errorFailedLoadMarket)),
             data: (_) {
               if (allSets.isEmpty) return const _MarketEmptyState();
               if (displaySets.isEmpty) {
@@ -597,7 +607,7 @@ class _MarketTabState extends ConsumerState<_MarketTab> {
                   child: Padding(
                     padding: const EdgeInsets.all(32),
                     child: Text(
-                      'No sets match your search.',
+                      l10n.messageNoSetsMatchSearch,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context)
                               .colorScheme
@@ -638,11 +648,11 @@ class _MarketEmptyState extends StatelessWidget {
           children: [
             Icon(Icons.storefront_outlined, size: 80, color: onSurfaceVariant),
             const SizedBox(height: 16),
-            Text('Market is empty',
+            Text(context.l10n.titleMarketEmpty,
                 style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(
-              'No sets have been published yet.\nPublish your own from a set\'s detail screen.',
+              context.l10n.messageMarketEmpty,
               style: Theme.of(context)
                   .textTheme
                   .bodyMedium
@@ -668,23 +678,9 @@ class _MarketSetTile extends ConsumerWidget {
     return Color(int.parse('ff$h', radix: 16));
   }
 
-  String _relativeDate(DateTime dt) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final d = DateTime(dt.year, dt.month, dt.day);
-    final diff = today.difference(d).inDays;
-    if (diff == 0) return 'Today';
-    if (diff == 1) return 'Yesterday';
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    if (dt.year == now.year) return '${months[dt.month - 1]} ${dt.day}';
-    return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final color = cardSet.color != null ? _hexColor(cardSet.color!) : null;
@@ -800,7 +796,7 @@ class _MarketSetTile extends ConsumerWidget {
                               ?.copyWith(color: scheme.onSurfaceVariant),
                         ),
                       Text(
-                        '$count card${count == 1 ? '' : 's'}',
+                        l10n.labelCardCount(count),
                         style: textTheme.bodySmall
                             ?.copyWith(color: scheme.onSurfaceVariant),
                       ),
@@ -833,7 +829,11 @@ class _MarketSetTile extends ConsumerWidget {
                                 size: 12, color: scheme.primary),
                             const SizedBox(width: 3),
                             Text(
-                              '${acquisition.acquisitionType == 'subscription' ? 'Subscribed' : 'Cloned'} ${_relativeDate(acquisition.acquiredAt)}',
+                              acquisition.acquisitionType == 'subscription'
+                                  ? l10n.labelAcquiredSubscribed(
+                                      _formatRelativeDate(acquisition.acquiredAt, l10n))
+                                  : l10n.labelAcquiredCloned(
+                                      _formatRelativeDate(acquisition.acquiredAt, l10n)),
                               style: textTheme.labelSmall
                                   ?.copyWith(color: scheme.primary),
                             ),

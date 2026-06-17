@@ -6,6 +6,7 @@ import 'package:flash_me/models/set_update_diff.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/set_acquisition_provider.dart';
 import 'package:flash_me/utils/exceptions.dart';
+import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
 
 // ---------------------------------------------------------------------------
@@ -46,15 +47,15 @@ class _CloneConfirmationScreenState
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('"${widget.marketSet.name}" added to My Sets.'),
+        content: Text(context.l10n.messageCloneSuccess(widget.marketSet.name)),
         behavior: SnackBarBehavior.floating,
       ));
     } catch (e) {
       AppLogger.error('Clone failed: $e');
       if (!mounted) return;
       setState(() => _isBusy = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Failed to clone set. Please try again.'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(context.l10n.errorFailedCloneSet),
         behavior: SnackBarBehavior.floating,
       ));
     }
@@ -75,15 +76,15 @@ class _CloneConfirmationScreenState
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('"${widget.marketSet.name}" updated.'),
+        content: Text(context.l10n.messageUpdateSuccess(widget.marketSet.name)),
         behavior: SnackBarBehavior.floating,
       ));
     } catch (e) {
       AppLogger.error('Update failed: $e');
       if (!mounted) return;
       setState(() => _isBusy = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Failed to update set. Please try again.'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(context.l10n.errorFailedUpdateSet),
         behavior: SnackBarBehavior.floating,
       ));
     }
@@ -107,8 +108,9 @@ class _CloneConfirmationScreenState
   // ---- Clone scaffold (first time) ----------------------------------------
 
   Widget _buildCloneScaffold(String uid) {
+    final l10n = context.l10n;
     return Scaffold(
-      appBar: AppBar(title: const Text('Clone Set')),
+      appBar: AppBar(title: Text(l10n.titleCloneSet)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -121,23 +123,23 @@ class _CloneConfirmationScreenState
             _InfoBox(children: [
               _InfoRow(
                 icon: Icons.library_add_outlined,
-                text: 'A copy of this set is added to your My Sets.',
+                text: l10n.infoCloneAddedToMySets,
               ),
               _InfoRow(
                 icon: Icons.edit_outlined,
-                text: 'Your copy is fully editable and independent.',
+                text: l10n.infoCloneFullyEditable,
               ),
               _InfoRow(
                 icon: Icons.link_off,
-                text: "Changes to the original won't affect your copy.",
+                text: l10n.infoCloneNoChanges,
               ),
             ]),
             const SizedBox(height: 32),
             _ActionButton(
               onPressed: _isBusy ? null : () => _clone(uid),
               isBusy: _isBusy,
-              label: 'Clone to My Sets',
-              busyLabel: 'Cloning…',
+              label: l10n.actionCloneToMySets,
+              busyLabel: l10n.labelCloning,
               icon: Icons.library_add_outlined,
             ),
             const SizedBox(height: 12),
@@ -151,13 +153,14 @@ class _CloneConfirmationScreenState
   // ---- Update scaffold (already cloned) ------------------------------------
 
   Widget _buildUpdateScaffold(String uid, SetAcquisition prior) {
+    final l10n = context.l10n;
     final diffAsync = ref.watch(setUpdateDiffProvider((
       originalSetId: widget.marketSet.id,
       clonerId: uid,
     )));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('You Already Have This Set')),
+      appBar: AppBar(title: Text(l10n.titleAlreadyHaveSet)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -172,21 +175,21 @@ class _CloneConfirmationScreenState
             _InfoBox(children: [
               _InfoRow(
                 icon: Icons.check_circle_outline,
-                text: 'You already have a copy of this set in My Sets.',
+                text: l10n.infoAlreadyHaveCopy,
               ),
             ]),
             const SizedBox(height: 24),
 
             // Diff state: loading / error / data
             diffAsync.when(
-              loading: () => const Center(
+              loading: () => Center(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
+                  padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Column(
                     children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 12),
-                      Text('Checking for updates…'),
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 12),
+                      Text(l10n.messageCheckingForUpdates),
                     ],
                   ),
                 ),
@@ -196,8 +199,8 @@ class _CloneConfirmationScreenState
                 final isGone = err is AppException && err.code == 'set-not-found';
                 return Text(
                   isGone
-                      ? 'This set is no longer available — the creator\'s account has been deleted.'
-                      : 'Could not check for updates. Please try again later.',
+                      ? l10n.messageSetNoLongerAvailable
+                      : l10n.messageCouldNotCheckUpdates,
                 );
               },
               data: (diff) => diff.hasChanges
@@ -213,6 +216,7 @@ class _CloneConfirmationScreenState
   // Updates available section
   Widget _buildUpdatesAvailable(
       String uid, String acquiredSetId, SetUpdateDiff diff) {
+    final l10n = context.l10n;
     final newCount = diff.newCards.length;
     final updatedCount = diff.updatedCards.length;
 
@@ -223,19 +227,16 @@ class _CloneConfirmationScreenState
           if (newCount > 0)
             _InfoRow(
               icon: Icons.add_circle_outline,
-              text: '$newCount new card${newCount == 1 ? '' : 's'} '
-                  'added to the original since you cloned it.',
+              text: l10n.messageNewCardsAdded(newCount),
             ),
           if (updatedCount > 0)
             _InfoRow(
               icon: Icons.refresh,
-              text: '$updatedCount card${updatedCount == 1 ? '' : 's'} '
-                  'updated in the original since you cloned it.',
+              text: l10n.messageCardsUpdatedSinceClone(updatedCount),
             ),
           _InfoRow(
             icon: Icons.folder_outlined,
-            text: 'Your existing set will be updated in place. '
-                'No new set will be created.',
+            text: l10n.infoUpdateInPlace,
           ),
         ]),
         const SizedBox(height: 24),
@@ -244,8 +245,8 @@ class _CloneConfirmationScreenState
               ? null
               : () => _applyUpdate(uid, acquiredSetId, diff),
           isBusy: _isBusy,
-          label: 'Update My Copy',
-          busyLabel: 'Updating…',
+          label: l10n.actionUpdateMyCopy,
+          busyLabel: l10n.labelUpdating,
           icon: Icons.refresh,
         ),
         const SizedBox(height: 12),
@@ -256,13 +257,14 @@ class _CloneConfirmationScreenState
 
   // Up to date section
   Widget _buildUpToDate() {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _InfoBox(children: [
           _InfoRow(
             icon: Icons.task_alt,
-            text: 'Your copy is up to date.',
+            text: l10n.infoUpToDate,
           ),
         ]),
         const SizedBox(height: 24),
@@ -270,7 +272,7 @@ class _CloneConfirmationScreenState
           width: double.infinity,
           child: FilledButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: Text(l10n.labelOk),
           ),
         ),
       ],
@@ -329,7 +331,7 @@ class _SetHeader extends StatelessWidget {
           const SizedBox(width: 16),
           Icon(Icons.style_outlined, size: 14, color: scheme.onSurfaceVariant),
           const SizedBox(width: 4),
-          Text('$count card${count == 1 ? '' : 's'}',
+          Text(context.l10n.labelCardCount(count),
               style: textTheme.bodySmall
                   ?.copyWith(color: scheme.onSurfaceVariant)),
           if (hasLanguage) ...[
@@ -469,7 +471,7 @@ class _CancelButton extends StatelessWidget {
       width: double.infinity,
       child: TextButton(
         onPressed: enabled ? () => Navigator.of(context).pop() : null,
-        child: const Text('Cancel'),
+        child: Text(context.l10n.labelCancel),
       ),
     );
   }

@@ -1645,4 +1645,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorImportFailed => 'Import failed. Please try again.';
+
+  @override
+  String get titleSendReport => 'Send Report';
+
+  @override
+  String get labelFeedback => 'Feedback';
+
+  @override
+  String get labelIssue => 'Issue';
+
+  @override
+  String get labelSubject => 'Subject';
+
+  @override
+  String get labelMessage => 'Message';
+
+  @override
+  String get labelIncludeAppLogs => 'Include app logs';
+
+  @override
+  String get messageIncludeAppLogsSubtitle => 'Helps diagnose technical issues';
+
+  @override
+  String get actionSend => 'Send';
+
+  @override
+  String get messageReportSent => 'Thank you — your report has been sent.';
+
+  @override
+  String get errorCouldNotSendReport =>
+      'Could not send report. Please try again.';
 }

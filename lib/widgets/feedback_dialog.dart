@@ -5,6 +5,7 @@ import 'package:flash_me/models/feedback_item.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/feedback_provider.dart';
 import 'package:flash_me/services/help_service.dart';
+import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
 
 // Dialog for submitting feedback or issue reports to the feedback/ Firestore
@@ -76,16 +77,16 @@ class _FeedbackDialogState extends ConsumerState<FeedbackDialog> {
       );
       await ref.read(feedbackRepositoryProvider).submit(item);
       if (mounted) {
+        final l10n = context.l10n;
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Thank you — your report has been sent.')),
+          SnackBar(content: Text(l10n.messageReportSent)),
         );
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Could not send report. Please try again.')),
+          SnackBar(content: Text(context.l10n.errorCouldNotSendReport)),
         );
       }
     } finally {
@@ -99,8 +100,9 @@ class _FeedbackDialogState extends ConsumerState<FeedbackDialog> {
         _subjectController.text.trim().isNotEmpty &&
         _bodyController.text.trim().isNotEmpty;
 
+    final l10n = context.l10n;
     return AlertDialog(
-      title: const Text('Send Report'),
+      title: Text(l10n.titleSendReport),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -108,16 +110,16 @@ class _FeedbackDialogState extends ConsumerState<FeedbackDialog> {
           children: [
             // Feedback vs Issue toggle.
             SegmentedButton<FeedbackType>(
-              segments: const [
+              segments: [
                 ButtonSegment(
                   value: FeedbackType.feedback,
-                  label: Text('Feedback'),
-                  icon: Icon(Icons.rate_review_outlined),
+                  label: Text(l10n.labelFeedback),
+                  icon: const Icon(Icons.rate_review_outlined),
                 ),
                 ButtonSegment(
                   value: FeedbackType.issue,
-                  label: Text('Issue'),
-                  icon: Icon(Icons.bug_report_outlined),
+                  label: Text(l10n.labelIssue),
+                  icon: const Icon(Icons.bug_report_outlined),
                 ),
               ],
               selected: {_type},
@@ -129,15 +131,15 @@ class _FeedbackDialogState extends ConsumerState<FeedbackDialog> {
             const SizedBox(height: 16),
             TextField(
               controller: _subjectController,
-              decoration: const InputDecoration(labelText: 'Subject'),
+              decoration: InputDecoration(labelText: l10n.labelSubject),
               textCapitalization: TextCapitalization.sentences,
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _bodyController,
-              decoration: const InputDecoration(
-                labelText: 'Message',
+              decoration: InputDecoration(
+                labelText: l10n.labelMessage,
                 alignLabelWithHint: true,
               ),
               maxLines: 5,
@@ -148,8 +150,8 @@ class _FeedbackDialogState extends ConsumerState<FeedbackDialog> {
             CheckboxListTile(
               value: _includeLogs,
               onChanged: (v) => setState(() => _includeLogs = v ?? false),
-              title: const Text('Include app logs'),
-              subtitle: const Text('Helps diagnose technical issues'),
+              title: Text(l10n.labelIncludeAppLogs),
+              subtitle: Text(l10n.messageIncludeAppLogsSubtitle),
               contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
             ),
@@ -159,7 +161,7 @@ class _FeedbackDialogState extends ConsumerState<FeedbackDialog> {
       actions: [
         TextButton(
           onPressed: _isSending ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.labelCancel),
         ),
         FilledButton(
           onPressed: canSend ? _send : null,
@@ -169,7 +171,7 @@ class _FeedbackDialogState extends ConsumerState<FeedbackDialog> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Send'),
+              : Text(l10n.actionSend),
         ),
       ],
     );

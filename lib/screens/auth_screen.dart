@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/providers/auth_provider.dart';
-import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/exceptions.dart';
+import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -129,9 +129,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
                 autofocus: true,
-                decoration: const InputDecoration(
-                  labelText: AppStrings.email,
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: sbContext.l10n.labelEmail,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: AppValidators.validateEmail,
               ),
@@ -141,7 +141,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 onPressed: sending
                     ? null
                     : () => Navigator.of(dialogContext).pop(),
-                child: const Text(AppStrings.cancel),
+                child: Text(dialogContext.l10n.labelCancel),
               ),
               FilledButton(
                 onPressed: sending
@@ -208,7 +208,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                AppStrings.welcome,
+                context.l10n.titleWelcome,
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -250,10 +250,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
                         autofillHints: const [AutofillHints.email],
-                        decoration: const InputDecoration(
-                          labelText: AppStrings.email,
-                          prefixIcon: Icon(Icons.email_outlined),
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: context.l10n.labelEmail,
+                          prefixIcon: const Icon(Icons.email_outlined),
+                          border: const OutlineInputBorder(),
                         ),
                         validator: AppValidators.validateEmail,
                       ),
@@ -269,7 +269,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             : const [AutofillHints.newPassword],
                         onFieldSubmitted: _isSignIn ? (_) => _submit() : null,
                         decoration: InputDecoration(
-                          labelText: AppStrings.password,
+                          labelText: context.l10n.labelPassword,
                           prefixIcon: const Icon(Icons.lock_outlined),
                           border: const OutlineInputBorder(),
                           suffixIcon: IconButton(
@@ -294,7 +294,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           autofillHints: const [AutofillHints.newPassword],
                           onFieldSubmitted: (_) => _submit(),
                           decoration: InputDecoration(
-                            labelText: AppStrings.confirmPassword,
+                            labelText: context.l10n.labelConfirmPassword,
                             prefixIcon: const Icon(Icons.lock_outlined),
                             border: const OutlineInputBorder(),
                             suffixIcon: IconButton(
@@ -328,7 +328,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: _showForgotPasswordDialog,
-                    child: const Text(AppStrings.forgotPassword),
+                    child: Text(context.l10n.actionForgotPassword),
                   ),
                 ),
               ] else
@@ -344,7 +344,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Text(_isSignIn ? AppStrings.signIn : AppStrings.signUp),
+                    : Text(_isSignIn ? context.l10n.actionSignIn : context.l10n.actionSignUp),
               ),
               const SizedBox(height: 24),
               Row(
@@ -369,8 +369,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
                 label: Text(
                   _isSignIn
-                      ? AppStrings.signInWithGoogle
-                      : AppStrings.signUpWithGoogle,
+                      ? context.l10n.actionSignInWithGoogle
+                      : context.l10n.actionSignUpWithGoogle,
                 ),
               ),
               const SizedBox(height: 32),
@@ -393,7 +393,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    child: Text(_isSignIn ? AppStrings.signUp : AppStrings.signIn),
+                    child: Text(_isSignIn ? context.l10n.actionSignUp : context.l10n.actionSignIn),
                   ),
                 ],
               ),

@@ -7,6 +7,7 @@ import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/question_template_provider.dart';
 import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/utils/constants.dart';
+import 'package:flash_me/utils/extensions.dart';
 
 // ---------------------------------------------------------------------------
 // _TplQuestionState — mutable holder for one question while the template form
@@ -124,6 +125,7 @@ class _QuestionTemplatePickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.5,
@@ -142,7 +144,7 @@ class _QuestionTemplatePickerSheet extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Text('Choose a Question Template',
+            child: Text(l10n.titleChooseQuestionTemplate,
                 style: Theme.of(context).textTheme.titleMedium),
           ),
           const Divider(height: 1),
@@ -153,9 +155,9 @@ class _QuestionTemplatePickerSheet extends StatelessWidget {
               itemBuilder: (_, i) {
                 final t = templates[i];
                 final typeLabel = switch (t.question) {
-                  TextInputQuestion _ => 'Text input',
-                  MultipleChoiceQuestion _ => 'Multiple choice',
-                  WordOrderQuestion _ => 'Word order',
+                  TextInputQuestion _ => l10n.labelQuestionTypeTextInput,
+                  MultipleChoiceQuestion _ => l10n.labelQuestionTypeMultipleChoice,
+                  WordOrderQuestion _ => l10n.labelQuestionTypeWordOrder,
                 };
                 return ListTile(
                   leading: const Icon(Icons.quiz_outlined),
@@ -239,8 +241,8 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
     final qtemplates =
         ref.read(userQuestionTemplatesProvider).asData?.value ?? [];
     if (qtemplates.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('No question templates yet. Create one from the Question Templates tab.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(context.l10n.messageNoQuestionTemplatesSnackbar)));
       return;
     }
     final selected = await showModalBottomSheet<QuestionTemplate>(
@@ -324,32 +326,29 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Failed to save template. Please try again.')),
+          SnackBar(content: Text(context.l10n.errorFailedSaveTemplate)),
         );
       }
     }
   }
 
   Future<void> _confirmDelete() async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Template'),
-        content: Text(
-          'Delete "${widget.template!.name}"? '
-          'Cards created from it keep their questions; this cannot be undone.',
-        ),
+        title: Text(l10n.titleDeleteTemplate),
+        content: Text(l10n.messageDeleteTemplateConfirm(widget.template!.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.labelCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(
                 backgroundColor: Theme.of(ctx).colorScheme.error),
-            child: const Text('Delete'),
+            child: Text(l10n.labelDelete),
           ),
         ],
       ),
@@ -369,9 +368,7 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content:
-                  Text('Failed to delete template. Please try again.')),
+          SnackBar(content: Text(context.l10n.errorFailedDeleteTemplate)),
         );
       }
     }
@@ -380,21 +377,22 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
   // --- question content builders --------------------------------------------
 
   Widget _buildTextInputContent(_TplQuestionState q) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TextFormField(
           controller: q.textHintController,
-          decoration: const InputDecoration(
-            labelText: 'Hint (optional)',
-            hintText: 'Shown to the user during study',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.labelHintOptional,
+            hintText: l10n.hintHintShownDuringStudy,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 4),
         SwitchListTile(
-          title: const Text('Exact match'),
-          subtitle: const Text('Case-sensitive answer check'),
+          title: Text(l10n.labelExactMatch),
+          subtitle: Text(l10n.messageExactMatchSubtitle),
           value: q.exactMatch,
           onChanged: (v) => setState(() => q.exactMatch = v),
           contentPadding: EdgeInsets.zero,
@@ -405,10 +403,11 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
   }
 
   Widget _buildMultipleChoiceContent(_TplQuestionState q, int qIndex) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Options (pre-filled for all cards using this template)',
+        Text(l10n.labelOptionsPreFilled,
             style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 8),
         ...List.generate(q.optionControllers.length, (optIdx) {
@@ -420,11 +419,11 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
                   child: TextFormField(
                     controller: q.optionControllers[optIdx],
                     decoration: InputDecoration(
-                      labelText: 'Option ${optIdx + 1}',
+                      labelText: l10n.labelOptionNumber(optIdx + 1),
                       border: const OutlineInputBorder(),
                     ),
                     validator: (v) => v?.trim().isEmpty ?? true
-                        ? 'Option text required'
+                        ? l10n.validatorOptionTextRequired
                         : null,
                   ),
                 ),
@@ -441,13 +440,14 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
         TextButton.icon(
           onPressed: () => _addOption(qIndex),
           icon: const Icon(Icons.add),
-          label: const Text('Add option'),
+          label: Text(l10n.actionAddOption),
         ),
       ],
     );
   }
 
   Widget _buildQuestionCard(int index) {
+    final l10n = context.l10n;
     final q = _questions[index];
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -461,10 +461,10 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: q.promptController,
-                    decoration: const InputDecoration(
-                      labelText: 'Label (optional)',
-                      hintText: 'e.g. Gender, Conjugation',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.labelQuestionLabelOptional,
+                      hintText: l10n.hintQuestionLabelExample,
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ),
@@ -472,7 +472,7 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
                 IconButton(
                   icon: const Icon(Icons.delete_outline),
                   color: Theme.of(context).colorScheme.error,
-                  tooltip: 'Remove question',
+                  tooltip: l10n.tooltipRemoveQuestion,
                   onPressed: () => _removeQuestion(index),
                 ),
               ],
@@ -480,17 +480,17 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: q.type,
-              decoration: const InputDecoration(
-                labelText: 'Question type',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.labelQuestionType,
+                border: const OutlineInputBorder(),
               ),
-              items: const [
+              items: [
                 DropdownMenuItem(
                     value: AppConstants.fieldTypeTextInput,
-                    child: Text('Text input')),
+                    child: Text(l10n.labelQuestionTypeTextInput)),
                 DropdownMenuItem(
                     value: AppConstants.fieldTypeMultipleChoice,
-                    child: Text('Multiple choice')),
+                    child: Text(l10n.labelQuestionTypeMultipleChoice)),
               ],
               onChanged: (v) {
                 if (v != null) setState(() => q.type = v);
@@ -511,14 +511,15 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Template' : 'New Template'),
+        title: Text(_isEditing ? l10n.titleEditTemplate : l10n.titleNewTemplate),
         actions: [
           if (_isEditing)
             IconButton(
               icon: const Icon(Icons.delete_outline),
-              tooltip: 'Delete template',
+              tooltip: l10n.tooltipDeleteTemplate,
               onPressed: _isSaving ? null : _confirmDelete,
             ),
         ],
@@ -533,34 +534,33 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // --- Template metadata ---
-              Text('Template Details',
+              Text(l10n.titleTemplateDetails,
                   style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Template name *',
-                  hintText: 'e.g. Spanish Verb',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.labelTemplateNameRequired,
+                  hintText: l10n.hintTemplateNameExample,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (v) =>
-                    v?.trim().isEmpty ?? true ? 'Name is required' : null,
+                    v?.trim().isEmpty ?? true ? l10n.validatorTemplateNameRequired : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _descController,
-                decoration: const InputDecoration(
-                  labelText: 'Description (optional)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.labelDescriptionOptional,
+                  border: const OutlineInputBorder(),
                 ),
                 maxLines: 2,
               ),
               const SizedBox(height: 8),
               // primaryWordHidden default for cards created from this template
               SwitchListTile(
-                title: const Text('Hide primary word by default'),
-                subtitle: const Text(
-                    'Cards created from this template start with the word hidden'),
+                title: Text(l10n.labelHideWordByDefault),
+                subtitle: Text(l10n.messageHideWordByDefaultSubtitle),
                 value: _primaryWordHidden,
                 onChanged: (v) => setState(() => _primaryWordHidden = v),
                 contentPadding: EdgeInsets.zero,
@@ -569,10 +569,11 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
 
               // --- Questions ---
               const SizedBox(height: 24),
-              Text('Questions', style: Theme.of(context).textTheme.titleMedium),
+              Text(l10n.titleQuestionsSection,
+                  style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 4),
               Text(
-                'Define the structure. Answers are filled in per card.',
+                l10n.messageTemplateQuestionsHelp,
                 style: Theme.of(context)
                     .textTheme
                     .bodySmall
@@ -586,7 +587,7 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
                     child: OutlinedButton.icon(
                       onPressed: _addQuestion,
                       icon: const Icon(Icons.add),
-                      label: const Text('Add Question'),
+                      label: Text(l10n.actionAddQuestion),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -594,7 +595,7 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
                     child: OutlinedButton.icon(
                       onPressed: _showQuestionTemplatePicker,
                       icon: const Icon(Icons.quiz_outlined),
-                      label: const Text('Use Template'),
+                      label: Text(l10n.actionUseTemplate),
                     ),
                   ),
                 ],
@@ -609,7 +610,7 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
                       onPressed: _isSaving
                           ? null
                           : () => Navigator.of(context).pop(),
-                      child: const Text('Cancel'),
+                      child: Text(l10n.labelCancel),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -624,8 +625,8 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
                                   strokeWidth: 2, color: Colors.white),
                             )
                           : Text(_isEditing
-                              ? 'Save Changes'
-                              : 'Create Template'),
+                              ? l10n.actionSaveChanges
+                              : l10n.actionCreateTemplate),
                     ),
                   ),
                 ],

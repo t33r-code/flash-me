@@ -1989,6 +1989,234 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Question {number}: \"{word}\" in correct order is not in the word bank.'**
   String messageWordOrderWordNotInBank(int number, String word);
+
+  /// No description provided for @titleTemplates.
+  ///
+  /// In en, this message translates to:
+  /// **'Templates'**
+  String get titleTemplates;
+
+  /// No description provided for @tooltipCreateCardTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create card template'**
+  String get tooltipCreateCardTemplate;
+
+  /// No description provided for @tooltipCreateQuestionTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create question template'**
+  String get tooltipCreateQuestionTemplate;
+
+  /// No description provided for @errorFailedLoadTemplates.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load templates.'**
+  String get errorFailedLoadTemplates;
+
+  /// No description provided for @errorFailedLoadQuestionTemplates.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load question templates.'**
+  String get errorFailedLoadQuestionTemplates;
+
+  /// No description provided for @messageNoCardTemplatesEmptyState.
+  ///
+  /// In en, this message translates to:
+  /// **'No card templates yet.\nTap + to create one, or use \"Save as Template\" from any card.'**
+  String get messageNoCardTemplatesEmptyState;
+
+  /// No description provided for @messageNoQuestionTemplatesEmptyState.
+  ///
+  /// In en, this message translates to:
+  /// **'No question templates yet.\nTap + to create a reusable question.'**
+  String get messageNoQuestionTemplatesEmptyState;
+
+  /// No description provided for @titleEditTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Template'**
+  String get titleEditTemplate;
+
+  /// No description provided for @titleNewTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'New Template'**
+  String get titleNewTemplate;
+
+  /// No description provided for @tooltipDeleteTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete template'**
+  String get tooltipDeleteTemplate;
+
+  /// No description provided for @titleTemplateDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Template Details'**
+  String get titleTemplateDetails;
+
+  /// No description provided for @labelTemplateNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Template name *'**
+  String get labelTemplateNameRequired;
+
+  /// No description provided for @hintTemplateNameExample.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Spanish Verb'**
+  String get hintTemplateNameExample;
+
+  /// No description provided for @hintTemplateNameQTExample.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Gender, Verb conjugation'**
+  String get hintTemplateNameQTExample;
+
+  /// No description provided for @validatorTemplateNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Name is required'**
+  String get validatorTemplateNameRequired;
+
+  /// No description provided for @labelHideWordByDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide primary word by default'**
+  String get labelHideWordByDefault;
+
+  /// No description provided for @messageHideWordByDefaultSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cards created from this template start with the word hidden'**
+  String get messageHideWordByDefaultSubtitle;
+
+  /// No description provided for @messageTemplateQuestionsHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Define the structure. Answers are filled in per card.'**
+  String get messageTemplateQuestionsHelp;
+
+  /// No description provided for @messageNoQuestionTemplatesSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'No question templates yet. Create one from the Question Templates tab.'**
+  String get messageNoQuestionTemplatesSnackbar;
+
+  /// No description provided for @titleChooseQuestionTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a Question Template'**
+  String get titleChooseQuestionTemplate;
+
+  /// No description provided for @hintHintShownDuringStudy.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown to the user during study'**
+  String get hintHintShownDuringStudy;
+
+  /// No description provided for @labelOptionsPreFilled.
+  ///
+  /// In en, this message translates to:
+  /// **'Options (pre-filled for all cards using this template)'**
+  String get labelOptionsPreFilled;
+
+  /// No description provided for @titleDeleteTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Template'**
+  String get titleDeleteTemplate;
+
+  /// No description provided for @messageDeleteTemplateConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"? Cards created from it keep their questions; this cannot be undone.'**
+  String messageDeleteTemplateConfirm(String name);
+
+  /// No description provided for @errorFailedSaveTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save template. Please try again.'**
+  String get errorFailedSaveTemplate;
+
+  /// No description provided for @errorFailedDeleteTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete template. Please try again.'**
+  String get errorFailedDeleteTemplate;
+
+  /// No description provided for @actionCreateTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Template'**
+  String get actionCreateTemplate;
+
+  /// No description provided for @titleEditQuestionTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Question Template'**
+  String get titleEditQuestionTemplate;
+
+  /// No description provided for @titleNewQuestionTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'New Question Template'**
+  String get titleNewQuestionTemplate;
+
+  /// No description provided for @titleDeleteQuestionTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Question Template'**
+  String get titleDeleteQuestionTemplate;
+
+  /// No description provided for @messageDeleteQuestionTemplateConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"? This cannot be undone.'**
+  String messageDeleteQuestionTemplateConfirm(String name);
+
+  /// No description provided for @titleQuestionSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Question'**
+  String get titleQuestionSection;
+
+  /// No description provided for @labelImportIdOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Import ID (optional)'**
+  String get labelImportIdOptional;
+
+  /// No description provided for @hintImportIdExample.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. gender'**
+  String get hintImportIdExample;
+
+  /// No description provided for @messageImportIdHelperText.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference this template in import files as ##gender'**
+  String get messageImportIdHelperText;
+
+  /// No description provided for @validatorImportIdInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Only letters, numbers, hyphens and underscores allowed'**
+  String get validatorImportIdInvalid;
+
+  /// No description provided for @messageImportIdConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'Import ID \"{id}\" is already used by another template.'**
+  String messageImportIdConflict(String id);
+
+  /// No description provided for @messageTplWordOrderNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Word bank entries are filled in per card.'**
+  String get messageTplWordOrderNote;
 }
 
 class _AppLocalizationsDelegate

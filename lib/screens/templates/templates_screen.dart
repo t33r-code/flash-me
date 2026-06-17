@@ -8,6 +8,7 @@ import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/providers/question_template_provider.dart';
 import 'package:flash_me/screens/templates/template_form_screen.dart';
 import 'package:flash_me/screens/templates/question_template_form_screen.dart';
+import 'package:flash_me/utils/extensions.dart';
 
 // Top-level Templates screen with two tabs: Card Templates and Question Templates.
 class TemplatesScreen extends ConsumerWidget {
@@ -15,16 +16,17 @@ class TemplatesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Templates'),
+          title: Text(l10n.titleTemplates),
           actions: const [HelpMenuButton(HelpContext.templates)],
-          bottom: const TabBar(
+          bottom: TabBar(
             tabs: [
-              Tab(text: 'Card Templates'),
-              Tab(text: 'Question Templates'),
+              Tab(text: l10n.tabCardTemplates),
+              Tab(text: l10n.tabQuestionTemplates),
             ],
           ),
         ),
@@ -47,18 +49,18 @@ class _CardTemplatesTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final templatesAsync = ref.watch(userTemplatesProvider);
     return Scaffold(
       body: templatesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) =>
-            const Center(child: Text('Failed to load templates.')),
+            Center(child: Text(l10n.errorFailedLoadTemplates)),
         data: (templates) => templates.isEmpty
             ? _emptyState(
                 context,
                 icon: Icons.copy_all_outlined,
-                message: 'No card templates yet.\n'
-                    'Tap + to create one, or use "Save as Template" from any card.',
+                message: l10n.messageNoCardTemplatesEmptyState,
               )
             : ListView.builder(
                 padding: const EdgeInsets.all(8),
@@ -71,7 +73,7 @@ class _CardTemplatesTab extends ConsumerWidget {
         onPressed: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const TemplateFormScreen()),
         ),
-        tooltip: 'Create card template',
+        tooltip: l10n.tooltipCreateCardTemplate,
         child: const Icon(Icons.add),
       ),
     );
@@ -86,18 +88,18 @@ class _QuestionTemplatesTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final templatesAsync = ref.watch(userQuestionTemplatesProvider);
     return Scaffold(
       body: templatesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) =>
-            const Center(child: Text('Failed to load question templates.')),
+            Center(child: Text(l10n.errorFailedLoadQuestionTemplates)),
         data: (templates) => templates.isEmpty
             ? _emptyState(
                 context,
                 icon: Icons.quiz_outlined,
-                message: 'No question templates yet.\n'
-                    'Tap + to create a reusable question.',
+                message: l10n.messageNoQuestionTemplatesEmptyState,
               )
             : ListView.builder(
                 padding: const EdgeInsets.all(8),
@@ -112,7 +114,7 @@ class _QuestionTemplatesTab extends ConsumerWidget {
           MaterialPageRoute(
               builder: (_) => const QuestionTemplateFormScreen()),
         ),
-        tooltip: 'Create question template',
+        tooltip: l10n.tooltipCreateQuestionTemplate,
         child: const Icon(Icons.add),
       ),
     );
@@ -157,9 +159,10 @@ class _CardTemplateTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final count = template.questions.length;
+    final qLabel = context.l10n.labelQuestionCount(count);
     final subtitle = template.description != null
-        ? '${template.description}  ·  $count question${count == 1 ? '' : 's'}'
-        : '$count question${count == 1 ? '' : 's'}';
+        ? '${template.description}  ·  $qLabel'
+        : qLabel;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
@@ -186,7 +189,7 @@ class _QuestionTemplateTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final typeLabel = _typeLabel(template.question);
+    final typeLabel = _typeLabel(context, template.question);
     final subtitle = template.description != null
         ? '${template.description}  ·  $typeLabel'
         : typeLabel;
@@ -206,9 +209,12 @@ class _QuestionTemplateTile extends StatelessWidget {
     );
   }
 
-  String _typeLabel(CardQuestion q) => switch (q) {
-        TextInputQuestion _ => 'Text input',
-        MultipleChoiceQuestion _ => 'Multiple choice',
-        WordOrderQuestion _ => 'Word order',
-      };
+  String _typeLabel(BuildContext context, CardQuestion q) {
+    final l10n = context.l10n;
+    return switch (q) {
+      TextInputQuestion _ => l10n.labelQuestionTypeTextInput,
+      MultipleChoiceQuestion _ => l10n.labelQuestionTypeMultipleChoice,
+      WordOrderQuestion _ => l10n.labelQuestionTypeWordOrder,
+    };
+  }
 }

@@ -741,4 +741,332 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get infoUpToDate => 'Your copy is up to date.';
+
+  @override
+  String get titleMyCards => 'My Cards';
+
+  @override
+  String get titleCreateCard => 'Create a card';
+
+  @override
+  String get labelFlashCard => 'Flash Card';
+
+  @override
+  String get messageFlashCardSubtitle =>
+      'Word + translation with optional fields';
+
+  @override
+  String get labelWorkbookCard => 'Workbook Card';
+
+  @override
+  String get messageWorkbookCardSubtitle =>
+      'Prompt with text, multiple choice, or word order questions';
+
+  @override
+  String get hintSearchCards => 'Search cards…';
+
+  @override
+  String get messageNoCardsMatchSearch => 'No cards match your search.';
+
+  @override
+  String get messageNoCardsYetCreate =>
+      'No cards yet. Tap + to create your first card.';
+
+  @override
+  String get tooltipCreateCard => 'Create card';
+
+  @override
+  String get titleNewCard => 'New Card';
+
+  @override
+  String get titleEditCard => 'Edit Card';
+
+  @override
+  String get titleDeleteCard => 'Delete Card';
+
+  @override
+  String messageDeleteCardConfirm(String name) {
+    return 'Delete \"$name\"? It will be removed from all sets and cannot be undone.';
+  }
+
+  @override
+  String get errorFailedSaveCard => 'Failed to save card. Please try again.';
+
+  @override
+  String get errorFailedDeleteCard =>
+      'Failed to delete card. Please try again.';
+
+  @override
+  String get tooltipDeleteCard => 'Delete card';
+
+  @override
+  String get actionSaveAsTemplate => 'Save as Template';
+
+  @override
+  String get titlePrimaryField => 'Primary Field';
+
+  @override
+  String get labelForeignWordRequired => 'Foreign word *';
+
+  @override
+  String get hintForeignWordExample => 'e.g. hablar';
+
+  @override
+  String get validatorForeignWordRequired => 'Foreign word is required';
+
+  @override
+  String get labelTranslationRequired => 'Translation *';
+
+  @override
+  String get hintTranslationExample => 'e.g. to speak';
+
+  @override
+  String get validatorTranslationRequired => 'Translation is required';
+
+  @override
+  String get labelHideHintWord => 'Hide hint word during study';
+
+  @override
+  String get messageHideHintWordSubtitle =>
+      'Show only the image/audio at first; reveal the text hint on demand';
+
+  @override
+  String get titleMediaSection => 'Media';
+
+  @override
+  String get messageMediaSectionSubtitle =>
+      'Optional image and audio for the primary field.';
+
+  @override
+  String get actionReplaceImage => 'Replace image';
+
+  @override
+  String get actionAddImage => 'Add image';
+
+  @override
+  String get actionRemove => 'Remove';
+
+  @override
+  String get labelNewAudioSelected => 'New audio clip selected';
+
+  @override
+  String get labelAudioAttached => 'Audio clip attached';
+
+  @override
+  String get labelNoAudio => 'No audio clip';
+
+  @override
+  String get actionReplaceAudio => 'Replace';
+
+  @override
+  String get actionAddAudio => 'Add audio';
+
+  @override
+  String get tooltipRemoveAudio => 'Remove audio';
+
+  @override
+  String get titleAdditionalQuestions => 'Additional Questions';
+
+  @override
+  String get actionUseTemplate => 'Use Template';
+
+  @override
+  String get tabCardTemplates => 'Card Templates';
+
+  @override
+  String get tabQuestionTemplates => 'Question Templates';
+
+  @override
+  String get messageNoCardTemplatesYet => 'No card templates yet.';
+
+  @override
+  String get messageNoQuestionTemplatesYet => 'No question templates yet.';
+
+  @override
+  String get titleReplaceQuestions => 'Replace questions?';
+
+  @override
+  String messageReplaceQuestionsConfirm(String name) {
+    return 'Apply \"$name\"? Your current questions will be replaced.';
+  }
+
+  @override
+  String get actionReplace => 'Replace';
+
+  @override
+  String get labelCorrectAnswersRequired =>
+      'Correct answers * (comma-separated)';
+
+  @override
+  String get hintCorrectAnswersExample => 'e.g. hablo, Hablo';
+
+  @override
+  String get validatorAtLeastOneAnswer => 'At least one answer is required';
+
+  @override
+  String get labelHintOptional => 'Hint (optional)';
+
+  @override
+  String get labelExactMatch => 'Exact match';
+
+  @override
+  String get messageExactMatchSubtitle => 'Case-sensitive answer check';
+
+  @override
+  String get labelOptionsRequired => 'Options * (select the correct one)';
+
+  @override
+  String labelOptionNumber(int number) {
+    return 'Option $number';
+  }
+
+  @override
+  String get validatorOptionTextRequired => 'Option text required';
+
+  @override
+  String get actionAddOption => 'Add option';
+
+  @override
+  String get labelQuestionLabelOptional => 'Label (optional)';
+
+  @override
+  String get hintQuestionLabelExample => 'e.g. Gender, Conjugation';
+
+  @override
+  String get tooltipRemoveQuestion => 'Remove question';
+
+  @override
+  String get labelQuestionType => 'Question type';
+
+  @override
+  String get labelQuestionTypeTextInput => 'Text input';
+
+  @override
+  String get labelQuestionTypeMultipleChoice => 'Multiple choice';
+
+  @override
+  String get labelQuestionTypeWordOrder => 'Word order';
+
+  @override
+  String get actionAddQuestion => 'Add Question';
+
+  @override
+  String messageSelectCorrectOptionLabeled(String label) {
+    return 'Question \"$label\": select the correct option.';
+  }
+
+  @override
+  String messageSelectCorrectOptionNumber(int number) {
+    return 'Question $number: select the correct option.';
+  }
+
+  @override
+  String get titleNewWorkbookCard => 'New Workbook Card';
+
+  @override
+  String get titleEditWorkbookCard => 'Edit Workbook Card';
+
+  @override
+  String get titleDeleteWorkbookCard => 'Delete Workbook Card';
+
+  @override
+  String get messageDeleteWorkbookCardConfirm =>
+      'Delete this card? It will be removed from all sets and cannot be undone.';
+
+  @override
+  String get labelDisplay => 'Display:';
+
+  @override
+  String get labelDisplayList => 'List';
+
+  @override
+  String get labelDisplayChips => 'Chips';
+
+  @override
+  String get labelExplanationOptional => 'Explanation (optional)';
+
+  @override
+  String get hintExplanationShownAfterAnswer => 'Shown after the user answers';
+
+  @override
+  String get labelWordBankRequired => 'Word Bank *';
+
+  @override
+  String get messageWordBankHelp =>
+      'Add all tiles — correct words plus any distractors';
+
+  @override
+  String get hintAddWordTile => 'Add a word tile';
+
+  @override
+  String get labelCorrectOrderRequired => 'Correct Order *';
+
+  @override
+  String get actionClear => 'Clear';
+
+  @override
+  String get messageCorrectOrderHelp =>
+      'Tap tiles from the word bank to build the answer in order';
+
+  @override
+  String get messageAddTilesToWordBankFirst =>
+      'Add tiles to the word bank first';
+
+  @override
+  String get messageTapTilesBelow => 'Tap tiles below to set the answer order';
+
+  @override
+  String get labelAllTilesPlaced => 'All tiles placed';
+
+  @override
+  String labelQuestionNumber(int number) {
+    return 'Question $number';
+  }
+
+  @override
+  String get tooltipMoveUp => 'Move up';
+
+  @override
+  String get tooltipMoveDown => 'Move down';
+
+  @override
+  String get labelQuestionLabelFullOptional => 'Question label (optional)';
+
+  @override
+  String get hintQuestionLabelWorkbookExample =>
+      'e.g. Choose the correct gender';
+
+  @override
+  String get titlePromptSection => 'Prompt';
+
+  @override
+  String get messagePromptSectionHelp =>
+      'Task description shown before questions are revealed';
+
+  @override
+  String get labelPromptRequired => 'Prompt *';
+
+  @override
+  String get hintPromptExample => 'e.g. Read the sentence and answer below.';
+
+  @override
+  String get validatorPromptRequired => 'Prompt is required';
+
+  @override
+  String get titleQuestionsSection => 'Questions';
+
+  @override
+  String messageWordOrderNeedWordBank(int number) {
+    return 'Question $number: add at least one tile to the word bank.';
+  }
+
+  @override
+  String messageWordOrderNeedCorrectOrder(int number) {
+    return 'Question $number: set the correct word order.';
+  }
+
+  @override
+  String messageWordOrderWordNotInBank(int number, String word) {
+    return 'Question $number: \"$word\" in correct order is not in the word bank.';
+  }
 }

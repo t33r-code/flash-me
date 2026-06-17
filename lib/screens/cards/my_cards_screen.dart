@@ -7,6 +7,7 @@ import 'package:flash_me/providers/card_provider.dart';
 import 'package:flash_me/providers/workbook_card_provider.dart';
 import 'package:flash_me/screens/cards/card_form_screen.dart';
 import 'package:flash_me/screens/cards/workbook_card_form_screen.dart';
+import 'package:flash_me/utils/extensions.dart';
 
 class MyCardsScreen extends ConsumerStatefulWidget {
   const MyCardsScreen({super.key});
@@ -28,6 +29,7 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
 
   // Shows a bottom sheet letting the user choose Flash Card or Workbook Card.
   void _showCardTypeChooser(BuildContext context) {
+    final l10n = context.l10n;
     showModalBottomSheet<void>(
       context: context,
       builder: (_) => SafeArea(
@@ -45,14 +47,13 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Text('Create a card',
+              child: Text(l10n.titleCreateCard,
                   style: Theme.of(context).textTheme.titleMedium),
             ),
             ListTile(
               leading: const Icon(Icons.style_outlined),
-              title: const Text('Flash Card'),
-              subtitle:
-                  const Text('Word + translation with optional fields'),
+              title: Text(l10n.labelFlashCard),
+              subtitle: Text(l10n.messageFlashCardSubtitle),
               onTap: () {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
@@ -62,9 +63,8 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.book_outlined),
-              title: const Text('Workbook Card'),
-              subtitle: const Text(
-                  'Prompt with text, multiple choice, or word order questions'),
+              title: Text(l10n.labelWorkbookCard),
+              subtitle: Text(l10n.messageWorkbookCardSubtitle),
               onTap: () {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
@@ -122,6 +122,7 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final cardsAsync = ref.watch(userCardsProvider);
     final workbookCardsAsync = ref.watch(userWorkbookCardsProvider);
 
@@ -134,7 +135,7 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Cards'),
+        title: Text(l10n.titleMyCards),
         actions: const [HelpMenuButton(HelpContext.cards)],
       ),
       body: Column(
@@ -145,7 +146,7 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search cards…',
+                hintText: l10n.hintSearchCards,
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
@@ -175,7 +176,7 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
               child: Row(
                 children: [
                   FilterChip(
-                    label: const Text('All'),
+                    label: Text(l10n.labelAll),
                     selected: _selectedTag == null,
                     onSelected: (_) => setState(() => _selectedTag = null),
                   ),
@@ -208,7 +209,7 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
       floatingActionButton: FloatingActionButton(
         heroTag: null,
         onPressed: () => _showCardTypeChooser(context),
-        tooltip: 'Create card',
+        tooltip: l10n.tooltipCreateCard,
         child: const Icon(Icons.add),
       ),
     );
@@ -223,7 +224,7 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
     bool isEmpty,
   ) {
     if (isLoading) return const Center(child: CircularProgressIndicator());
-    if (hasError) return const Center(child: Text('Failed to load cards.'));
+    if (hasError) return Center(child: Text(context.l10n.errorFailedLoadCards));
     if (isEmpty) return const _EmptyState();
 
     if (cards.isEmpty && workbookCards.isEmpty) {
@@ -231,7 +232,7 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Text(
-            'No cards match your search.',
+            context.l10n.messageNoCardsMatchSearch,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
@@ -269,10 +270,11 @@ class _EmptyState extends StatelessWidget {
           children: [
             Icon(Icons.style_outlined, size: 80, color: onSurfaceVariant),
             const SizedBox(height: 16),
-            Text('My Cards', style: Theme.of(context).textTheme.titleLarge),
+            Text(context.l10n.titleMyCards,
+                style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(
-              'No cards yet. Tap + to create your first card.',
+              context.l10n.messageNoCardsYetCreate,
               style: Theme.of(context)
                   .textTheme
                   .bodyMedium
@@ -341,7 +343,6 @@ class _WorkbookCardTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
     final qCount = card.questions.length;
-    final subtitle = '$qCount question${qCount == 1 ? '' : 's'}';
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
@@ -351,7 +352,7 @@ class _WorkbookCardTile extends StatelessWidget {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        subtitle: Text(subtitle),
+        subtitle: Text(context.l10n.labelQuestionCount(qCount)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

@@ -7,6 +7,7 @@ import 'package:flash_me/providers/language_provider.dart';
 import 'package:flash_me/providers/tag_provider.dart';
 import 'package:flash_me/providers/workbook_card_provider.dart';
 import 'package:flash_me/utils/constants.dart';
+import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/widgets/language_picker.dart';
 import 'package:flash_me/widgets/tag_input_field.dart';
@@ -324,13 +325,15 @@ class _WorkbookCardFormScreenState
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final l10n = context.l10n;
+
     // Check that every MC question has a correct option selected.
     for (int i = 0; i < _questions.length; i++) {
       final q = _questions[i];
       if (q.type == AppConstants.fieldTypeMultipleChoice &&
           q.correctIndex == null) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Question ${i + 1}: select the correct option.'),
+          content: Text(l10n.messageSelectCorrectOptionNumber(i + 1)),
         ));
         return;
       }
@@ -342,22 +345,20 @@ class _WorkbookCardFormScreenState
       if (q.type == AppConstants.questionTypeWordOrder) {
         if (q.wordBank.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                'Question ${i + 1}: add at least one tile to the word bank.'),
+            content: Text(l10n.messageWordOrderNeedWordBank(i + 1)),
           ));
           return;
         }
         if (q.correctOrder.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Question ${i + 1}: set the correct word order.'),
+            content: Text(l10n.messageWordOrderNeedCorrectOrder(i + 1)),
           ));
           return;
         }
         for (final word in q.correctOrder) {
           if (!q.wordBank.contains(word)) {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(
-                  'Question ${i + 1}: "$word" in correct order is not in the word bank.'),
+              content: Text(l10n.messageWordOrderWordNotInBank(i + 1, word)),
             ));
             return;
           }
@@ -421,31 +422,29 @@ class _WorkbookCardFormScreenState
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Failed to save card. Please try again.')),
+          SnackBar(content: Text(context.l10n.errorFailedSaveCard)),
         );
       }
     }
   }
 
   Future<void> _confirmDelete() async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Workbook Card'),
-        content: const Text(
-          'Delete this card? It will be removed from all sets and cannot be undone.',
-        ),
+        title: Text(l10n.titleDeleteWorkbookCard),
+        content: Text(l10n.messageDeleteWorkbookCardConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.labelCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(
                 backgroundColor: Theme.of(ctx).colorScheme.error),
-            child: const Text('Delete'),
+            child: Text(l10n.labelDelete),
           ),
         ],
       ),
@@ -470,8 +469,7 @@ class _WorkbookCardFormScreenState
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Failed to delete card. Please try again.')),
+          SnackBar(content: Text(context.l10n.errorFailedDeleteCard)),
         );
       }
     }
@@ -480,15 +478,16 @@ class _WorkbookCardFormScreenState
   // --- Question content builders --------------------------------------------
 
   Widget _buildTextInputContent(_QuestionState q) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TextFormField(
           controller: q.answersController,
-          decoration: const InputDecoration(
-            labelText: 'Correct answers * (comma-separated)',
-            hintText: 'e.g. hablo, Hablo',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.labelCorrectAnswersRequired,
+            hintText: l10n.hintCorrectAnswersExample,
+            border: const OutlineInputBorder(),
           ),
           validator: (v) {
             final answers = (v ?? '')
@@ -496,21 +495,21 @@ class _WorkbookCardFormScreenState
                 .map((s) => s.trim())
                 .where((s) => s.isNotEmpty)
                 .toList();
-            return answers.isEmpty ? 'At least one answer is required' : null;
+            return answers.isEmpty ? l10n.validatorAtLeastOneAnswer : null;
           },
         ),
         const SizedBox(height: 8),
         TextFormField(
           controller: q.hintController,
-          decoration: const InputDecoration(
-            labelText: 'Hint (optional)',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.labelHintOptional,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 4),
         SwitchListTile(
-          title: const Text('Exact match'),
-          subtitle: const Text('Case-sensitive answer check'),
+          title: Text(l10n.labelExactMatch),
+          subtitle: Text(l10n.messageExactMatchSubtitle),
           value: q.exactMatch,
           onChanged: (v) => setState(() => q.exactMatch = v),
           contentPadding: EdgeInsets.zero,
@@ -521,17 +520,18 @@ class _WorkbookCardFormScreenState
   }
 
   Widget _buildMultipleChoiceContent(_QuestionState q, int qIdx) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Display mode chip selector.
         Row(
           children: [
-            Text('Display:',
+            Text(l10n.labelDisplay,
                 style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(width: 8),
             ChoiceChip(
-              label: const Text('List'),
+              label: Text(l10n.labelDisplayList),
               selected: q.displayMode == MultipleChoiceDisplayMode.list,
               onSelected: (_) => setState(
                   () => q.displayMode = MultipleChoiceDisplayMode.list),
@@ -539,7 +539,7 @@ class _WorkbookCardFormScreenState
             ),
             const SizedBox(width: 4),
             ChoiceChip(
-              label: const Text('Chips'),
+              label: Text(l10n.labelDisplayChips),
               selected: q.displayMode == MultipleChoiceDisplayMode.chips,
               onSelected: (_) => setState(
                   () => q.displayMode = MultipleChoiceDisplayMode.chips),
@@ -548,7 +548,7 @@ class _WorkbookCardFormScreenState
           ],
         ),
         const SizedBox(height: 8),
-        Text('Options * (select the correct one)',
+        Text(l10n.labelOptionsRequired,
             style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 8),
         // RadioGroup groups all Radio children around a shared value.
@@ -566,11 +566,11 @@ class _WorkbookCardFormScreenState
                       child: TextFormField(
                         controller: q.optionControllers[optIdx],
                         decoration: InputDecoration(
-                          labelText: 'Option ${optIdx + 1}',
+                          labelText: l10n.labelOptionNumber(optIdx + 1),
                           border: const OutlineInputBorder(),
                         ),
                         validator: (v) => v?.trim().isEmpty ?? true
-                            ? 'Option text required'
+                            ? l10n.validatorOptionTextRequired
                             : null,
                       ),
                     ),
@@ -589,15 +589,15 @@ class _WorkbookCardFormScreenState
         TextButton.icon(
           onPressed: () => _addOption(qIdx),
           icon: const Icon(Icons.add),
-          label: const Text('Add option'),
+          label: Text(l10n.actionAddOption),
         ),
         const SizedBox(height: 8),
         TextFormField(
           controller: q.explanationController,
-          decoration: const InputDecoration(
-            labelText: 'Explanation (optional)',
-            hintText: 'Shown after the user answers',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.labelExplanationOptional,
+            hintText: l10n.hintExplanationShownAfterAnswer,
+            border: const OutlineInputBorder(),
           ),
         ),
       ],
@@ -605,6 +605,7 @@ class _WorkbookCardFormScreenState
   }
 
   Widget _buildWordOrderContent(_QuestionState q, int qIdx) {
+    final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
     final muted = Theme.of(context)
         .textTheme
@@ -616,18 +617,19 @@ class _WorkbookCardFormScreenState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // -- Word Bank -------------------------------------------------
-        Text('Word Bank *', style: Theme.of(context).textTheme.bodySmall),
+        Text(l10n.labelWordBankRequired,
+            style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 2),
-        Text('Add all tiles — correct words plus any distractors', style: muted),
+        Text(l10n.messageWordBankHelp, style: muted),
         const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
               child: TextField(
                 controller: q.wordBankInputController,
-                decoration: const InputDecoration(
-                  hintText: 'Add a word tile',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  hintText: l10n.hintAddWordTile,
+                  border: const OutlineInputBorder(),
                   isDense: true,
                 ),
                 textInputAction: TextInputAction.done,
@@ -638,7 +640,7 @@ class _WorkbookCardFormScreenState
             FilledButton(
               onPressed: () =>
                   _addWordBankTile(qIdx, q.wordBankInputController.text),
-              child: const Text('Add'),
+              child: Text(l10n.actionAdd),
             ),
           ],
         ),
@@ -663,7 +665,7 @@ class _WorkbookCardFormScreenState
         // -- Correct Order (tap tiles to build sequence) ---------------
         Row(
           children: [
-            Text('Correct Order *',
+            Text(l10n.labelCorrectOrderRequired,
                 style: Theme.of(context).textTheme.bodySmall),
             const Spacer(),
             if (q.correctOrder.isNotEmpty)
@@ -671,13 +673,12 @@ class _WorkbookCardFormScreenState
                 onPressed: () => setState(() => q.correctOrder.clear()),
                 style: TextButton.styleFrom(
                     visualDensity: VisualDensity.compact),
-                child: const Text('Clear'),
+                child: Text(l10n.actionClear),
               ),
           ],
         ),
         const SizedBox(height: 2),
-        Text('Tap tiles from the word bank to build the answer in order',
-            style: muted),
+        Text(l10n.messageCorrectOrderHelp, style: muted),
         const SizedBox(height: 8),
 
         // Answer sequence — placed tiles with sequence numbers.
@@ -693,8 +694,8 @@ class _WorkbookCardFormScreenState
           child: q.correctOrder.isEmpty
               ? Text(
                   q.wordBank.isEmpty
-                      ? 'Add tiles to the word bank first'
-                      : 'Tap tiles below to set the answer order',
+                      ? l10n.messageAddTilesToWordBankFirst
+                      : l10n.messageTapTilesBelow,
                   style: muted,
                 )
               : Wrap(
@@ -726,12 +727,13 @@ class _WorkbookCardFormScreenState
                 .toList(),
           )
         else if (q.wordBank.isNotEmpty)
-          Text('All tiles placed', style: muted),
+          Text(l10n.labelAllTilesPlaced, style: muted),
       ],
     );
   }
 
   Widget _buildQuestionCard(int index) {
+    final l10n = context.l10n;
     final q = _questions[index];
     return Card(
       key: ValueKey(q.questionId),
@@ -744,20 +746,20 @@ class _WorkbookCardFormScreenState
             // Header: label + reorder + delete.
             Row(
               children: [
-                Text('Question ${index + 1}',
+                Text(l10n.labelQuestionNumber(index + 1),
                     style: Theme.of(context).textTheme.titleSmall),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.arrow_upward),
                   iconSize: 20,
-                  tooltip: 'Move up',
+                  tooltip: l10n.tooltipMoveUp,
                   onPressed:
                       index > 0 ? () => _moveQuestion(index, index - 1) : null,
                 ),
                 IconButton(
                   icon: const Icon(Icons.arrow_downward),
                   iconSize: 20,
-                  tooltip: 'Move down',
+                  tooltip: l10n.tooltipMoveDown,
                   onPressed: index < _questions.length - 1
                       ? () => _moveQuestion(index, index + 1)
                       : null,
@@ -766,7 +768,7 @@ class _WorkbookCardFormScreenState
                   icon: const Icon(Icons.delete_outline),
                   iconSize: 20,
                   color: Theme.of(context).colorScheme.error,
-                  tooltip: 'Remove question',
+                  tooltip: l10n.tooltipRemoveQuestion,
                   onPressed: () => _removeQuestion(index),
                 ),
               ],
@@ -776,10 +778,10 @@ class _WorkbookCardFormScreenState
             // Optional per-question label.
             TextFormField(
               controller: q.promptController,
-              decoration: const InputDecoration(
-                labelText: 'Question label (optional)',
-                hintText: 'e.g. Choose the correct gender',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.labelQuestionLabelFullOptional,
+                hintText: l10n.hintQuestionLabelWorkbookExample,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -787,22 +789,22 @@ class _WorkbookCardFormScreenState
             // Type selector.
             DropdownButtonFormField<String>(
               initialValue: q.type,
-              decoration: const InputDecoration(
-                labelText: 'Question type',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.labelQuestionType,
+                border: const OutlineInputBorder(),
               ),
-              items: const [
+              items: [
                 DropdownMenuItem(
                   value: AppConstants.fieldTypeTextInput,
-                  child: Text('Text input'),
+                  child: Text(l10n.labelQuestionTypeTextInput),
                 ),
                 DropdownMenuItem(
                   value: AppConstants.fieldTypeMultipleChoice,
-                  child: Text('Multiple choice'),
+                  child: Text(l10n.labelQuestionTypeMultipleChoice),
                 ),
                 DropdownMenuItem(
                   value: AppConstants.questionTypeWordOrder,
-                  child: Text('Word order'),
+                  child: Text(l10n.labelQuestionTypeWordOrder),
                 ),
               ],
               onChanged: (v) {
@@ -828,14 +830,15 @@ class _WorkbookCardFormScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Workbook Card' : 'New Workbook Card'),
+        title: Text(_isEditing ? l10n.titleEditWorkbookCard : l10n.titleNewWorkbookCard),
         actions: [
           if (_isEditing)
             IconButton(
               icon: const Icon(Icons.delete_outline),
-              tooltip: 'Delete card',
+              tooltip: l10n.tooltipDeleteCard,
               onPressed: _isSaving ? null : _confirmDelete,
             ),
         ],
@@ -850,11 +853,11 @@ class _WorkbookCardFormScreenState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // --- Prompt -----------------------------------------------
-                Text('Prompt',
+                Text(l10n.titlePromptSection,
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 4),
                 Text(
-                  'Task description shown before questions are revealed',
+                  l10n.messagePromptSectionHelp,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color:
                           Theme.of(context).colorScheme.onSurfaceVariant),
@@ -862,37 +865,37 @@ class _WorkbookCardFormScreenState
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _promptController,
-                  decoration: const InputDecoration(
-                    labelText: 'Prompt *',
-                    hintText: 'e.g. Read the sentence and answer below.',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.labelPromptRequired,
+                    hintText: l10n.hintPromptExample,
+                    border: const OutlineInputBorder(),
                   ),
                   maxLines: 3,
                   textCapitalization: TextCapitalization.sentences,
                   validator: (v) =>
-                      v?.trim().isEmpty ?? true ? 'Prompt is required' : null,
+                      v?.trim().isEmpty ?? true ? l10n.validatorPromptRequired : null,
                 ),
 
                 // --- Languages --------------------------------------------
                 const SizedBox(height: 24),
-                Text('Languages',
+                Text(l10n.titleLanguagesSection,
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 12),
                 LanguagePicker(
-                  label: 'Target language (being studied)',
+                  label: l10n.labelTargetLanguage,
                   value: _targetLanguage,
                   onChanged: (v) => setState(() => _targetLanguage = v),
                 ),
                 const SizedBox(height: 12),
                 LanguagePicker(
-                  label: 'Native language',
+                  label: l10n.labelNativeLanguage,
                   value: _nativeLanguage,
                   onChanged: (v) => setState(() => _nativeLanguage = v),
                 ),
 
                 // --- Tags -------------------------------------------------
                 const SizedBox(height: 24),
-                Text('Tags',
+                Text(l10n.titleTagsSection,
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
                 TagInputField(
@@ -903,14 +906,14 @@ class _WorkbookCardFormScreenState
 
                 // --- Questions --------------------------------------------
                 const SizedBox(height: 24),
-                Text('Questions',
+                Text(l10n.titleQuestionsSection,
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 12),
                 ..._questions.asMap().entries.map((e) => _buildQuestionCard(e.key)),
                 OutlinedButton.icon(
                   onPressed: _addQuestion,
                   icon: const Icon(Icons.add),
-                  label: const Text('Add Question'),
+                  label: Text(l10n.actionAddQuestion),
                 ),
 
                 // --- Save / Cancel ----------------------------------------
@@ -922,7 +925,7 @@ class _WorkbookCardFormScreenState
                         onPressed: _isSaving
                             ? null
                             : () => Navigator.of(context).pop(),
-                        child: const Text('Cancel'),
+                        child: Text(l10n.labelCancel),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -937,8 +940,8 @@ class _WorkbookCardFormScreenState
                                     strokeWidth: 2, color: Colors.white),
                               )
                             : Text(_isEditing
-                                ? 'Save Changes'
-                                : 'Create Card'),
+                                ? l10n.actionSaveChanges
+                                : l10n.actionCreateCard),
                       ),
                     ),
                   ],

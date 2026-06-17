@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/providers/auth_provider.dart';
+import 'package:flash_me/l10n/app_localizations.dart';
 import 'package:flash_me/utils/exceptions.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
@@ -41,22 +42,22 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   // Map repository error codes (originally from Firebase) to user-friendly messages.
-  String _friendlyAuthError(AppException e) {
+  String _friendlyAuthError(AppException e, AppLocalizations l10n) {
     switch (e.code) {
       case 'user-not-found':
       case 'wrong-password':
       case 'invalid-credential':
-        return 'Invalid email or password.';
+        return l10n.errorInvalidCredential;
       case 'email-already-in-use':
-        return 'An account with this email already exists.';
+        return l10n.errorEmailInUse;
       case 'weak-password':
-        return 'Password is too weak. Use at least 6 characters.';
+        return l10n.errorWeakPassword;
       case 'invalid-email':
-        return 'Please enter a valid email address.';
+        return l10n.errorInvalidEmail;
       case 'too-many-requests':
-        return 'Too many attempts. Please try again later.';
+        return l10n.errorTooManyRequests;
       case 'network-request-failed':
-        return 'Network error. Check your connection.';
+        return l10n.errorNetworkFailed;
       default:
         return e.message;
     }
@@ -82,9 +83,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         );
       }
     } on AppException catch (e) {
-      setState(() => _errorMessage = _friendlyAuthError(e));
+      setState(() => _errorMessage = _friendlyAuthError(e, context.l10n));
     } catch (e) {
-      setState(() => _errorMessage = 'An unexpected error occurred.');
+      setState(() => _errorMessage = context.l10n.errorUnexpected);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -98,9 +99,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     try {
       await ref.read(authRepositoryProvider).signInWithGoogle();
     } on AppException catch (e) {
-      setState(() => _errorMessage = _friendlyAuthError(e));
+      setState(() => _errorMessage = _friendlyAuthError(e, context.l10n));
     } catch (e) {
-      setState(() => _errorMessage = 'Google sign-in failed. Please try again.');
+      setState(() => _errorMessage = context.l10n.errorGoogleSignInFailed);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -122,7 +123,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         bool sending = false;
         return StatefulBuilder(
           builder: (sbContext, setSbState) => AlertDialog(
-            title: const Text('Reset Password'),
+            title: Text(sbContext.l10n.titleResetPassword),
             content: Form(
               key: formKey,
               child: TextFormField(
@@ -157,18 +158,18 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             Navigator.of(dialogContext).pop();
                           }
                           if (mounted) {
-                            messenger.showSnackBar(const SnackBar(
+                            messenger.showSnackBar(SnackBar(
                               content: Text(
-                                'Password reset email sent. Check your inbox.',
+                                context.l10n.messagePasswordResetSent,
                               ),
                             ));
                           }
                         } catch (_) {
                           setSbState(() => sending = false);
                           if (mounted) {
-                            messenger.showSnackBar(const SnackBar(
+                            messenger.showSnackBar(SnackBar(
                               content: Text(
-                                'Failed to send reset email. Please try again.',
+                                context.l10n.messageFailedSendResetEmail,
                               ),
                             ));
                           }
@@ -180,7 +181,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Send Reset Email'),
+                    : Text(sbContext.l10n.actionSendResetEmail),
               ),
             ],
           ),
@@ -216,7 +217,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                _isSignIn ? 'Sign in to continue' : 'Create your account',
+                _isSignIn ? context.l10n.messageSignInToContinue : context.l10n.messageCreateYourAccount,
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -310,10 +311,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please confirm your password';
+                              return context.l10n.validatorConfirmPassword;
                             }
                             if (value != _passwordController.text) {
-                              return 'Passwords do not match';
+                              return context.l10n.validatorPasswordsDoNotMatch;
                             }
                             return null;
                           },
@@ -353,7 +354,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
-                      'or',
+                      context.l10n.labelOr,
                       style: theme.textTheme.bodySmall,
                     ),
                   ),
@@ -379,8 +380,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 children: [
                   Text(
                     _isSignIn
-                        ? "Don't have an account? "
-                        : 'Already have an account? ',
+                        ? context.l10n.messageNoAccount
+                        : context.l10n.messageHaveAccount,
                     style: theme.textTheme.bodyMedium,
                   ),
                   // TextButton enforces the 48dp minimum touch target.

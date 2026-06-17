@@ -144,6 +144,86 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionEndSession => 'End Session';
 
   @override
+  String get messageErrorLoadingApp => 'Error loading app. Please restart.';
+
+  @override
+  String get titleResetPassword => 'Reset Password';
+
+  @override
+  String get actionSendResetEmail => 'Send Reset Email';
+
+  @override
+  String get messagePasswordResetSent =>
+      'Password reset email sent. Check your inbox.';
+
+  @override
+  String get messageFailedSendResetEmail =>
+      'Failed to send reset email. Please try again.';
+
+  @override
+  String get messageSignInToContinue => 'Sign in to continue';
+
+  @override
+  String get messageCreateYourAccount => 'Create your account';
+
+  @override
+  String get validatorConfirmPassword => 'Please confirm your password';
+
+  @override
+  String get validatorPasswordsDoNotMatch => 'Passwords do not match';
+
+  @override
+  String get labelOr => 'or';
+
+  @override
+  String get messageNoAccount => 'Don\'t have an account? ';
+
+  @override
+  String get messageHaveAccount => 'Already have an account? ';
+
+  @override
+  String get errorInvalidCredential => 'Invalid email or password.';
+
+  @override
+  String get errorEmailInUse => 'An account with this email already exists.';
+
+  @override
+  String get errorWeakPassword =>
+      'Password is too weak. Use at least 6 characters.';
+
+  @override
+  String get errorInvalidEmail => 'Please enter a valid email address.';
+
+  @override
+  String get errorTooManyRequests =>
+      'Too many attempts. Please try again later.';
+
+  @override
+  String get errorNetworkFailed => 'Network error. Check your connection.';
+
+  @override
+  String get errorUnexpected => 'An unexpected error occurred.';
+
+  @override
+  String get errorGoogleSignInFailed =>
+      'Google sign-in failed. Please try again.';
+
+  @override
+  String get navSets => 'Sets';
+
+  @override
+  String get navCards => 'Cards';
+
+  @override
+  String get navStudy => 'Study';
+
+  @override
+  String get navTemplates => 'Templates';
+
+  @override
+  String get navProfile => 'Profile';
+
+  @override
   String get actionImportSets => 'Import Sets';
 
   @override

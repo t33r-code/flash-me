@@ -4,6 +4,7 @@ import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/study_session.dart';
 import 'package:flash_me/providers/study_session_provider.dart';
 import 'package:flash_me/utils/constants.dart';
+import 'package:flash_me/utils/extensions.dart';
 
 // ---------------------------------------------------------------------------
 // StudySessionHistoryScreen — list of all past sessions for a single set.
@@ -20,17 +21,17 @@ class StudySessionHistoryScreen extends ConsumerWidget {
     final historyAsync = ref.watch(sessionHistoryProvider(cardSet.id));
 
     return Scaffold(
-      appBar: AppBar(title: Text('${cardSet.name} — History')),
+      appBar: AppBar(title: Text(context.l10n.titleSetHistory(cardSet.name))),
       body: historyAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) =>
-            const Center(child: Text('Failed to load history.')),
+            Center(child: Text(context.l10n.errorFailedLoadHistory)),
         data: (sessions) => sessions.isEmpty
-            ? const Center(
+            ? Center(
                 child: Padding(
-                  padding: EdgeInsets.all(32),
+                  padding: const EdgeInsets.all(32),
                   child: Text(
-                    'No sessions yet.\nStart studying to build your history.',
+                    context.l10n.messageNoSessionsYet,
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -74,6 +75,7 @@ class _SessionHistoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
     final isCompleted =
         session.status == AppConstants.sessionStatusCompleted;
@@ -101,7 +103,7 @@ class _SessionHistoryTile extends StatelessWidget {
                   ),
                 ),
                 Chip(
-                  label: Text(isCompleted ? 'Completed' : 'In Progress'),
+                  label: Text(isCompleted ? l10n.labelCompleted : l10n.labelInProgress),
                   labelStyle: TextStyle(
                     fontSize: 11,
                     color: isCompleted
@@ -128,7 +130,7 @@ class _SessionHistoryTile extends StatelessWidget {
                 Icon(Icons.style_outlined,
                     size: 14, color: scheme.onSurfaceVariant),
                 const SizedBox(width: 4),
-                Text('$studied / $total cards',
+                Text(l10n.labelStudiedOfTotal(studied, total),
                     style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(width: 16),
                 Icon(Icons.timer_outlined,

@@ -4,6 +4,7 @@ import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/widgets/help_menu_button.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/screens/study/study_setup_screen.dart';
+import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/transitions.dart';
 
 // ---------------------------------------------------------------------------
@@ -18,9 +19,10 @@ class StudyScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Study'),
+        title: Text(l10n.titleStudy),
         actions: const [HelpMenuButton(HelpContext.study)],
       ),
       body: ListView(
@@ -28,22 +30,22 @@ class StudyScreen extends ConsumerWidget {
         children: [
           _StudyModeCard(
             icon: Icons.library_books_outlined,
-            title: 'Study a Set',
-            subtitle: 'Work through the cards in one of your sets.',
+            title: l10n.titleStudyASet,
+            subtitle: l10n.messageStudyASetSubtitle,
             onTap: () => _openSetPicker(context, ref),
           ),
           const SizedBox(height: 12),
-          const _StudyModeCard(
+          _StudyModeCard(
             icon: Icons.flag_outlined,
-            title: 'Study Review',
-            subtitle: 'Focus on cards you have flagged for review.',
+            title: l10n.titleStudyReview,
+            subtitle: l10n.messageStudyReviewSubtitle,
             comingSoon: true,
           ),
           const SizedBox(height: 12),
-          const _StudyModeCard(
+          _StudyModeCard(
             icon: Icons.trending_down_outlined,
-            title: 'Study Mistakes',
-            subtitle: 'Drill questions you have answered incorrectly recently.',
+            title: l10n.titleStudyMistakes,
+            subtitle: l10n.messageStudyMistakesSubtitle,
             comingSoon: true,
           ),
         ],
@@ -52,12 +54,12 @@ class StudyScreen extends ConsumerWidget {
   }
 
   Future<void> _openSetPicker(BuildContext context, WidgetRef ref) async {
+    final l10n = context.l10n;
     final sets = ref.read(userSetsProvider).asData?.value ?? [];
     if (sets.isEmpty) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('No sets yet — create one in My Sets first.')),
+        SnackBar(content: Text(l10n.messageNoSetsYetStudy)),
       );
       return;
     }
@@ -147,7 +149,7 @@ class _StudyModeCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'Soon',
+                    context.l10n.labelComingSoon,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
@@ -198,7 +200,7 @@ class _SetPickerSheet extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text('Choose a Set',
+                Text(context.l10n.titleChooseSet,
                     style: Theme.of(context).textTheme.titleMedium),
               ],
             ),
@@ -219,8 +221,7 @@ class _SetPickerSheet extends StatelessWidget {
                         )
                       : const Icon(Icons.library_books_outlined),
                   title: Text(s.name),
-                  subtitle: Text(
-                      '${s.cardCount} card${s.cardCount == 1 ? '' : 's'}'),
+                  subtitle: Text(context.l10n.labelCardCount(s.cardCount)),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(ctx).pop(s),
                 );

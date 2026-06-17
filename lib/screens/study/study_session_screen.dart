@@ -13,6 +13,7 @@ import 'package:flash_me/providers/study_session_provider.dart';
 import 'package:flash_me/providers/workbook_card_provider.dart';
 import 'package:flash_me/screens/study/study_session_summary_screen.dart';
 import 'package:flash_me/utils/constants.dart';
+import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/transitions.dart';
 
 // ---------------------------------------------------------------------------
@@ -224,6 +225,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   // On failure: shows a persistent MaterialBanner so the user knows progress
   // may not be saving.  On recovery: banner is hidden automatically.
   Future<void> _saveNow() async {
+    final l10n = context.l10n;
     try {
       await ref
           .read(studySessionRepositoryProvider)
@@ -238,8 +240,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
         ScaffoldMessenger.of(context).showMaterialBanner(
           MaterialBanner(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            content: const Text(
-                'Saving progress failed — check your connection.'),
+            content: Text(l10n.messageSaveProgressFailed),
             leading: const Icon(Icons.cloud_off_outlined),
             actions: [
               TextButton(
@@ -247,7 +248,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
                   setState(() => _saveFailed = false);
                   ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
                 },
-                child: const Text('Dismiss'),
+                child: Text(l10n.actionDismiss),
               ),
             ],
           ),
@@ -322,7 +323,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
           TextButton(
             // Disable while a save is in flight to prevent double-tap.
             onPressed: _saving ? null : _endSession,
-            child: const Text('End'),
+            child: Text(context.l10n.actionEnd),
           ),
         ],
       ),
@@ -341,7 +342,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
               loading: () =>
                   const Center(child: CircularProgressIndicator()),
               error: (_, _) =>
-                  const Center(child: Text('Failed to load cards.')),
+                  Center(child: Text(context.l10n.errorFailedLoadCards)),
               data: (cards) {
                 final cardsMap = {for (final c in cards) c.id: c};
                 final flashCard = cardsMap[_currentCardId];
@@ -360,7 +361,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
                 }
 
                 if (flashCard == null) {
-                  return const Center(child: Text('Card not found.'));
+                  return Center(child: Text(context.l10n.messageCardNotFound));
                 }
 
                 // Flash card view — existing two-phase reveal.
@@ -571,7 +572,7 @@ class _WordCardState extends State<_WordCard> {
           child: Semantics(
             onTapHint: _translationVisible
                 ? null
-                : _isImageCard ? 'reveal foreign word' : 'reveal translation',
+                : _isImageCard ? context.l10n.semanticsRevealForeignWord : context.l10n.semanticsRevealTranslation,
             child: InkWell(
             // Tapping always reveals everything — even from the hidden state,
             // skipping the "Show Hint" step. Show Hint still works as a
@@ -622,7 +623,7 @@ class _WordCardState extends State<_WordCard> {
                           setState(() => _wordVisible = true),
                       icon: const Icon(Icons.visibility_outlined),
                       // Image cards hide the native-word hint; text cards hide the foreign word.
-                      label: Text(_isImageCard ? 'Show Hint' : 'Show Word'),
+                      label: Text(_isImageCard ? context.l10n.actionShowHint : context.l10n.actionShowWord),
                     ),
                   ] else ...[
                     // Cue word stays fixed; only the section below animates.
@@ -645,7 +646,7 @@ class _WordCardState extends State<_WordCard> {
                                 size: 18, color: scheme.onSurfaceVariant),
                             const SizedBox(width: 6),
                             Text(
-                              'Tap to reveal',
+                              context.l10n.labelTapToReveal,
                               style: Theme.of(context)
                                   .textTheme
                                   .bodyMedium
@@ -673,7 +674,7 @@ class _WordCardState extends State<_WordCard> {
                             children: [
                               Expanded(
                                 child: _SelfEvalButton(
-                                  label: 'Knew it',
+                                  label: context.l10n.labelKnewIt,
                                   icon: Icons.check,
                                   color: isDark
                                       ? Colors.green[400]!
@@ -687,7 +688,7 @@ class _WordCardState extends State<_WordCard> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: _SelfEvalButton(
-                                  label: 'Not yet',
+                                  label: context.l10n.labelNotYet,
                                   icon: Icons.close,
                                   color: scheme.error,
                                   selected: widget.selectedResult ==
@@ -706,7 +707,7 @@ class _WordCardState extends State<_WordCard> {
                               width: double.infinity,
                               child: FilledButton(
                                 onPressed: widget.onMore,
-                                child: const Text('More'),
+                                child: Text(context.l10n.actionMore),
                               ),
                             ),
                           ],
@@ -719,7 +720,7 @@ class _WordCardState extends State<_WordCard> {
                               minimumSize: const Size(double.infinity, 48),
                             ),
                             onPressed: widget.onNext,
-                            child: const Text('Next'),
+                            child: Text(context.l10n.actionNextCard),
                           ),
                         ],
                       ),
@@ -891,8 +892,8 @@ class _OptionButton extends StatelessWidget {
 
     // Announce the result state to screen readers when it changes.
     final stateLabel = switch (state) {
-      _OptionState.correct => ', correct',
-      _OptionState.incorrect => ', incorrect',
+      _OptionState.correct => context.l10n.semanticsOptionCorrect,
+      _OptionState.incorrect => context.l10n.semanticsOptionIncorrect,
       _OptionState.neutral => '',
     };
 
@@ -970,7 +971,7 @@ class _NavigationBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _MarkButton(
-                label: 'Review',
+                label: context.l10n.actionReview,
                 icon: Icons.flag_outlined,
                 activeIcon: Icons.flag,
                 isActive: isMarkedReview,
@@ -979,7 +980,7 @@ class _NavigationBar extends StatelessWidget {
               ),
               const SizedBox(width: 32),
               _MarkButton(
-                label: 'Skip',
+                label: context.l10n.actionSkip,
                 icon: Icons.check_circle_outline,
                 activeIcon: Icons.check_circle,
                 isActive: isMarkedSkip,
@@ -995,16 +996,16 @@ class _NavigationBar extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.chevron_left),
                 iconSize: 32,
-                tooltip: 'Previous card',
+                tooltip: context.l10n.tooltipPreviousCard,
                 onPressed: currentIndex > 0 ? onPrevious : null,
               ),
               Expanded(
                 // Semantic label reads as "Card X of Y" rather than "X / Y".
                 child: Semantics(
-                  label: 'Card ${currentIndex + 1} of $total',
+                  label: context.l10n.semanticsCardOf(currentIndex + 1, total),
                   child: ExcludeSemantics(
                     child: Text(
-                      '${currentIndex + 1} / $total',
+                      context.l10n.labelCardProgress(currentIndex + 1, total),
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
@@ -1015,7 +1016,7 @@ class _NavigationBar extends StatelessWidget {
                 // On the last card, the icon becomes a check to signal Finish.
                 icon: Icon(isLast ? Icons.check_circle_outline : Icons.chevron_right),
                 iconSize: 32,
-                tooltip: isLast ? 'Finish session' : 'Next card',
+                tooltip: isLast ? context.l10n.tooltipFinishSession : context.l10n.tooltipNextCard,
                 onPressed: onNext,
               ),
             ],
@@ -1151,7 +1152,7 @@ class _WorkbookPromptCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '$qCount question${qCount == 1 ? '' : 's'}',
+                  context.l10n.labelQuestionCount(qCount),
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall
@@ -1161,7 +1162,7 @@ class _WorkbookPromptCard extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                      onPressed: onMore, child: const Text('More')),
+                      onPressed: onMore, child: Text(context.l10n.actionMore)),
                 ),
               ],
             ),
@@ -1294,16 +1295,16 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
                     enabled: !answered,
                     textInputAction: TextInputAction.done,
                     onSubmitted: answered ? null : (_) => _check(),
-                    decoration: const InputDecoration(
-                      hintText: 'Type your answer',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      hintText: context.l10n.hintTypeYourAnswer,
+                      border: const OutlineInputBorder(),
                       isDense: true,
                     ),
                   ),
                 ),
                 if (!answered) ...[
                   const SizedBox(width: 8),
-                  FilledButton(onPressed: _check, child: const Text('Check')),
+                  FilledButton(onPressed: _check, child: Text(context.l10n.actionCheck)),
                 ],
               ],
             ),
@@ -1314,7 +1315,7 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
                   Icon(Icons.check_circle_outline,
                       color: correctGreen, size: 20),
                   const SizedBox(width: 6),
-                  Text('Correct!',
+                  Text(context.l10n.labelCorrect,
                       style: TextStyle(
                           color: correctGreen,
                           fontWeight: FontWeight.bold)),
@@ -1325,18 +1326,18 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
                       color: scheme.error, size: 20),
                   const SizedBox(width: 6),
                   Expanded(
-                    child: Text('Incorrect',
+                    child: Text(context.l10n.labelIncorrect,
                         style: TextStyle(
                             color: scheme.error,
                             fontWeight: FontWeight.bold)),
                   ),
                   TextButton(
                       onPressed: _tryAgain,
-                      child: const Text('Try Again')),
+                      child: Text(context.l10n.actionTryAgain)),
                 ]),
                 const SizedBox(height: 4),
                 Text(
-                  'Answer: ${(widget.question.correctAnswers ?? []).join(' / ')}',
+                  context.l10n.messageAnswerReveal((widget.question.correctAnswers ?? []).join(' / ')),
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall
@@ -1531,7 +1532,7 @@ class _WordOrderCardState extends State<_WordOrderCard> {
             ],
 
             // Answer row — placed tiles; tap to return to bank.
-            Text('Your answer:',
+            Text(context.l10n.labelYourAnswer,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: scheme.onSurfaceVariant)),
             const SizedBox(height: 6),
@@ -1545,7 +1546,7 @@ class _WordOrderCardState extends State<_WordOrderCard> {
               ),
               child: _placed.isEmpty
                   ? Text(
-                      'Tap words below to build your answer',
+                      context.l10n.labelTapWordsToBuild,
                       style: Theme.of(context)
                           .textTheme
                           .bodySmall
@@ -1560,7 +1561,7 @@ class _WordOrderCardState extends State<_WordOrderCard> {
                           onPressed:
                               answered ? null : () => _returnTile(e.key),
                           visualDensity: VisualDensity.compact,
-                          tooltip: 'Tap to return',
+                          tooltip: context.l10n.tooltipTapToReturn,
                         );
                       }).toList(),
                     ),
@@ -1568,7 +1569,7 @@ class _WordOrderCardState extends State<_WordOrderCard> {
             const SizedBox(height: 12),
 
             // Word bank — available tiles; tap to place.
-            Text('Word bank:',
+            Text(context.l10n.labelWordBank,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: scheme.onSurfaceVariant)),
             const SizedBox(height: 6),
@@ -1592,7 +1593,7 @@ class _WordOrderCardState extends State<_WordOrderCard> {
                 child: FilledButton(
                   onPressed:
                       _placed.isEmpty ? null : _check,
-                  child: const Text('Check'),
+                  child: Text(context.l10n.actionCheck),
                 ),
               )
             else if (isCorrect)
@@ -1600,7 +1601,7 @@ class _WordOrderCardState extends State<_WordOrderCard> {
                 Icon(Icons.check_circle_outline,
                     color: correctGreen, size: 20),
                 const SizedBox(width: 6),
-                Text('Correct!',
+                Text(context.l10n.labelCorrect,
                     style: TextStyle(
                         color: correctGreen,
                         fontWeight: FontWeight.bold)),
@@ -1611,18 +1612,18 @@ class _WordOrderCardState extends State<_WordOrderCard> {
                     color: scheme.error, size: 20),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text('Incorrect',
+                  child: Text(context.l10n.labelIncorrect,
                       style: TextStyle(
                           color: scheme.error,
                           fontWeight: FontWeight.bold)),
                 ),
                 TextButton(
                     onPressed: _tryAgain,
-                    child: const Text('Try Again')),
+                    child: Text(context.l10n.actionTryAgain)),
               ]),
               const SizedBox(height: 4),
               Text(
-                'Answer: ${(widget.question.correctOrder ?? []).join(' ')}',
+                context.l10n.messageAnswerReveal((widget.question.correctOrder ?? []).join(' ')),
                 style: Theme.of(context)
                     .textTheme
                     .bodySmall

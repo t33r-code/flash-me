@@ -1201,4 +1201,205 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get messageTplWordOrderNote =>
       'Word bank entries are filled in per card.';
+
+  @override
+  String get titleStudy => 'Study';
+
+  @override
+  String get titleStudyASet => 'Study a Set';
+
+  @override
+  String get messageStudyASetSubtitle =>
+      'Work through the cards in one of your sets.';
+
+  @override
+  String get titleStudyReview => 'Study Review';
+
+  @override
+  String get messageStudyReviewSubtitle =>
+      'Focus on cards you have flagged for review.';
+
+  @override
+  String get titleStudyMistakes => 'Study Mistakes';
+
+  @override
+  String get messageStudyMistakesSubtitle =>
+      'Drill questions you have answered incorrectly recently.';
+
+  @override
+  String get labelComingSoon => 'Soon';
+
+  @override
+  String get messageNoSetsYetStudy =>
+      'No sets yet — create one in My Sets first.';
+
+  @override
+  String get titleChooseSet => 'Choose a Set';
+
+  @override
+  String get tooltipSessionHistory => 'Session history';
+
+  @override
+  String get labelShuffleCards => 'Shuffle cards';
+
+  @override
+  String get messageShuffleCardsSubtitle =>
+      'Randomise card order for this session';
+
+  @override
+  String get actionStartNewSession => 'Start New Session';
+
+  @override
+  String get actionStartSession => 'Start Session';
+
+  @override
+  String get errorFailedStartSession =>
+      'Failed to start session. Please try again.';
+
+  @override
+  String get messageAddCardsBeforeStudying =>
+      'Add cards to this set before studying.';
+
+  @override
+  String get labelSessionInProgress => 'Session in progress';
+
+  @override
+  String messageCardsReviewed(int done, int total) {
+    return '$done of $total cards reviewed';
+  }
+
+  @override
+  String get actionResume => 'Resume';
+
+  @override
+  String titleSetHistory(String name) {
+    return '$name — History';
+  }
+
+  @override
+  String get errorFailedLoadHistory => 'Failed to load history.';
+
+  @override
+  String get messageNoSessionsYet =>
+      'No sessions yet.\nStart studying to build your history.';
+
+  @override
+  String get labelCompleted => 'Completed';
+
+  @override
+  String get labelInProgress => 'In Progress';
+
+  @override
+  String labelStudiedOfTotal(int studied, int total) {
+    return '$studied / $total cards';
+  }
+
+  @override
+  String get actionEnd => 'End';
+
+  @override
+  String get messageCardNotFound => 'Card not found.';
+
+  @override
+  String get messageSaveProgressFailed =>
+      'Saving progress failed — check your connection.';
+
+  @override
+  String get actionDismiss => 'Dismiss';
+
+  @override
+  String get semanticsRevealForeignWord => 'reveal foreign word';
+
+  @override
+  String get semanticsRevealTranslation => 'reveal translation';
+
+  @override
+  String get actionShowHint => 'Show Hint';
+
+  @override
+  String get actionShowWord => 'Show Word';
+
+  @override
+  String get labelTapToReveal => 'Tap to reveal';
+
+  @override
+  String get labelKnewIt => 'Knew it';
+
+  @override
+  String get labelNotYet => 'Not yet';
+
+  @override
+  String get actionMore => 'More';
+
+  @override
+  String get tooltipPreviousCard => 'Previous card';
+
+  @override
+  String semanticsCardOf(int current, int total) {
+    return 'Card $current of $total';
+  }
+
+  @override
+  String labelCardProgress(int current, int total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get tooltipFinishSession => 'Finish session';
+
+  @override
+  String get tooltipNextCard => 'Next card';
+
+  @override
+  String get labelTapWordsToBuild => 'Tap words below to build your answer';
+
+  @override
+  String get tooltipTapToReturn => 'Tap to return';
+
+  @override
+  String get labelYourAnswer => 'Your answer:';
+
+  @override
+  String get labelWordBank => 'Word bank:';
+
+  @override
+  String get semanticsOptionCorrect => ', correct';
+
+  @override
+  String get semanticsOptionIncorrect => ', incorrect';
+
+  @override
+  String get hintTypeYourAnswer => 'Type your answer';
+
+  @override
+  String get actionCheck => 'Check';
+
+  @override
+  String get actionTryAgain => 'Try Again';
+
+  @override
+  String messageAnswerReveal(String answer) {
+    return 'Answer: $answer';
+  }
+
+  @override
+  String get titleSessionComplete => 'Session Complete';
+
+  @override
+  String get actionDone => 'Done';
+
+  @override
+  String get labelCardsStudied => 'Cards studied';
+
+  @override
+  String get labelSkippedStat => 'Skipped';
+
+  @override
+  String get labelQuestionsStat => 'Questions';
+
+  @override
+  String get labelTimeStat => 'Time';
+
+  @override
+  String get actionStudyAgain => 'Study Again';
 }

@@ -1069,4 +1069,136 @@ class AppLocalizationsEn extends AppLocalizations {
   String messageWordOrderWordNotInBank(int number, String word) {
     return 'Question $number: \"$word\" in correct order is not in the word bank.';
   }
+
+  @override
+  String get titleTemplates => 'Templates';
+
+  @override
+  String get tooltipCreateCardTemplate => 'Create card template';
+
+  @override
+  String get tooltipCreateQuestionTemplate => 'Create question template';
+
+  @override
+  String get errorFailedLoadTemplates => 'Failed to load templates.';
+
+  @override
+  String get errorFailedLoadQuestionTemplates =>
+      'Failed to load question templates.';
+
+  @override
+  String get messageNoCardTemplatesEmptyState =>
+      'No card templates yet.\nTap + to create one, or use \"Save as Template\" from any card.';
+
+  @override
+  String get messageNoQuestionTemplatesEmptyState =>
+      'No question templates yet.\nTap + to create a reusable question.';
+
+  @override
+  String get titleEditTemplate => 'Edit Template';
+
+  @override
+  String get titleNewTemplate => 'New Template';
+
+  @override
+  String get tooltipDeleteTemplate => 'Delete template';
+
+  @override
+  String get titleTemplateDetails => 'Template Details';
+
+  @override
+  String get labelTemplateNameRequired => 'Template name *';
+
+  @override
+  String get hintTemplateNameExample => 'e.g. Spanish Verb';
+
+  @override
+  String get hintTemplateNameQTExample => 'e.g. Gender, Verb conjugation';
+
+  @override
+  String get validatorTemplateNameRequired => 'Name is required';
+
+  @override
+  String get labelHideWordByDefault => 'Hide primary word by default';
+
+  @override
+  String get messageHideWordByDefaultSubtitle =>
+      'Cards created from this template start with the word hidden';
+
+  @override
+  String get messageTemplateQuestionsHelp =>
+      'Define the structure. Answers are filled in per card.';
+
+  @override
+  String get messageNoQuestionTemplatesSnackbar =>
+      'No question templates yet. Create one from the Question Templates tab.';
+
+  @override
+  String get titleChooseQuestionTemplate => 'Choose a Question Template';
+
+  @override
+  String get hintHintShownDuringStudy => 'Shown to the user during study';
+
+  @override
+  String get labelOptionsPreFilled =>
+      'Options (pre-filled for all cards using this template)';
+
+  @override
+  String get titleDeleteTemplate => 'Delete Template';
+
+  @override
+  String messageDeleteTemplateConfirm(String name) {
+    return 'Delete \"$name\"? Cards created from it keep their questions; this cannot be undone.';
+  }
+
+  @override
+  String get errorFailedSaveTemplate =>
+      'Failed to save template. Please try again.';
+
+  @override
+  String get errorFailedDeleteTemplate =>
+      'Failed to delete template. Please try again.';
+
+  @override
+  String get actionCreateTemplate => 'Create Template';
+
+  @override
+  String get titleEditQuestionTemplate => 'Edit Question Template';
+
+  @override
+  String get titleNewQuestionTemplate => 'New Question Template';
+
+  @override
+  String get titleDeleteQuestionTemplate => 'Delete Question Template';
+
+  @override
+  String messageDeleteQuestionTemplateConfirm(String name) {
+    return 'Delete \"$name\"? This cannot be undone.';
+  }
+
+  @override
+  String get titleQuestionSection => 'Question';
+
+  @override
+  String get labelImportIdOptional => 'Import ID (optional)';
+
+  @override
+  String get hintImportIdExample => 'e.g. gender';
+
+  @override
+  String get messageImportIdHelperText =>
+      'Reference this template in import files as ##gender';
+
+  @override
+  String get validatorImportIdInvalid =>
+      'Only letters, numbers, hyphens and underscores allowed';
+
+  @override
+  String messageImportIdConflict(String id) {
+    return 'Import ID \"$id\" is already used by another template.';
+  }
+
+  @override
+  String get messageTplWordOrderNote =>
+      'Word bank entries are filled in per card.';
 }

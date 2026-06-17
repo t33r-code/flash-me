@@ -461,5 +461,61 @@
       "number": {"type": "int"},
       "word": {"type": "String"}
     }
-  }
+  },
+
+  "titleTemplates": "Templates",
+  "tooltipCreateCardTemplate": "Create card template",
+  "tooltipCreateQuestionTemplate": "Create question template",
+  "errorFailedLoadTemplates": "Failed to load templates.",
+  "errorFailedLoadQuestionTemplates": "Failed to load question templates.",
+  "messageNoCardTemplatesEmptyState": "No card templates yet.\nTap + to create one, or use \"Save as Template\" from any card.",
+  "messageNoQuestionTemplatesEmptyState": "No question templates yet.\nTap + to create a reusable question.",
+
+  "titleEditTemplate": "Edit Template",
+  "titleNewTemplate": "New Template",
+  "tooltipDeleteTemplate": "Delete template",
+  "titleTemplateDetails": "Template Details",
+  "labelTemplateNameRequired": "Template name *",
+  "hintTemplateNameExample": "e.g. Spanish Verb",
+  "hintTemplateNameQTExample": "e.g. Gender, Verb conjugation",
+  "validatorTemplateNameRequired": "Name is required",
+  "labelHideWordByDefault": "Hide primary word by default",
+  "messageHideWordByDefaultSubtitle": "Cards created from this template start with the word hidden",
+  "messageTemplateQuestionsHelp": "Define the structure. Answers are filled in per card.",
+  "messageNoQuestionTemplatesSnackbar": "No question templates yet. Create one from the Question Templates tab.",
+  "titleChooseQuestionTemplate": "Choose a Question Template",
+  "hintHintShownDuringStudy": "Shown to the user during study",
+  "labelOptionsPreFilled": "Options (pre-filled for all cards using this template)",
+  "titleDeleteTemplate": "Delete Template",
+  "messageDeleteTemplateConfirm": "Delete \"{name}\"? Cards created from it keep their questions; this cannot be undone.",
+  "@messageDeleteTemplateConfirm": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "errorFailedSaveTemplate": "Failed to save template. Please try again.",
+  "errorFailedDeleteTemplate": "Failed to delete template. Please try again.",
+  "actionCreateTemplate": "Create Template",
+
+  "titleEditQuestionTemplate": "Edit Question Template",
+  "titleNewQuestionTemplate": "New Question Template",
+  "titleDeleteQuestionTemplate": "Delete Question Template",
+  "messageDeleteQuestionTemplateConfirm": "Delete \"{name}\"? This cannot be undone.",
+  "@messageDeleteQuestionTemplateConfirm": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "titleQuestionSection": "Question",
+  "labelImportIdOptional": "Import ID (optional)",
+  "hintImportIdExample": "e.g. gender",
+  "messageImportIdHelperText": "Reference this template in import files as ##gender",
+  "validatorImportIdInvalid": "Only letters, numbers, hyphens and underscores allowed",
+  "messageImportIdConflict": "Import ID \"{id}\" is already used by another template.",
+  "@messageImportIdConflict": {
+    "placeholders": {
+      "id": {"type": "String"}
+    }
+  },
+  "messageTplWordOrderNote": "Word bank entries are filled in per card."
 }

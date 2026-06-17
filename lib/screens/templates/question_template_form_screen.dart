@@ -5,6 +5,7 @@ import 'package:flash_me/models/question_template.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/question_template_provider.dart';
 import 'package:flash_me/utils/constants.dart';
+import 'package:flash_me/utils/extensions.dart';
 
 // Characters that are valid in a templateId (alphanumeric, hyphen, underscore).
 final _templateIdPattern = RegExp(r'^[a-zA-Z0-9_-]+$');
@@ -187,8 +188,7 @@ class _QuestionTemplateFormScreenState
         if (conflict) {
           setState(() => _isSaving = false);
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                'Import ID "$newTemplateId" is already used by another template.'),
+            content: Text(context.l10n.messageImportIdConflict(newTemplateId)),
           ));
           return;
         }
@@ -225,30 +225,31 @@ class _QuestionTemplateFormScreenState
     } catch (_) {
       if (mounted) {
         setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Failed to save template. Please try again.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(context.l10n.errorFailedSaveTemplate)));
       }
     }
   }
 
   Future<void> _confirmDelete() async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Question Template'),
+        title: Text(l10n.titleDeleteQuestionTemplate),
         content: Text(
-          'Delete "${widget.template!.name}"? This cannot be undone.',
+          l10n.messageDeleteQuestionTemplateConfirm(widget.template!.name),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.labelCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(
                 backgroundColor: Theme.of(ctx).colorScheme.error),
-            child: const Text('Delete'),
+            child: Text(l10n.labelDelete),
           ),
         ],
       ),
@@ -266,80 +267,86 @@ class _QuestionTemplateFormScreenState
     } catch (_) {
       if (mounted) {
         setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Failed to delete template. Please try again.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(context.l10n.errorFailedDeleteTemplate)));
       }
     }
   }
 
   // --- question type content builders ---------------------------------------
 
-  Widget _buildTextInputContent() => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextFormField(
-            controller: _question.textHintController,
-            decoration: const InputDecoration(
-              labelText: 'Hint (optional)',
-              hintText: 'Shown to the user during study',
-              border: OutlineInputBorder(),
-            ),
+  Widget _buildTextInputContent() {
+    final l10n = context.l10n;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: _question.textHintController,
+          decoration: InputDecoration(
+            labelText: l10n.labelHintOptional,
+            hintText: l10n.hintHintShownDuringStudy,
+            border: const OutlineInputBorder(),
           ),
-          const SizedBox(height: 4),
-          SwitchListTile(
-            title: const Text('Exact match'),
-            subtitle: const Text('Case-sensitive answer check'),
-            value: _question.exactMatch,
-            onChanged: (v) => setState(() => _question.exactMatch = v),
-            contentPadding: EdgeInsets.zero,
-            dense: true,
-          ),
-        ],
-      );
+        ),
+        const SizedBox(height: 4),
+        SwitchListTile(
+          title: Text(l10n.labelExactMatch),
+          subtitle: Text(l10n.messageExactMatchSubtitle),
+          value: _question.exactMatch,
+          onChanged: (v) => setState(() => _question.exactMatch = v),
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+        ),
+      ],
+    );
+  }
 
-  Widget _buildMultipleChoiceContent() => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Options (pre-filled for all cards using this template)',
-              style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 8),
-          ...List.generate(_question.optionControllers.length, (i) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _question.optionControllers[i],
-                      decoration: InputDecoration(
-                        labelText: 'Option ${i + 1}',
-                        border: const OutlineInputBorder(),
-                      ),
-                      validator: (v) =>
-                          v?.trim().isEmpty ?? true ? 'Option text required' : null,
+  Widget _buildMultipleChoiceContent() {
+    final l10n = context.l10n;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.labelOptionsPreFilled,
+            style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 8),
+        ...List.generate(_question.optionControllers.length, (i) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _question.optionControllers[i],
+                    decoration: InputDecoration(
+                      labelText: l10n.labelOptionNumber(i + 1),
+                      border: const OutlineInputBorder(),
                     ),
+                    validator: (v) =>
+                        v?.trim().isEmpty ?? true ? l10n.validatorOptionTextRequired : null,
                   ),
-                  if (_question.optionControllers.length > 2)
-                    IconButton(
-                      icon: const Icon(Icons.remove_circle_outline),
-                      color: Theme.of(context).colorScheme.error,
-                      onPressed: () => _removeOption(i),
-                    ),
-                ],
-              ),
-            );
-          }),
-          TextButton.icon(
-            onPressed: _addOption,
-            icon: const Icon(Icons.add),
-            label: const Text('Add option'),
-          ),
-        ],
-      );
+                ),
+                if (_question.optionControllers.length > 2)
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline),
+                    color: Theme.of(context).colorScheme.error,
+                    onPressed: () => _removeOption(i),
+                  ),
+              ],
+            ),
+          );
+        }),
+        TextButton.icon(
+          onPressed: _addOption,
+          icon: const Icon(Icons.add),
+          label: Text(l10n.actionAddOption),
+        ),
+      ],
+    );
+  }
 
   // word_order templates store only the prompt; word bank is filled in per card.
   Widget _buildWordOrderContent() => Text(
-        'Word bank entries are filled in per card.',
+        context.l10n.messageTplWordOrderNote,
         style: Theme.of(context)
             .textTheme
             .bodySmall
@@ -350,15 +357,17 @@ class _QuestionTemplateFormScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title:
-            Text(_isEditing ? 'Edit Question Template' : 'New Question Template'),
+        title: Text(_isEditing
+            ? l10n.titleEditQuestionTemplate
+            : l10n.titleNewQuestionTemplate),
         actions: [
           if (_isEditing)
             IconButton(
               icon: const Icon(Icons.delete_outline),
-              tooltip: 'Delete template',
+              tooltip: l10n.tooltipDeleteTemplate,
               onPressed: _isSaving ? null : _confirmDelete,
             ),
         ],
@@ -373,43 +382,43 @@ class _QuestionTemplateFormScreenState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // --- Template metadata ---
-                Text('Template Details',
+                Text(l10n.titleTemplateDetails,
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Template name *',
-                    hintText: 'e.g. Gender, Verb conjugation',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.labelTemplateNameRequired,
+                    hintText: l10n.hintTemplateNameQTExample,
+                    border: const OutlineInputBorder(),
                   ),
                   validator: (v) =>
-                      v?.trim().isEmpty ?? true ? 'Name is required' : null,
+                      v?.trim().isEmpty ?? true ? l10n.validatorTemplateNameRequired : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _descController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description (optional)',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.labelDescriptionOptional,
+                    border: const OutlineInputBorder(),
                   ),
                   maxLines: 2,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _templateIdController,
-                  decoration: const InputDecoration(
-                    labelText: 'Import ID (optional)',
-                    hintText: 'e.g. gender',
-                    helperText: 'Reference this template in import files as ##gender',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.labelImportIdOptional,
+                    hintText: l10n.hintImportIdExample,
+                    helperText: l10n.messageImportIdHelperText,
+                    border: const OutlineInputBorder(),
                   ),
                   // Only alphanumeric, hyphens, underscores — no spaces or ##.
                   validator: (v) {
                     final s = v?.trim() ?? '';
                     if (s.isEmpty) return null;
                     if (!_templateIdPattern.hasMatch(s)) {
-                      return 'Only letters, numbers, hyphens and underscores allowed';
+                      return l10n.validatorImportIdInvalid;
                     }
                     return null;
                   },
@@ -417,7 +426,7 @@ class _QuestionTemplateFormScreenState
 
                 // --- Question config ---
                 const SizedBox(height: 24),
-                Text('Question',
+                Text(l10n.titleQuestionSection,
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 12),
                 Card(
@@ -428,29 +437,29 @@ class _QuestionTemplateFormScreenState
                       children: [
                         TextFormField(
                           controller: _question.promptController,
-                          decoration: const InputDecoration(
-                            labelText: 'Label (optional)',
-                            hintText: 'e.g. Gender, Conjugation',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: l10n.labelQuestionLabelOptional,
+                            hintText: l10n.hintQuestionLabelExample,
+                            border: const OutlineInputBorder(),
                           ),
                         ),
                         const SizedBox(height: 12),
                         DropdownButtonFormField<String>(
                           initialValue: _question.type,
-                          decoration: const InputDecoration(
-                            labelText: 'Question type',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: l10n.labelQuestionType,
+                            border: const OutlineInputBorder(),
                           ),
-                          items: const [
+                          items: [
                             DropdownMenuItem(
                                 value: AppConstants.fieldTypeTextInput,
-                                child: Text('Text input')),
+                                child: Text(l10n.labelQuestionTypeTextInput)),
                             DropdownMenuItem(
                                 value: AppConstants.fieldTypeMultipleChoice,
-                                child: Text('Multiple choice')),
+                                child: Text(l10n.labelQuestionTypeMultipleChoice)),
                             DropdownMenuItem(
                                 value: AppConstants.questionTypeWordOrder,
-                                child: Text('Word order')),
+                                child: Text(l10n.labelQuestionTypeWordOrder)),
                           ],
                           onChanged: (v) {
                             if (v != null) setState(() => _question.type = v);
@@ -477,7 +486,7 @@ class _QuestionTemplateFormScreenState
                       child: OutlinedButton(
                         onPressed:
                             _isSaving ? null : () => Navigator.of(context).pop(),
-                        child: const Text('Cancel'),
+                        child: Text(l10n.labelCancel),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -492,8 +501,8 @@ class _QuestionTemplateFormScreenState
                                     strokeWidth: 2, color: Colors.white),
                               )
                             : Text(_isEditing
-                                ? 'Save Changes'
-                                : 'Create Template'),
+                                ? l10n.actionSaveChanges
+                                : l10n.actionCreateTemplate),
                       ),
                     ),
                   ],

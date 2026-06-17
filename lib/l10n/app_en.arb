@@ -313,5 +313,153 @@
     }
   },
   "errorFailedUpdateSet": "Failed to update set. Please try again.",
-  "infoUpToDate": "Your copy is up to date."
+  "infoUpToDate": "Your copy is up to date.",
+
+  "titleMyCards": "My Cards",
+  "titleCreateCard": "Create a card",
+  "labelFlashCard": "Flash Card",
+  "messageFlashCardSubtitle": "Word + translation with optional fields",
+  "labelWorkbookCard": "Workbook Card",
+  "messageWorkbookCardSubtitle": "Prompt with text, multiple choice, or word order questions",
+  "hintSearchCards": "Search cards…",
+  "messageNoCardsMatchSearch": "No cards match your search.",
+  "messageNoCardsYetCreate": "No cards yet. Tap + to create your first card.",
+  "tooltipCreateCard": "Create card",
+
+  "titleNewCard": "New Card",
+  "titleEditCard": "Edit Card",
+  "titleDeleteCard": "Delete Card",
+  "messageDeleteCardConfirm": "Delete \"{name}\"? It will be removed from all sets and cannot be undone.",
+  "@messageDeleteCardConfirm": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "errorFailedSaveCard": "Failed to save card. Please try again.",
+  "errorFailedDeleteCard": "Failed to delete card. Please try again.",
+  "tooltipDeleteCard": "Delete card",
+  "actionSaveAsTemplate": "Save as Template",
+  "titlePrimaryField": "Primary Field",
+  "labelForeignWordRequired": "Foreign word *",
+  "hintForeignWordExample": "e.g. hablar",
+  "validatorForeignWordRequired": "Foreign word is required",
+  "labelTranslationRequired": "Translation *",
+  "hintTranslationExample": "e.g. to speak",
+  "validatorTranslationRequired": "Translation is required",
+  "labelHideHintWord": "Hide hint word during study",
+  "messageHideHintWordSubtitle": "Show only the image/audio at first; reveal the text hint on demand",
+  "titleMediaSection": "Media",
+  "messageMediaSectionSubtitle": "Optional image and audio for the primary field.",
+  "actionReplaceImage": "Replace image",
+  "actionAddImage": "Add image",
+  "actionRemove": "Remove",
+  "labelNewAudioSelected": "New audio clip selected",
+  "labelAudioAttached": "Audio clip attached",
+  "labelNoAudio": "No audio clip",
+  "actionReplaceAudio": "Replace",
+  "actionAddAudio": "Add audio",
+  "tooltipRemoveAudio": "Remove audio",
+  "titleAdditionalQuestions": "Additional Questions",
+  "actionUseTemplate": "Use Template",
+  "tabCardTemplates": "Card Templates",
+  "tabQuestionTemplates": "Question Templates",
+  "messageNoCardTemplatesYet": "No card templates yet.",
+  "messageNoQuestionTemplatesYet": "No question templates yet.",
+  "titleReplaceQuestions": "Replace questions?",
+  "messageReplaceQuestionsConfirm": "Apply \"{name}\"? Your current questions will be replaced.",
+  "@messageReplaceQuestionsConfirm": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "actionReplace": "Replace",
+  "labelCorrectAnswersRequired": "Correct answers * (comma-separated)",
+  "hintCorrectAnswersExample": "e.g. hablo, Hablo",
+  "validatorAtLeastOneAnswer": "At least one answer is required",
+  "labelHintOptional": "Hint (optional)",
+  "labelExactMatch": "Exact match",
+  "messageExactMatchSubtitle": "Case-sensitive answer check",
+  "labelOptionsRequired": "Options * (select the correct one)",
+  "labelOptionNumber": "Option {number}",
+  "@labelOptionNumber": {
+    "placeholders": {
+      "number": {"type": "int"}
+    }
+  },
+  "validatorOptionTextRequired": "Option text required",
+  "actionAddOption": "Add option",
+  "labelQuestionLabelOptional": "Label (optional)",
+  "hintQuestionLabelExample": "e.g. Gender, Conjugation",
+  "tooltipRemoveQuestion": "Remove question",
+  "labelQuestionType": "Question type",
+  "labelQuestionTypeTextInput": "Text input",
+  "labelQuestionTypeMultipleChoice": "Multiple choice",
+  "labelQuestionTypeWordOrder": "Word order",
+  "actionAddQuestion": "Add Question",
+  "messageSelectCorrectOptionLabeled": "Question \"{label}\": select the correct option.",
+  "@messageSelectCorrectOptionLabeled": {
+    "placeholders": {
+      "label": {"type": "String"}
+    }
+  },
+  "messageSelectCorrectOptionNumber": "Question {number}: select the correct option.",
+  "@messageSelectCorrectOptionNumber": {
+    "placeholders": {
+      "number": {"type": "int"}
+    }
+  },
+
+  "titleNewWorkbookCard": "New Workbook Card",
+  "titleEditWorkbookCard": "Edit Workbook Card",
+  "titleDeleteWorkbookCard": "Delete Workbook Card",
+  "messageDeleteWorkbookCardConfirm": "Delete this card? It will be removed from all sets and cannot be undone.",
+  "labelDisplay": "Display:",
+  "labelDisplayList": "List",
+  "labelDisplayChips": "Chips",
+  "labelExplanationOptional": "Explanation (optional)",
+  "hintExplanationShownAfterAnswer": "Shown after the user answers",
+  "labelWordBankRequired": "Word Bank *",
+  "messageWordBankHelp": "Add all tiles — correct words plus any distractors",
+  "hintAddWordTile": "Add a word tile",
+  "labelCorrectOrderRequired": "Correct Order *",
+  "actionClear": "Clear",
+  "messageCorrectOrderHelp": "Tap tiles from the word bank to build the answer in order",
+  "messageAddTilesToWordBankFirst": "Add tiles to the word bank first",
+  "messageTapTilesBelow": "Tap tiles below to set the answer order",
+  "labelAllTilesPlaced": "All tiles placed",
+  "labelQuestionNumber": "Question {number}",
+  "@labelQuestionNumber": {
+    "placeholders": {
+      "number": {"type": "int"}
+    }
+  },
+  "tooltipMoveUp": "Move up",
+  "tooltipMoveDown": "Move down",
+  "labelQuestionLabelFullOptional": "Question label (optional)",
+  "hintQuestionLabelWorkbookExample": "e.g. Choose the correct gender",
+  "titlePromptSection": "Prompt",
+  "messagePromptSectionHelp": "Task description shown before questions are revealed",
+  "labelPromptRequired": "Prompt *",
+  "hintPromptExample": "e.g. Read the sentence and answer below.",
+  "validatorPromptRequired": "Prompt is required",
+  "titleQuestionsSection": "Questions",
+  "messageWordOrderNeedWordBank": "Question {number}: add at least one tile to the word bank.",
+  "@messageWordOrderNeedWordBank": {
+    "placeholders": {
+      "number": {"type": "int"}
+    }
+  },
+  "messageWordOrderNeedCorrectOrder": "Question {number}: set the correct word order.",
+  "@messageWordOrderNeedCorrectOrder": {
+    "placeholders": {
+      "number": {"type": "int"}
+    }
+  },
+  "messageWordOrderWordNotInBank": "Question {number}: \"{word}\" in correct order is not in the word bank.",
+  "@messageWordOrderWordNotInBank": {
+    "placeholders": {
+      "number": {"type": "int"},
+      "word": {"type": "String"}
+    }
+  }
 }

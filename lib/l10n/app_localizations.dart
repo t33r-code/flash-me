@@ -1395,6 +1395,600 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your copy is up to date.'**
   String get infoUpToDate;
+
+  /// No description provided for @titleMyCards.
+  ///
+  /// In en, this message translates to:
+  /// **'My Cards'**
+  String get titleMyCards;
+
+  /// No description provided for @titleCreateCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a card'**
+  String get titleCreateCard;
+
+  /// No description provided for @labelFlashCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Flash Card'**
+  String get labelFlashCard;
+
+  /// No description provided for @messageFlashCardSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Word + translation with optional fields'**
+  String get messageFlashCardSubtitle;
+
+  /// No description provided for @labelWorkbookCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Workbook Card'**
+  String get labelWorkbookCard;
+
+  /// No description provided for @messageWorkbookCardSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Prompt with text, multiple choice, or word order questions'**
+  String get messageWorkbookCardSubtitle;
+
+  /// No description provided for @hintSearchCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Search cards…'**
+  String get hintSearchCards;
+
+  /// No description provided for @messageNoCardsMatchSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'No cards match your search.'**
+  String get messageNoCardsMatchSearch;
+
+  /// No description provided for @messageNoCardsYetCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'No cards yet. Tap + to create your first card.'**
+  String get messageNoCardsYetCreate;
+
+  /// No description provided for @tooltipCreateCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Create card'**
+  String get tooltipCreateCard;
+
+  /// No description provided for @titleNewCard.
+  ///
+  /// In en, this message translates to:
+  /// **'New Card'**
+  String get titleNewCard;
+
+  /// No description provided for @titleEditCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Card'**
+  String get titleEditCard;
+
+  /// No description provided for @titleDeleteCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Card'**
+  String get titleDeleteCard;
+
+  /// No description provided for @messageDeleteCardConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"? It will be removed from all sets and cannot be undone.'**
+  String messageDeleteCardConfirm(String name);
+
+  /// No description provided for @errorFailedSaveCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save card. Please try again.'**
+  String get errorFailedSaveCard;
+
+  /// No description provided for @errorFailedDeleteCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete card. Please try again.'**
+  String get errorFailedDeleteCard;
+
+  /// No description provided for @tooltipDeleteCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete card'**
+  String get tooltipDeleteCard;
+
+  /// No description provided for @actionSaveAsTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as Template'**
+  String get actionSaveAsTemplate;
+
+  /// No description provided for @titlePrimaryField.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary Field'**
+  String get titlePrimaryField;
+
+  /// No description provided for @labelForeignWordRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Foreign word *'**
+  String get labelForeignWordRequired;
+
+  /// No description provided for @hintForeignWordExample.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. hablar'**
+  String get hintForeignWordExample;
+
+  /// No description provided for @validatorForeignWordRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Foreign word is required'**
+  String get validatorForeignWordRequired;
+
+  /// No description provided for @labelTranslationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation *'**
+  String get labelTranslationRequired;
+
+  /// No description provided for @hintTranslationExample.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. to speak'**
+  String get hintTranslationExample;
+
+  /// No description provided for @validatorTranslationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation is required'**
+  String get validatorTranslationRequired;
+
+  /// No description provided for @labelHideHintWord.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide hint word during study'**
+  String get labelHideHintWord;
+
+  /// No description provided for @messageHideHintWordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show only the image/audio at first; reveal the text hint on demand'**
+  String get messageHideHintWordSubtitle;
+
+  /// No description provided for @titleMediaSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Media'**
+  String get titleMediaSection;
+
+  /// No description provided for @messageMediaSectionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional image and audio for the primary field.'**
+  String get messageMediaSectionSubtitle;
+
+  /// No description provided for @actionReplaceImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace image'**
+  String get actionReplaceImage;
+
+  /// No description provided for @actionAddImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Add image'**
+  String get actionAddImage;
+
+  /// No description provided for @actionRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get actionRemove;
+
+  /// No description provided for @labelNewAudioSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'New audio clip selected'**
+  String get labelNewAudioSelected;
+
+  /// No description provided for @labelAudioAttached.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio clip attached'**
+  String get labelAudioAttached;
+
+  /// No description provided for @labelNoAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'No audio clip'**
+  String get labelNoAudio;
+
+  /// No description provided for @actionReplaceAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get actionReplaceAudio;
+
+  /// No description provided for @actionAddAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Add audio'**
+  String get actionAddAudio;
+
+  /// No description provided for @tooltipRemoveAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove audio'**
+  String get tooltipRemoveAudio;
+
+  /// No description provided for @titleAdditionalQuestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional Questions'**
+  String get titleAdditionalQuestions;
+
+  /// No description provided for @actionUseTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Template'**
+  String get actionUseTemplate;
+
+  /// No description provided for @tabCardTemplates.
+  ///
+  /// In en, this message translates to:
+  /// **'Card Templates'**
+  String get tabCardTemplates;
+
+  /// No description provided for @tabQuestionTemplates.
+  ///
+  /// In en, this message translates to:
+  /// **'Question Templates'**
+  String get tabQuestionTemplates;
+
+  /// No description provided for @messageNoCardTemplatesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No card templates yet.'**
+  String get messageNoCardTemplatesYet;
+
+  /// No description provided for @messageNoQuestionTemplatesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No question templates yet.'**
+  String get messageNoQuestionTemplatesYet;
+
+  /// No description provided for @titleReplaceQuestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace questions?'**
+  String get titleReplaceQuestions;
+
+  /// No description provided for @messageReplaceQuestionsConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply \"{name}\"? Your current questions will be replaced.'**
+  String messageReplaceQuestionsConfirm(String name);
+
+  /// No description provided for @actionReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get actionReplace;
+
+  /// No description provided for @labelCorrectAnswersRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct answers * (comma-separated)'**
+  String get labelCorrectAnswersRequired;
+
+  /// No description provided for @hintCorrectAnswersExample.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. hablo, Hablo'**
+  String get hintCorrectAnswersExample;
+
+  /// No description provided for @validatorAtLeastOneAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'At least one answer is required'**
+  String get validatorAtLeastOneAnswer;
+
+  /// No description provided for @labelHintOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Hint (optional)'**
+  String get labelHintOptional;
+
+  /// No description provided for @labelExactMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Exact match'**
+  String get labelExactMatch;
+
+  /// No description provided for @messageExactMatchSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Case-sensitive answer check'**
+  String get messageExactMatchSubtitle;
+
+  /// No description provided for @labelOptionsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Options * (select the correct one)'**
+  String get labelOptionsRequired;
+
+  /// No description provided for @labelOptionNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Option {number}'**
+  String labelOptionNumber(int number);
+
+  /// No description provided for @validatorOptionTextRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Option text required'**
+  String get validatorOptionTextRequired;
+
+  /// No description provided for @actionAddOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Add option'**
+  String get actionAddOption;
+
+  /// No description provided for @labelQuestionLabelOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Label (optional)'**
+  String get labelQuestionLabelOptional;
+
+  /// No description provided for @hintQuestionLabelExample.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Gender, Conjugation'**
+  String get hintQuestionLabelExample;
+
+  /// No description provided for @tooltipRemoveQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove question'**
+  String get tooltipRemoveQuestion;
+
+  /// No description provided for @labelQuestionType.
+  ///
+  /// In en, this message translates to:
+  /// **'Question type'**
+  String get labelQuestionType;
+
+  /// No description provided for @labelQuestionTypeTextInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Text input'**
+  String get labelQuestionTypeTextInput;
+
+  /// No description provided for @labelQuestionTypeMultipleChoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Multiple choice'**
+  String get labelQuestionTypeMultipleChoice;
+
+  /// No description provided for @labelQuestionTypeWordOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Word order'**
+  String get labelQuestionTypeWordOrder;
+
+  /// No description provided for @actionAddQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Question'**
+  String get actionAddQuestion;
+
+  /// No description provided for @messageSelectCorrectOptionLabeled.
+  ///
+  /// In en, this message translates to:
+  /// **'Question \"{label}\": select the correct option.'**
+  String messageSelectCorrectOptionLabeled(String label);
+
+  /// No description provided for @messageSelectCorrectOptionNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Question {number}: select the correct option.'**
+  String messageSelectCorrectOptionNumber(int number);
+
+  /// No description provided for @titleNewWorkbookCard.
+  ///
+  /// In en, this message translates to:
+  /// **'New Workbook Card'**
+  String get titleNewWorkbookCard;
+
+  /// No description provided for @titleEditWorkbookCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Workbook Card'**
+  String get titleEditWorkbookCard;
+
+  /// No description provided for @titleDeleteWorkbookCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Workbook Card'**
+  String get titleDeleteWorkbookCard;
+
+  /// No description provided for @messageDeleteWorkbookCardConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this card? It will be removed from all sets and cannot be undone.'**
+  String get messageDeleteWorkbookCardConfirm;
+
+  /// No description provided for @labelDisplay.
+  ///
+  /// In en, this message translates to:
+  /// **'Display:'**
+  String get labelDisplay;
+
+  /// No description provided for @labelDisplayList.
+  ///
+  /// In en, this message translates to:
+  /// **'List'**
+  String get labelDisplayList;
+
+  /// No description provided for @labelDisplayChips.
+  ///
+  /// In en, this message translates to:
+  /// **'Chips'**
+  String get labelDisplayChips;
+
+  /// No description provided for @labelExplanationOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Explanation (optional)'**
+  String get labelExplanationOptional;
+
+  /// No description provided for @hintExplanationShownAfterAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown after the user answers'**
+  String get hintExplanationShownAfterAnswer;
+
+  /// No description provided for @labelWordBankRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Word Bank *'**
+  String get labelWordBankRequired;
+
+  /// No description provided for @messageWordBankHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Add all tiles — correct words plus any distractors'**
+  String get messageWordBankHelp;
+
+  /// No description provided for @hintAddWordTile.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a word tile'**
+  String get hintAddWordTile;
+
+  /// No description provided for @labelCorrectOrderRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct Order *'**
+  String get labelCorrectOrderRequired;
+
+  /// No description provided for @actionClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get actionClear;
+
+  /// No description provided for @messageCorrectOrderHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap tiles from the word bank to build the answer in order'**
+  String get messageCorrectOrderHelp;
+
+  /// No description provided for @messageAddTilesToWordBankFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Add tiles to the word bank first'**
+  String get messageAddTilesToWordBankFirst;
+
+  /// No description provided for @messageTapTilesBelow.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap tiles below to set the answer order'**
+  String get messageTapTilesBelow;
+
+  /// No description provided for @labelAllTilesPlaced.
+  ///
+  /// In en, this message translates to:
+  /// **'All tiles placed'**
+  String get labelAllTilesPlaced;
+
+  /// No description provided for @labelQuestionNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Question {number}'**
+  String labelQuestionNumber(int number);
+
+  /// No description provided for @tooltipMoveUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get tooltipMoveUp;
+
+  /// No description provided for @tooltipMoveDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get tooltipMoveDown;
+
+  /// No description provided for @labelQuestionLabelFullOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Question label (optional)'**
+  String get labelQuestionLabelFullOptional;
+
+  /// No description provided for @hintQuestionLabelWorkbookExample.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Choose the correct gender'**
+  String get hintQuestionLabelWorkbookExample;
+
+  /// No description provided for @titlePromptSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Prompt'**
+  String get titlePromptSection;
+
+  /// No description provided for @messagePromptSectionHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Task description shown before questions are revealed'**
+  String get messagePromptSectionHelp;
+
+  /// No description provided for @labelPromptRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Prompt *'**
+  String get labelPromptRequired;
+
+  /// No description provided for @hintPromptExample.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Read the sentence and answer below.'**
+  String get hintPromptExample;
+
+  /// No description provided for @validatorPromptRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Prompt is required'**
+  String get validatorPromptRequired;
+
+  /// No description provided for @titleQuestionsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Questions'**
+  String get titleQuestionsSection;
+
+  /// No description provided for @messageWordOrderNeedWordBank.
+  ///
+  /// In en, this message translates to:
+  /// **'Question {number}: add at least one tile to the word bank.'**
+  String messageWordOrderNeedWordBank(int number);
+
+  /// No description provided for @messageWordOrderNeedCorrectOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Question {number}: set the correct word order.'**
+  String messageWordOrderNeedCorrectOrder(int number);
+
+  /// No description provided for @messageWordOrderWordNotInBank.
+  ///
+  /// In en, this message translates to:
+  /// **'Question {number}: \"{word}\" in correct order is not in the word bank.'**
+  String messageWordOrderWordNotInBank(int number, String word);
 }
 
 class _AppLocalizationsDelegate

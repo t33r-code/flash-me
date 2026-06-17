@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flash_me/l10n/app_localizations.dart';
 import 'package:flash_me/models/card_question.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/card_template.dart';
@@ -9,6 +10,7 @@ import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_provider.dart';
 import 'package:flash_me/providers/tag_provider.dart';
+import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/widgets/tag_input_field.dart';
 import 'package:flash_me/providers/language_provider.dart';
@@ -52,6 +54,7 @@ class _TemplatePickerSheetState extends ConsumerState<_TemplatePickerSheet>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final questionTemplates =
         ref.watch(userQuestionTemplatesProvider).asData?.value ?? [];
 
@@ -74,14 +77,14 @@ class _TemplatePickerSheetState extends ConsumerState<_TemplatePickerSheet>
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: Text('Use Template',
+            child: Text(l10n.actionUseTemplate,
                 style: Theme.of(context).textTheme.titleMedium),
           ),
           TabBar(
             controller: _tabController,
-            tabs: const [
-              Tab(text: 'Card Templates'),
-              Tab(text: 'Question Templates'),
+            tabs: [
+              Tab(text: l10n.tabCardTemplates),
+              Tab(text: l10n.tabQuestionTemplates),
             ],
           ),
           const Divider(height: 1),
@@ -94,11 +97,11 @@ class _TemplatePickerSheetState extends ConsumerState<_TemplatePickerSheet>
                   context,
                   items: widget.cardTemplates,
                   icon: Icons.copy_all_outlined,
-                  emptyMessage: 'No card templates yet.',
+                  emptyMessage: l10n.messageNoCardTemplatesYet,
                   title: (t) => t.name,
                   subtitle: (t) {
                     final n = t.questions.length;
-                    final s = '$n question${n == 1 ? '' : 's'}';
+                    final s = l10n.labelQuestionCount(n);
                     return t.description != null
                         ? '${t.description}  ·  $s'
                         : s;
@@ -110,9 +113,9 @@ class _TemplatePickerSheetState extends ConsumerState<_TemplatePickerSheet>
                   context,
                   items: questionTemplates,
                   icon: Icons.quiz_outlined,
-                  emptyMessage: 'No question templates yet.',
+                  emptyMessage: l10n.messageNoQuestionTemplatesYet,
                   title: (t) => t.name,
-                  subtitle: (t) => t.description ?? _questionTypeLabel(t),
+                  subtitle: (t) => t.description ?? _questionTypeLabel(t, l10n),
                   onTap: (t) => Navigator.of(ctx).pop(t),
                 ),
               ],
@@ -155,10 +158,11 @@ class _TemplatePickerSheetState extends ConsumerState<_TemplatePickerSheet>
     );
   }
 
-  String _questionTypeLabel(QuestionTemplate t) => switch (t.question) {
-        TextInputQuestion _ => 'Text input',
-        MultipleChoiceQuestion _ => 'Multiple choice',
-        WordOrderQuestion _ => 'Word order',
+  String _questionTypeLabel(QuestionTemplate t, AppLocalizations l10n) =>
+      switch (t.question) {
+        TextInputQuestion _ => l10n.labelQuestionTypeTextInput,
+        MultipleChoiceQuestion _ => l10n.labelQuestionTypeMultipleChoice,
+        WordOrderQuestion _ => l10n.labelQuestionTypeWordOrder,
       };
 }
 
@@ -422,22 +426,20 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
 
     if (result is CardTemplate) {
       if (_questions.isNotEmpty) {
+        final l10n = context.l10n;
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Replace questions?'),
-            content: Text(
-              'Apply "${result.name}"? '
-              'Your current questions will be replaced.',
-            ),
+            title: Text(l10n.titleReplaceQuestions),
+            content: Text(l10n.messageReplaceQuestionsConfirm(result.name)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
+                child: Text(l10n.labelCancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Replace'),
+                child: Text(l10n.actionReplace),
               ),
             ],
           ),
@@ -598,12 +600,12 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
       final q = _questions[i];
       if (q.type == AppConstants.fieldTypeMultipleChoice &&
           q.correctOptionIndex == null) {
+        final label = q.promptController.text.trim().isEmpty
+            ? '${i + 1}'
+            : q.promptController.text.trim();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Question "${q.promptController.text.trim().isEmpty ? i + 1 : q.promptController.text.trim()}": '
-              'select the correct option.',
-            ),
+            content: Text(context.l10n.messageSelectCorrectOptionLabeled(label)),
           ),
         );
         return;
@@ -679,8 +681,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Failed to save card. Please try again.')),
+          SnackBar(content: Text(context.l10n.errorFailedSaveCard)),
         );
       }
     }
@@ -700,24 +701,22 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
   }
 
   Future<void> _confirmDelete() async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Card'),
-        content: Text(
-          'Delete "${widget.card!.primaryWord}"? '
-          'It will be removed from all sets and cannot be undone.',
-        ),
+        title: Text(l10n.titleDeleteCard),
+        content: Text(l10n.messageDeleteCardConfirm(widget.card!.primaryWord)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.labelCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(
                 backgroundColor: Theme.of(ctx).colorScheme.error),
-            child: const Text('Delete'),
+            child: Text(l10n.labelDelete),
           ),
         ],
       ),
@@ -744,8 +743,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Failed to delete card. Please try again.')),
+          SnackBar(content: Text(context.l10n.errorFailedDeleteCard)),
         );
       }
     }
@@ -754,15 +752,16 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
   // --- question content builders --------------------------------------------
 
   Widget _buildTextInputContent(_QuestionState q) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TextFormField(
           controller: q.textAnswersController,
-          decoration: const InputDecoration(
-            labelText: 'Correct answers * (comma-separated)',
-            hintText: 'e.g. hablo, Hablo',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.labelCorrectAnswersRequired,
+            hintText: l10n.hintCorrectAnswersExample,
+            border: const OutlineInputBorder(),
           ),
           validator: (v) {
             final answers = (v ?? '')
@@ -770,21 +769,21 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
                 .map((s) => s.trim())
                 .where((s) => s.isNotEmpty)
                 .toList();
-            return answers.isEmpty ? 'At least one answer is required' : null;
+            return answers.isEmpty ? l10n.validatorAtLeastOneAnswer : null;
           },
         ),
         const SizedBox(height: 8),
         TextFormField(
           controller: q.textHintController,
-          decoration: const InputDecoration(
-            labelText: 'Hint (optional)',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.labelHintOptional,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 4),
         SwitchListTile(
-          title: const Text('Exact match'),
-          subtitle: const Text('Case-sensitive answer check'),
+          title: Text(l10n.labelExactMatch),
+          subtitle: Text(l10n.messageExactMatchSubtitle),
           value: q.exactMatch,
           onChanged: (v) => setState(() => q.exactMatch = v),
           contentPadding: EdgeInsets.zero,
@@ -795,10 +794,11 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
   }
 
   Widget _buildMultipleChoiceContent(_QuestionState q, int qIndex) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Options * (select the correct one)',
+        Text(l10n.labelOptionsRequired,
             style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 8),
         // RadioGroup manages the selected index for all Radio children.
@@ -816,11 +816,11 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
                       child: TextFormField(
                         controller: q.optionControllers[optIdx],
                         decoration: InputDecoration(
-                          labelText: 'Option ${optIdx + 1}',
+                          labelText: l10n.labelOptionNumber(optIdx + 1),
                           border: const OutlineInputBorder(),
                         ),
                         validator: (v) => v?.trim().isEmpty ?? true
-                            ? 'Option text required'
+                            ? l10n.validatorOptionTextRequired
                             : null,
                       ),
                     ),
@@ -840,13 +840,14 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
         TextButton.icon(
           onPressed: () => _addOption(qIndex),
           icon: const Icon(Icons.add),
-          label: const Text('Add option'),
+          label: Text(l10n.actionAddOption),
         ),
       ],
     );
   }
 
   Widget _buildQuestionCard(int index) {
+    final l10n = context.l10n;
     final q = _questions[index];
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -860,10 +861,10 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: q.promptController,
-                    decoration: const InputDecoration(
-                      labelText: 'Label (optional)',
-                      hintText: 'e.g. Gender, Conjugation',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.labelQuestionLabelOptional,
+                      hintText: l10n.hintQuestionLabelExample,
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ),
@@ -871,7 +872,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
                 IconButton(
                   icon: const Icon(Icons.delete_outline),
                   color: Theme.of(context).colorScheme.error,
-                  tooltip: 'Remove question',
+                  tooltip: l10n.tooltipRemoveQuestion,
                   onPressed: () => _removeQuestion(index),
                 ),
               ],
@@ -879,18 +880,18 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: q.type,
-              decoration: const InputDecoration(
-                labelText: 'Question type',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.labelQuestionType,
+                border: const OutlineInputBorder(),
               ),
-              items: const [
+              items: [
                 DropdownMenuItem(
                   value: AppConstants.fieldTypeTextInput,
-                  child: Text('Text input'),
+                  child: Text(l10n.labelQuestionTypeTextInput),
                 ),
                 DropdownMenuItem(
                   value: AppConstants.fieldTypeMultipleChoice,
-                  child: Text('Multiple choice'),
+                  child: Text(l10n.labelQuestionTypeMultipleChoice),
                 ),
               ],
               onChanged: (v) {
@@ -911,6 +912,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
   // --- media pickers --------------------------------------------------------
 
   Widget _buildImagePicker(BuildContext context) {
+    final l10n = context.l10n;
     final existingUrl = widget.card?.primaryImageUrl;
     final hasImage = _pendingImageBytes != null ||
         (existingUrl != null && !_clearImage);
@@ -946,13 +948,13 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
             TextButton.icon(
               onPressed: _isSaving ? null : _pickImage,
               icon: const Icon(Icons.upload_outlined),
-              label: Text(hasImage ? 'Replace image' : 'Add image'),
+              label: Text(hasImage ? l10n.actionReplaceImage : l10n.actionAddImage),
             ),
             if (hasImage)
               TextButton.icon(
                 onPressed: _isSaving ? null : _removeImageMedia,
                 icon: const Icon(Icons.delete_outline),
-                label: const Text('Remove'),
+                label: Text(l10n.actionRemove),
                 style: TextButton.styleFrom(
                     foregroundColor: Theme.of(context).colorScheme.error),
               ),
@@ -963,12 +965,13 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
   }
 
   Widget _buildAudioPicker(BuildContext context) {
+    final l10n = context.l10n;
     final existingUrl = widget.card?.primaryAudioUrl;
     final hasAudio = _pendingAudioBytes != null ||
         (existingUrl != null && !_clearAudio);
     final label = _pendingAudioBytes != null
-        ? 'New audio clip selected'
-        : (hasAudio ? 'Audio clip attached' : null);
+        ? l10n.labelNewAudioSelected
+        : (hasAudio ? l10n.labelAudioAttached : null);
 
     return Row(
       children: [
@@ -981,19 +984,19 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
         const SizedBox(width: 12),
         Expanded(
           child: Text(
-            label ?? 'No audio clip',
+            label ?? l10n.labelNoAudio,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ),
         TextButton(
           onPressed: _isSaving ? null : _pickAudio,
-          child: Text(hasAudio ? 'Replace' : 'Add audio'),
+          child: Text(hasAudio ? l10n.actionReplaceAudio : l10n.actionAddAudio),
         ),
         if (hasAudio)
           IconButton(
             icon: const Icon(Icons.delete_outline),
             color: Theme.of(context).colorScheme.error,
-            tooltip: 'Remove audio',
+            tooltip: l10n.tooltipRemoveAudio,
             onPressed: _isSaving ? null : _removeAudioMedia,
           ),
       ],
@@ -1004,26 +1007,27 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Card' : 'New Card'),
+        title: Text(_isEditing ? l10n.titleEditCard : l10n.titleNewCard),
         actions: [
           if (_isEditing)
             IconButton(
               icon: const Icon(Icons.delete_outline),
-              tooltip: 'Delete card',
+              tooltip: l10n.tooltipDeleteCard,
               onPressed: _isSaving ? null : _confirmDelete,
             ),
           PopupMenuButton<String>(
             onSelected: (v) {
               if (v == 'save_as_template') _saveAsTemplate();
             },
-            itemBuilder: (_) => const [
+            itemBuilder: (_) => [
               PopupMenuItem(
                 value: 'save_as_template',
                 child: ListTile(
-                  leading: Icon(Icons.copy_all_outlined),
-                  title: Text('Save as Template'),
+                  leading: const Icon(Icons.copy_all_outlined),
+                  title: Text(l10n.actionSaveAsTemplate),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
@@ -1041,38 +1045,37 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // --- Primary field ----
-              Text('Primary Field',
+              Text(l10n.titlePrimaryField,
                   style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _primaryWordController,
-                decoration: const InputDecoration(
-                  labelText: 'Foreign word *',
-                  hintText: 'e.g. hablar',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.labelForeignWordRequired,
+                  hintText: l10n.hintForeignWordExample,
+                  border: const OutlineInputBorder(),
                 ),
                 textCapitalization: TextCapitalization.none,
                 validator: (v) => v?.trim().isEmpty ?? true
-                    ? 'Foreign word is required'
+                    ? l10n.validatorForeignWordRequired
                     : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _translationController,
-                decoration: const InputDecoration(
-                  labelText: 'Translation *',
-                  hintText: 'e.g. to speak',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.labelTranslationRequired,
+                  hintText: l10n.hintTranslationExample,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (v) => v?.trim().isEmpty ?? true
-                    ? 'Translation is required'
+                    ? l10n.validatorTranslationRequired
                     : null,
               ),
               const SizedBox(height: 4),
               SwitchListTile(
-                title: const Text('Hide hint word during study'),
-                subtitle: const Text(
-                    'Show only the image/audio at first; reveal the text hint on demand'),
+                title: Text(l10n.labelHideHintWord),
+                subtitle: Text(l10n.messageHideHintWordSubtitle),
                 value: _primaryWordHidden,
                 onChanged: (v) => setState(() => _primaryWordHidden = v),
                 contentPadding: EdgeInsets.zero,
@@ -1081,9 +1084,10 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
 
               // --- Media ---
               const SizedBox(height: 24),
-              Text('Media', style: Theme.of(context).textTheme.titleMedium),
+              Text(l10n.titleMediaSection,
+                  style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 4),
-              Text('Optional image and audio for the primary field.',
+              Text(l10n.messageMediaSectionSubtitle,
                   style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(height: 12),
               _buildImagePicker(context),
@@ -1092,24 +1096,25 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
 
               // --- Languages ---
               const SizedBox(height: 24),
-              Text('Languages',
+              Text(l10n.titleLanguagesSection,
                   style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
               LanguagePicker(
-                label: 'Target language (being studied)',
+                label: l10n.labelTargetLanguage,
                 value: _targetLanguage,
                 onChanged: (v) => setState(() => _targetLanguage = v),
               ),
               const SizedBox(height: 12),
               LanguagePicker(
-                label: 'Native language',
+                label: l10n.labelNativeLanguage,
                 value: _nativeLanguage,
                 onChanged: (v) => setState(() => _nativeLanguage = v),
               ),
 
               // --- Tags ---
               const SizedBox(height: 24),
-              Text('Tags', style: Theme.of(context).textTheme.titleMedium),
+              Text(l10n.titleTagsSection,
+                  style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               TagInputField(
                 tags: _tags,
@@ -1122,13 +1127,13 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
               // "Use Template" button sits alongside the section header.
               Row(
                 children: [
-                  Text('Additional Questions',
+                  Text(l10n.titleAdditionalQuestions,
                       style: Theme.of(context).textTheme.titleMedium),
                   const Spacer(),
                   TextButton.icon(
                     onPressed: _showTemplatePicker,
                     icon: const Icon(Icons.copy_all_outlined, size: 18),
-                    label: const Text('Use Template'),
+                    label: Text(l10n.actionUseTemplate),
                   ),
                 ],
               ),
@@ -1137,7 +1142,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
               OutlinedButton.icon(
                 onPressed: _addQuestion,
                 icon: const Icon(Icons.add),
-                label: const Text('Add Question'),
+                label: Text(l10n.actionAddQuestion),
               ),
 
               // --- Save / Cancel ---
@@ -1149,7 +1154,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
                       onPressed: _isSaving
                           ? null
                           : () => Navigator.of(context).pop(),
-                      child: const Text('Cancel'),
+                      child: Text(l10n.labelCancel),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1163,7 +1168,9 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: Colors.white),
                             )
-                          : Text(_isEditing ? 'Save Changes' : 'Create Card'),
+                          : Text(_isEditing
+                              ? l10n.actionSaveChanges
+                              : l10n.actionCreateCard),
                     ),
                   ),
                 ],

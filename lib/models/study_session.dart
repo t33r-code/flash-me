@@ -197,6 +197,9 @@ class StudySession {
     );
   }
 
+  // No user-entered fields — all values are managed by the study session engine.
+  List<String> validate() => [];
+
   Map<String, dynamic> toFirestore() => {
         'setId': setId,
         'startTime': Timestamp.fromDate(startTime),

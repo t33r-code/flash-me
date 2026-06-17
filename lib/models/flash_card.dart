@@ -111,6 +111,19 @@ class FlashCard {
         'createdBy': createdBy,
       };
 
+  // Returns validation errors for user-entered fields; empty list means safe to save.
+  List<String> validate() {
+    final errors = <String>[];
+    if (primaryWord.trim().isEmpty) errors.add('primary word is required');
+    if (translation.trim().isEmpty) errors.add('translation is required');
+    for (var i = 0; i < questions.length; i++) {
+      for (final e in questions[i].validate()) {
+        errors.add('question ${i + 1}: $e');
+      }
+    }
+    return errors;
+  }
+
   FlashCard copyWith({
     String? id,
     String? primaryWord,

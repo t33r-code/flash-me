@@ -3,3 +3,5 @@
 //
 // To run all unit tests:
 //   flutter test test/models/ test/services/
+
+void main() {}

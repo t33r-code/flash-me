@@ -18,6 +18,10 @@ class FirebaseCardRepository implements CardRepository {
 
   @override
   Future<FlashCard> createCard(FlashCard card) async {
+    final errors = card.validate();
+    if (errors.isNotEmpty) {
+      throw AppException(errors.join('; '), code: 'validation-failed');
+    }
     try {
       // Use a caller-supplied ID (for pre-generating Storage paths) or generate one.
       final docRef = card.id.isNotEmpty
@@ -88,6 +92,10 @@ class FirebaseCardRepository implements CardRepository {
 
   @override
   Future<void> updateCard(FlashCard card) async {
+    final errors = card.validate();
+    if (errors.isNotEmpty) {
+      throw AppException(errors.join('; '), code: 'validation-failed');
+    }
     try {
       final updated = card.copyWith(updatedAt: DateTime.now());
       await _firestore

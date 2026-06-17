@@ -84,6 +84,13 @@ class CardSet {
         'targetLanguage': targetLanguage,
       };
 
+  // Returns validation errors for user-entered fields; empty list means safe to save.
+  List<String> validate() {
+    final errors = <String>[];
+    if (name.trim().isEmpty) errors.add('name is required');
+    return errors;
+  }
+
   CardSet copyWith({
     String? id,
     String? userId,

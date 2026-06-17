@@ -17,6 +17,10 @@ class FirebaseCardSetRepository implements CardSetRepository {
 
   @override
   Future<CardSet> createSet(CardSet cardSet) async {
+    final errors = cardSet.validate();
+    if (errors.isNotEmpty) {
+      throw AppException(errors.join('; '), code: 'validation-failed');
+    }
     try {
       final docRef = _firestore.collection(AppConstants.setsCollection).doc();
       final now = DateTime.now();
@@ -61,6 +65,10 @@ class FirebaseCardSetRepository implements CardSetRepository {
 
   @override
   Future<void> updateSet(CardSet cardSet) async {
+    final errors = cardSet.validate();
+    if (errors.isNotEmpty) {
+      throw AppException(errors.join('; '), code: 'validation-failed');
+    }
     try {
       final updated = cardSet.copyWith(updatedAt: DateTime.now());
       await _firestore

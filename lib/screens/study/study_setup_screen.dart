@@ -10,6 +10,7 @@ import 'package:flash_me/providers/study_session_provider.dart';
 import 'package:flash_me/screens/study/study_session_history_screen.dart';
 import 'package:flash_me/screens/study/study_session_screen.dart';
 import 'package:flash_me/utils/constants.dart';
+import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/transitions.dart';
 
 
@@ -62,6 +63,7 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
   // navigates into the session screen (replacing this screen in the stack).
   Future<void> _startNew(List<String> cardIds) async {
     setState(() => _starting = true);
+    final l10n = context.l10n;
     try {
       final uid = ref.read(authStateProvider).asData?.value ?? '';
 
@@ -128,8 +130,7 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Failed to start session. Please try again.')),
+          SnackBar(content: Text(l10n.errorFailedStartSession)),
         );
         setState(() => _starting = false);
       }
@@ -154,11 +155,11 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Study'),
+        title: Text(context.l10n.titleStudy),
         actions: [
           IconButton(
             icon: const Icon(Icons.history),
-            tooltip: 'Session history',
+            tooltip: context.l10n.tooltipSessionHistory,
             onPressed: () => Navigator.of(context).push(
               studyEnterRoute(StudySessionHistoryScreen(cardSet: widget.cardSet)),
             ),
@@ -183,7 +184,7 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
                               style: Theme.of(context).textTheme.titleLarge),
                           const SizedBox(height: 4),
                           Text(
-                            '${cardIds.length} card${cardIds.length == 1 ? '' : 's'}',
+                            context.l10n.labelCardCount(cardIds.length),
                             style: Theme.of(context)
                                 .textTheme
                                 .bodyMedium
@@ -198,16 +199,16 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
                   ),
 
                   const SizedBox(height: 24),
-                  Text('Options',
+                  Text(context.l10n.titleOptions,
                       style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
 
                   // ── Shuffle toggle ─────────────────────────────────────
                   Card(
                     child: SwitchListTile(
-                      title: const Text('Shuffle cards'),
+                      title: Text(context.l10n.labelShuffleCards),
                       subtitle:
-                          const Text('Randomise card order for this session'),
+                          Text(context.l10n.messageShuffleCardsSubtitle),
                       value: _shuffle,
                       // Disable while a start is in progress.
                       onChanged:
@@ -227,7 +228,7 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
                           ? null
                           : () => _startNew(cardIds),
                       icon: const Icon(Icons.refresh),
-                      label: const Text('Start New Session'),
+                      label: Text(context.l10n.actionStartNewSession),
                     ),
                   ] else
                     // No active session — primary start button only.
@@ -243,14 +244,14 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
                                   strokeWidth: 2, color: Colors.white),
                             )
                           : const Icon(Icons.play_arrow),
-                      label: const Text('Start Session'),
+                      label: Text(context.l10n.actionStartSession),
                     ),
 
                   // Hint if the set has no cards.
                   if (cardIds.isEmpty) ...[
                     const SizedBox(height: 8),
                     Text(
-                      'Add cards to this set before studying.',
+                      context.l10n.messageAddCardsBeforeStudying,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.error),
@@ -273,6 +274,7 @@ class _ResumeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final done = session.currentCardIndex;
     final total = session.cardSequence.length;
     final progress = total > 0 ? done / total : 0.0;
@@ -289,7 +291,7 @@ class _ResumeCard extends StatelessWidget {
               Icon(Icons.history, color: scheme.onSecondaryContainer),
               const SizedBox(width: 8),
               Text(
-                'Session in progress',
+                l10n.labelSessionInProgress,
                 style: Theme.of(context)
                     .textTheme
                     .titleSmall
@@ -303,7 +305,7 @@ class _ResumeCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '$done of $total cards reviewed',
+              l10n.messageCardsReviewed(done, total),
               style: Theme.of(context)
                   .textTheme
                   .bodySmall
@@ -313,7 +315,7 @@ class _ResumeCard extends StatelessWidget {
             FilledButton.icon(
               onPressed: onResume,
               icon: const Icon(Icons.play_arrow),
-              label: const Text('Resume'),
+              label: Text(l10n.actionResume),
             ),
           ],
         ),

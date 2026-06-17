@@ -9,6 +9,7 @@ import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/study_session_provider.dart';
 import 'package:flash_me/screens/study/study_session_screen.dart';
 import 'package:flash_me/utils/constants.dart';
+import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/transitions.dart';
 
 // ---------------------------------------------------------------------------
@@ -158,8 +159,7 @@ class _StudySessionSummaryScreenState
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Failed to start session. Please try again.')),
+          SnackBar(content: Text(context.l10n.errorFailedStartSession)),
         );
         setState(() => _starting = false);
       }
@@ -209,13 +209,13 @@ class _StudySessionSummaryScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Session Complete'),
+        title: Text(context.l10n.titleSessionComplete),
         // No back arrow — the session is done; use the buttons below to navigate.
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
-            tooltip: 'Done',
+            tooltip: context.l10n.actionDone,
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],
@@ -253,7 +253,7 @@ class _StudySessionSummaryScreenState
                     children: [
                       _StatRow(
                         icon: Icons.style_outlined,
-                        label: 'Cards studied',
+                        label: context.l10n.labelCardsStudied,
                         value: '$studied',
                       ),
                       const Divider(height: 24),
@@ -261,20 +261,20 @@ class _StudySessionSummaryScreenState
                         icon: Icons.check,
                         iconColor:
                             isDark ? Colors.green[400] : Colors.green[700],
-                        label: 'Knew it',
+                        label: context.l10n.labelKnewIt,
                         value: '$known  ($knownPct%)',
                       ),
                       const SizedBox(height: 8),
                       _StatRow(
                         icon: Icons.close,
                         iconColor: scheme.error,
-                        label: 'Not yet',
+                        label: context.l10n.labelNotYet,
                         value: '$unknown  ($unknownPct%)',
                       ),
                       const SizedBox(height: 8),
                       _StatRow(
                         icon: Icons.remove,
-                        label: 'Skipped',
+                        label: context.l10n.labelSkippedStat,
                         value: '$skipped',
                       ),
                       // Question score — only shown if the session had questions.
@@ -282,14 +282,14 @@ class _StudySessionSummaryScreenState
                         const Divider(height: 24),
                         _StatRow(
                           icon: Icons.quiz_outlined,
-                          label: 'Questions',
+                          label: context.l10n.labelQuestionsStat,
                           value: '$questionsCorrect / $questionsTotal  (${(questionsCorrect / questionsTotal * 100).round()}%)',
                         ),
                       ],
                       const Divider(height: 24),
                       _StatRow(
                         icon: Icons.timer_outlined,
-                        label: 'Time',
+                        label: context.l10n.labelTimeStat,
                         value: duration,
                       ),
                     ],
@@ -316,12 +316,12 @@ class _StudySessionSummaryScreenState
                                 strokeWidth: 2, color: Colors.white),
                           )
                         : const Icon(Icons.replay),
-                    label: const Text('Study Again'),
+                    label: Text(context.l10n.actionStudyAgain),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton(
                     onPressed: _starting ? null : () => Navigator.of(context).pop(),
-                    child: const Text('Done'),
+                    child: Text(context.l10n.actionDone),
                   ),
                 ],
               ),

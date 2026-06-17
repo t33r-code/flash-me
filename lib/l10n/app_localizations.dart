@@ -2217,6 +2217,366 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Word bank entries are filled in per card.'**
   String get messageTplWordOrderNote;
+
+  /// No description provided for @titleStudy.
+  ///
+  /// In en, this message translates to:
+  /// **'Study'**
+  String get titleStudy;
+
+  /// No description provided for @titleStudyASet.
+  ///
+  /// In en, this message translates to:
+  /// **'Study a Set'**
+  String get titleStudyASet;
+
+  /// No description provided for @messageStudyASetSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Work through the cards in one of your sets.'**
+  String get messageStudyASetSubtitle;
+
+  /// No description provided for @titleStudyReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Study Review'**
+  String get titleStudyReview;
+
+  /// No description provided for @messageStudyReviewSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Focus on cards you have flagged for review.'**
+  String get messageStudyReviewSubtitle;
+
+  /// No description provided for @titleStudyMistakes.
+  ///
+  /// In en, this message translates to:
+  /// **'Study Mistakes'**
+  String get titleStudyMistakes;
+
+  /// No description provided for @messageStudyMistakesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Drill questions you have answered incorrectly recently.'**
+  String get messageStudyMistakesSubtitle;
+
+  /// No description provided for @labelComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Soon'**
+  String get labelComingSoon;
+
+  /// No description provided for @messageNoSetsYetStudy.
+  ///
+  /// In en, this message translates to:
+  /// **'No sets yet — create one in My Sets first.'**
+  String get messageNoSetsYetStudy;
+
+  /// No description provided for @titleChooseSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a Set'**
+  String get titleChooseSet;
+
+  /// No description provided for @tooltipSessionHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Session history'**
+  String get tooltipSessionHistory;
+
+  /// No description provided for @labelShuffleCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Shuffle cards'**
+  String get labelShuffleCards;
+
+  /// No description provided for @messageShuffleCardsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Randomise card order for this session'**
+  String get messageShuffleCardsSubtitle;
+
+  /// No description provided for @actionStartNewSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Start New Session'**
+  String get actionStartNewSession;
+
+  /// No description provided for @actionStartSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Session'**
+  String get actionStartSession;
+
+  /// No description provided for @errorFailedStartSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to start session. Please try again.'**
+  String get errorFailedStartSession;
+
+  /// No description provided for @messageAddCardsBeforeStudying.
+  ///
+  /// In en, this message translates to:
+  /// **'Add cards to this set before studying.'**
+  String get messageAddCardsBeforeStudying;
+
+  /// No description provided for @labelSessionInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Session in progress'**
+  String get labelSessionInProgress;
+
+  /// No description provided for @messageCardsReviewed.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} cards reviewed'**
+  String messageCardsReviewed(int done, int total);
+
+  /// No description provided for @actionResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get actionResume;
+
+  /// No description provided for @titleSetHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} — History'**
+  String titleSetHistory(String name);
+
+  /// No description provided for @errorFailedLoadHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load history.'**
+  String get errorFailedLoadHistory;
+
+  /// No description provided for @messageNoSessionsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No sessions yet.\nStart studying to build your history.'**
+  String get messageNoSessionsYet;
+
+  /// No description provided for @labelCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get labelCompleted;
+
+  /// No description provided for @labelInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In Progress'**
+  String get labelInProgress;
+
+  /// No description provided for @labelStudiedOfTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'{studied} / {total} cards'**
+  String labelStudiedOfTotal(int studied, int total);
+
+  /// No description provided for @actionEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'End'**
+  String get actionEnd;
+
+  /// No description provided for @messageCardNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Card not found.'**
+  String get messageCardNotFound;
+
+  /// No description provided for @messageSaveProgressFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving progress failed — check your connection.'**
+  String get messageSaveProgressFailed;
+
+  /// No description provided for @actionDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get actionDismiss;
+
+  /// No description provided for @semanticsRevealForeignWord.
+  ///
+  /// In en, this message translates to:
+  /// **'reveal foreign word'**
+  String get semanticsRevealForeignWord;
+
+  /// No description provided for @semanticsRevealTranslation.
+  ///
+  /// In en, this message translates to:
+  /// **'reveal translation'**
+  String get semanticsRevealTranslation;
+
+  /// No description provided for @actionShowHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Hint'**
+  String get actionShowHint;
+
+  /// No description provided for @actionShowWord.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Word'**
+  String get actionShowWord;
+
+  /// No description provided for @labelTapToReveal.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to reveal'**
+  String get labelTapToReveal;
+
+  /// No description provided for @labelKnewIt.
+  ///
+  /// In en, this message translates to:
+  /// **'Knew it'**
+  String get labelKnewIt;
+
+  /// No description provided for @labelNotYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not yet'**
+  String get labelNotYet;
+
+  /// No description provided for @actionMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get actionMore;
+
+  /// No description provided for @tooltipPreviousCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous card'**
+  String get tooltipPreviousCard;
+
+  /// No description provided for @semanticsCardOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Card {current} of {total}'**
+  String semanticsCardOf(int current, int total);
+
+  /// No description provided for @labelCardProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{current} / {total}'**
+  String labelCardProgress(int current, int total);
+
+  /// No description provided for @tooltipFinishSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish session'**
+  String get tooltipFinishSession;
+
+  /// No description provided for @tooltipNextCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Next card'**
+  String get tooltipNextCard;
+
+  /// No description provided for @labelTapWordsToBuild.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap words below to build your answer'**
+  String get labelTapWordsToBuild;
+
+  /// No description provided for @tooltipTapToReturn.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to return'**
+  String get tooltipTapToReturn;
+
+  /// No description provided for @labelYourAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Your answer:'**
+  String get labelYourAnswer;
+
+  /// No description provided for @labelWordBank.
+  ///
+  /// In en, this message translates to:
+  /// **'Word bank:'**
+  String get labelWordBank;
+
+  /// No description provided for @semanticsOptionCorrect.
+  ///
+  /// In en, this message translates to:
+  /// **', correct'**
+  String get semanticsOptionCorrect;
+
+  /// No description provided for @semanticsOptionIncorrect.
+  ///
+  /// In en, this message translates to:
+  /// **', incorrect'**
+  String get semanticsOptionIncorrect;
+
+  /// No description provided for @hintTypeYourAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Type your answer'**
+  String get hintTypeYourAnswer;
+
+  /// No description provided for @actionCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Check'**
+  String get actionCheck;
+
+  /// No description provided for @actionTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try Again'**
+  String get actionTryAgain;
+
+  /// No description provided for @messageAnswerReveal.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer: {answer}'**
+  String messageAnswerReveal(String answer);
+
+  /// No description provided for @titleSessionComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Session Complete'**
+  String get titleSessionComplete;
+
+  /// No description provided for @actionDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get actionDone;
+
+  /// No description provided for @labelCardsStudied.
+  ///
+  /// In en, this message translates to:
+  /// **'Cards studied'**
+  String get labelCardsStudied;
+
+  /// No description provided for @labelSkippedStat.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped'**
+  String get labelSkippedStat;
+
+  /// No description provided for @labelQuestionsStat.
+  ///
+  /// In en, this message translates to:
+  /// **'Questions'**
+  String get labelQuestionsStat;
+
+  /// No description provided for @labelTimeStat.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get labelTimeStat;
+
+  /// No description provided for @actionStudyAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Study Again'**
+  String get actionStudyAgain;
 }
 
 class _AppLocalizationsDelegate

@@ -517,5 +517,106 @@
       "id": {"type": "String"}
     }
   },
-  "messageTplWordOrderNote": "Word bank entries are filled in per card."
+  "messageTplWordOrderNote": "Word bank entries are filled in per card.",
+
+  "titleStudy": "Study",
+  "titleStudyASet": "Study a Set",
+  "messageStudyASetSubtitle": "Work through the cards in one of your sets.",
+  "titleStudyReview": "Study Review",
+  "messageStudyReviewSubtitle": "Focus on cards you have flagged for review.",
+  "titleStudyMistakes": "Study Mistakes",
+  "messageStudyMistakesSubtitle": "Drill questions you have answered incorrectly recently.",
+  "labelComingSoon": "Soon",
+  "messageNoSetsYetStudy": "No sets yet — create one in My Sets first.",
+  "titleChooseSet": "Choose a Set",
+
+  "tooltipSessionHistory": "Session history",
+  "titleOptions": "Options",
+  "labelShuffleCards": "Shuffle cards",
+  "messageShuffleCardsSubtitle": "Randomise card order for this session",
+  "actionStartNewSession": "Start New Session",
+  "actionStartSession": "Start Session",
+  "errorFailedStartSession": "Failed to start session. Please try again.",
+  "messageAddCardsBeforeStudying": "Add cards to this set before studying.",
+  "labelSessionInProgress": "Session in progress",
+  "messageCardsReviewed": "{done} of {total} cards reviewed",
+  "@messageCardsReviewed": {
+    "placeholders": {
+      "done": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "actionResume": "Resume",
+
+  "titleSetHistory": "{name} — History",
+  "@titleSetHistory": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "errorFailedLoadHistory": "Failed to load history.",
+  "messageNoSessionsYet": "No sessions yet.\nStart studying to build your history.",
+  "labelCompleted": "Completed",
+  "labelInProgress": "In Progress",
+  "labelStudiedOfTotal": "{studied} / {total} cards",
+  "@labelStudiedOfTotal": {
+    "placeholders": {
+      "studied": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+
+  "actionEnd": "End",
+  "errorFailedLoadCards": "Failed to load cards.",
+  "messageCardNotFound": "Card not found.",
+  "messageSaveProgressFailed": "Saving progress failed — check your connection.",
+  "actionDismiss": "Dismiss",
+  "semanticsRevealForeignWord": "reveal foreign word",
+  "semanticsRevealTranslation": "reveal translation",
+  "actionShowHint": "Show Hint",
+  "actionShowWord": "Show Word",
+  "labelTapToReveal": "Tap to reveal",
+  "labelKnewIt": "Knew it",
+  "labelNotYet": "Not yet",
+  "actionMore": "More",
+  "tooltipPreviousCard": "Previous card",
+  "semanticsCardOf": "Card {current} of {total}",
+  "@semanticsCardOf": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "labelCardProgress": "{current} / {total}",
+  "@labelCardProgress": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "tooltipFinishSession": "Finish session",
+  "tooltipNextCard": "Next card",
+  "labelTapWordsToBuild": "Tap words below to build your answer",
+  "tooltipTapToReturn": "Tap to return",
+  "labelYourAnswer": "Your answer:",
+  "labelWordBank": "Word bank:",
+  "semanticsOptionCorrect": ", correct",
+  "semanticsOptionIncorrect": ", incorrect",
+  "hintTypeYourAnswer": "Type your answer",
+  "actionCheck": "Check",
+  "actionTryAgain": "Try Again",
+  "messageAnswerReveal": "Answer: {answer}",
+  "@messageAnswerReveal": {
+    "placeholders": {
+      "answer": {"type": "String"}
+    }
+  },
+
+  "titleSessionComplete": "Session Complete",
+  "actionDone": "Done",
+  "labelCardsStudied": "Cards studied",
+  "labelSkippedStat": "Skipped",
+  "labelQuestionsStat": "Questions",
+  "labelTimeStat": "Time",
+  "actionStudyAgain": "Study Again"
 }

@@ -2577,6 +2577,282 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Study Again'**
   String get actionStudyAgain;
+
+  /// No description provided for @titleImportExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import & Export'**
+  String get titleImportExport;
+
+  /// No description provided for @titleImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get titleImport;
+
+  /// No description provided for @messageImportDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Import a ZIP archive exported from Agora. New sets are created automatically; existing sets are matched by name.'**
+  String get messageImportDescription;
+
+  /// No description provided for @actionChooseZipFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose ZIP file…'**
+  String get actionChooseZipFile;
+
+  /// No description provided for @titleExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get titleExport;
+
+  /// No description provided for @messageExportDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Select sets to export as a ZIP archive. The archive can be re-imported into any Agora account.'**
+  String get messageExportDescription;
+
+  /// No description provided for @messageNoSetsYetExport.
+  ///
+  /// In en, this message translates to:
+  /// **'No sets yet — create a set to export it.'**
+  String get messageNoSetsYetExport;
+
+  /// No description provided for @actionDeselectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect all'**
+  String get actionDeselectAll;
+
+  /// No description provided for @actionSelectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get actionSelectAll;
+
+  /// No description provided for @labelNoneSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'None selected'**
+  String get labelNoneSelected;
+
+  /// No description provided for @labelNOfMSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of {total} selected'**
+  String labelNOfMSelected(int count, int total);
+
+  /// No description provided for @actionExportN.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Export} =1{Export 1 set} other{Export {count} sets}}'**
+  String actionExportN(int count);
+
+  /// No description provided for @messageExporting.
+  ///
+  /// In en, this message translates to:
+  /// **'Exporting…'**
+  String get messageExporting;
+
+  /// No description provided for @messageExportSavedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to {path}'**
+  String messageExportSavedTo(String path);
+
+  /// No description provided for @messageExportReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Export ready.'**
+  String get messageExportReady;
+
+  /// No description provided for @messageAnalysingArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Analysing archive…'**
+  String get messageAnalysingArchive;
+
+  /// No description provided for @errorFailedReadArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to read the archive. Check the file format and try again.'**
+  String get errorFailedReadArchive;
+
+  /// No description provided for @titleImportPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Preview'**
+  String get titleImportPreview;
+
+  /// No description provided for @labelSkipCardUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip card updates'**
+  String get labelSkipCardUpdates;
+
+  /// No description provided for @messageSkipCardUpdatesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Only create new cards; leave existing cards unchanged.'**
+  String get messageSkipCardUpdatesSubtitle;
+
+  /// No description provided for @labelRemoveCardsNotInImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove cards not in import'**
+  String get labelRemoveCardsNotInImport;
+
+  /// No description provided for @messageRemoveCardsNotInImportSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cards absent from the file are removed from the set (not deleted from your library).'**
+  String get messageRemoveCardsNotInImportSubtitle;
+
+  /// No description provided for @actionImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get actionImport;
+
+  /// No description provided for @labelNewSet.
+  ///
+  /// In en, this message translates to:
+  /// **'New set'**
+  String get labelNewSet;
+
+  /// No description provided for @labelExistingSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Existing'**
+  String get labelExistingSet;
+
+  /// No description provided for @labelNNew.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} new'**
+  String labelNNew(int count);
+
+  /// No description provided for @labelNFromLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} from library'**
+  String labelNFromLibrary(int count);
+
+  /// No description provided for @labelNUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} updated'**
+  String labelNUpdated(int count);
+
+  /// No description provided for @labelNUpdatedSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} updated (skipped)'**
+  String labelNUpdatedSkipped(int count);
+
+  /// No description provided for @labelNToRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} to remove'**
+  String labelNToRemove(int count);
+
+  /// No description provided for @labelNoChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'No changes'**
+  String get labelNoChanges;
+
+  /// No description provided for @labelNNewCardTemplates.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 new card template} other{{count} new card templates}}'**
+  String labelNNewCardTemplates(int count);
+
+  /// No description provided for @labelNNewQuestionTemplates.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 new question template} other{{count} new question templates}}'**
+  String labelNNewQuestionTemplates(int count);
+
+  /// No description provided for @labelQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Question'**
+  String get labelQuestion;
+
+  /// No description provided for @messageAlsoIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Also in: {sets}'**
+  String messageAlsoIn(String sets);
+
+  /// No description provided for @titleImportComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Complete'**
+  String get titleImportComplete;
+
+  /// No description provided for @messageSetsProcessed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 set processed} other{{count} sets processed}}'**
+  String messageSetsProcessed(int count);
+
+  /// No description provided for @labelNewCount.
+  ///
+  /// In en, this message translates to:
+  /// **'({count} new)'**
+  String labelNewCount(int count);
+
+  /// No description provided for @messageNoChangesApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'No changes were applied'**
+  String get messageNoChangesApplied;
+
+  /// No description provided for @messageCardsAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 card added} other{{count} cards added}}'**
+  String messageCardsAdded(int count);
+
+  /// No description provided for @messageCardsLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 card linked from library} other{{count} cards linked from library}}'**
+  String messageCardsLinked(int count);
+
+  /// No description provided for @messageCardsUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 card updated} other{{count} cards updated}}'**
+  String messageCardsUpdated(int count);
+
+  /// No description provided for @messageCardsRemovedFromSets.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 card removed from sets} other{{count} cards removed from sets}}'**
+  String messageCardsRemovedFromSets(int count);
+
+  /// No description provided for @messageCardTemplatesCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 card template created} other{{count} card templates created}}'**
+  String messageCardTemplatesCreated(int count);
+
+  /// No description provided for @messageQuestionTemplatesCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 question template created} other{{count} question templates created}}'**
+  String messageQuestionTemplatesCreated(int count);
+
+  /// No description provided for @errorImportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Import failed. Please try again.'**
+  String get errorImportFailed;
 }
 
 class _AppLocalizationsDelegate

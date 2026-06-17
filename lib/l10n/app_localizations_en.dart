@@ -1402,4 +1402,247 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get actionStudyAgain => 'Study Again';
+
+  @override
+  String get titleImportExport => 'Import & Export';
+
+  @override
+  String get titleImport => 'Import';
+
+  @override
+  String get messageImportDescription =>
+      'Import a ZIP archive exported from Agora. New sets are created automatically; existing sets are matched by name.';
+
+  @override
+  String get actionChooseZipFile => 'Choose ZIP file…';
+
+  @override
+  String get titleExport => 'Export';
+
+  @override
+  String get messageExportDescription =>
+      'Select sets to export as a ZIP archive. The archive can be re-imported into any Agora account.';
+
+  @override
+  String get messageNoSetsYetExport =>
+      'No sets yet — create a set to export it.';
+
+  @override
+  String get actionDeselectAll => 'Deselect all';
+
+  @override
+  String get actionSelectAll => 'Select all';
+
+  @override
+  String get labelNoneSelected => 'None selected';
+
+  @override
+  String labelNOfMSelected(int count, int total) {
+    return '$count of $total selected';
+  }
+
+  @override
+  String actionExportN(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Export $count sets',
+      one: 'Export 1 set',
+      zero: 'Export',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get messageExporting => 'Exporting…';
+
+  @override
+  String messageExportSavedTo(String path) {
+    return 'Saved to $path';
+  }
+
+  @override
+  String get messageExportReady => 'Export ready.';
+
+  @override
+  String get messageAnalysingArchive => 'Analysing archive…';
+
+  @override
+  String get errorFailedReadArchive =>
+      'Failed to read the archive. Check the file format and try again.';
+
+  @override
+  String get titleImportPreview => 'Import Preview';
+
+  @override
+  String get labelSkipCardUpdates => 'Skip card updates';
+
+  @override
+  String get messageSkipCardUpdatesSubtitle =>
+      'Only create new cards; leave existing cards unchanged.';
+
+  @override
+  String get labelRemoveCardsNotInImport => 'Remove cards not in import';
+
+  @override
+  String get messageRemoveCardsNotInImportSubtitle =>
+      'Cards absent from the file are removed from the set (not deleted from your library).';
+
+  @override
+  String get actionImport => 'Import';
+
+  @override
+  String get labelNewSet => 'New set';
+
+  @override
+  String get labelExistingSet => 'Existing';
+
+  @override
+  String labelNNew(int count) {
+    return '$count new';
+  }
+
+  @override
+  String labelNFromLibrary(int count) {
+    return '$count from library';
+  }
+
+  @override
+  String labelNUpdated(int count) {
+    return '$count updated';
+  }
+
+  @override
+  String labelNUpdatedSkipped(int count) {
+    return '$count updated (skipped)';
+  }
+
+  @override
+  String labelNToRemove(int count) {
+    return '$count to remove';
+  }
+
+  @override
+  String get labelNoChanges => 'No changes';
+
+  @override
+  String labelNNewCardTemplates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new card templates',
+      one: '1 new card template',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String labelNNewQuestionTemplates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new question templates',
+      one: '1 new question template',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get labelQuestion => 'Question';
+
+  @override
+  String messageAlsoIn(String sets) {
+    return 'Also in: $sets';
+  }
+
+  @override
+  String get titleImportComplete => 'Import Complete';
+
+  @override
+  String messageSetsProcessed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sets processed',
+      one: '1 set processed',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String labelNewCount(int count) {
+    return '($count new)';
+  }
+
+  @override
+  String get messageNoChangesApplied => 'No changes were applied';
+
+  @override
+  String messageCardsAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cards added',
+      one: '1 card added',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String messageCardsLinked(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cards linked from library',
+      one: '1 card linked from library',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String messageCardsUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cards updated',
+      one: '1 card updated',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String messageCardsRemovedFromSets(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cards removed from sets',
+      one: '1 card removed from sets',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String messageCardTemplatesCreated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count card templates created',
+      one: '1 card template created',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String messageQuestionTemplatesCreated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count question templates created',
+      one: '1 question template created',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get errorImportFailed => 'Import failed. Please try again.';
 }

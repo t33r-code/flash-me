@@ -549,6 +549,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'CSV'**
   String get labelCsv;
+
+  /// No description provided for @titleProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get titleProfile;
+
+  /// No description provided for @tooltipEditProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit profile'**
+  String get tooltipEditProfile;
+
+  /// No description provided for @errorFailedLoadProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load profile.'**
+  String get errorFailedLoadProfile;
+
+  /// No description provided for @messageProfileUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile updated.'**
+  String get messageProfileUpdated;
+
+  /// No description provided for @messageFailedUpdateProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update profile. Please try again.'**
+  String get messageFailedUpdateProfile;
+
+  /// No description provided for @messageSignOutFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out failed. Please try again.'**
+  String get messageSignOutFailed;
+
+  /// No description provided for @titleDeleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account?'**
+  String get titleDeleteAccount;
+
+  /// No description provided for @messageDeleteAccountConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This will permanently delete:\n• All your cards and card sets\n• All templates and study history\n• Your profile and account\n\nPublic sets you have published will be unpublished first. This cannot be undone.'**
+  String get messageDeleteAccountConfirm;
+
+  /// No description provided for @actionDeleteMyAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete my account'**
+  String get actionDeleteMyAccount;
+
+  /// No description provided for @actionDeleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get actionDeleteAccount;
+
+  /// No description provided for @messageRecentLoginRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please sign out and sign back in before deleting your account.'**
+  String get messageRecentLoginRequired;
+
+  /// No description provided for @messageFailedDeleteAccountError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete account: {errorMessage}'**
+  String messageFailedDeleteAccountError(String errorMessage);
+
+  /// No description provided for @messageFailedDeleteAccountGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete account. Please try again.'**
+  String get messageFailedDeleteAccountGeneric;
+
+  /// No description provided for @labelDisplayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Display Name'**
+  String get labelDisplayName;
+
+  /// No description provided for @labelNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get labelNotSet;
+
+  /// No description provided for @labelImportExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import & Export'**
+  String get labelImportExport;
+
+  /// No description provided for @messageImportExportSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import or export card sets as ZIP files'**
+  String get messageImportExportSubtitle;
+
+  /// No description provided for @labelTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get labelTheme;
+
+  /// No description provided for @labelThemeSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get labelThemeSystem;
+
+  /// No description provided for @labelThemeLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get labelThemeLight;
+
+  /// No description provided for @labelThemeDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get labelThemeDark;
 }
 
 class _AppLocalizationsDelegate

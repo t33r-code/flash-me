@@ -618,5 +618,149 @@
   "labelSkippedStat": "Skipped",
   "labelQuestionsStat": "Questions",
   "labelTimeStat": "Time",
-  "actionStudyAgain": "Study Again"
+  "actionStudyAgain": "Study Again",
+
+  "titleImportExport": "Import & Export",
+  "titleImport": "Import",
+  "messageImportDescription": "Import a ZIP archive exported from Agora. New sets are created automatically; existing sets are matched by name.",
+  "actionChooseZipFile": "Choose ZIP file…",
+  "titleExport": "Export",
+  "messageExportDescription": "Select sets to export as a ZIP archive. The archive can be re-imported into any Agora account.",
+  "messageNoSetsYetExport": "No sets yet — create a set to export it.",
+  "actionDeselectAll": "Deselect all",
+  "actionSelectAll": "Select all",
+  "labelNoneSelected": "None selected",
+  "labelNOfMSelected": "{count} of {total} selected",
+  "@labelNOfMSelected": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "actionExportN": "{count, plural, =0{Export} =1{Export 1 set} other{Export {count} sets}}",
+  "@actionExportN": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "messageExporting": "Exporting…",
+  "messageExportSavedTo": "Saved to {path}",
+  "@messageExportSavedTo": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "messageExportReady": "Export ready.",
+  "errorExportFailed": "Export failed. Please try again.",
+  "messageAnalysingArchive": "Analysing archive…",
+  "errorFailedReadArchive": "Failed to read the archive. Check the file format and try again.",
+  "titleImportPreview": "Import Preview",
+  "labelSkipCardUpdates": "Skip card updates",
+  "messageSkipCardUpdatesSubtitle": "Only create new cards; leave existing cards unchanged.",
+  "labelRemoveCardsNotInImport": "Remove cards not in import",
+  "messageRemoveCardsNotInImportSubtitle": "Cards absent from the file are removed from the set (not deleted from your library).",
+  "actionImport": "Import",
+  "labelNewSet": "New set",
+  "labelExistingSet": "Existing",
+  "labelNNew": "{count} new",
+  "@labelNNew": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "labelNFromLibrary": "{count} from library",
+  "@labelNFromLibrary": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "labelNUpdated": "{count} updated",
+  "@labelNUpdated": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "labelNUpdatedSkipped": "{count} updated (skipped)",
+  "@labelNUpdatedSkipped": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "labelNToRemove": "{count} to remove",
+  "@labelNToRemove": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "labelNoChanges": "No changes",
+  "labelNNewCardTemplates": "{count, plural, =1{1 new card template} other{{count} new card templates}}",
+  "@labelNNewCardTemplates": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "labelNNewQuestionTemplates": "{count, plural, =1{1 new question template} other{{count} new question templates}}",
+  "@labelNNewQuestionTemplates": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "labelQuestion": "Question",
+  "messageAlsoIn": "Also in: {sets}",
+  "@messageAlsoIn": {
+    "placeholders": {
+      "sets": {"type": "String"}
+    }
+  },
+  "titleImportComplete": "Import Complete",
+  "messageSetsProcessed": "{count, plural, =1{1 set processed} other{{count} sets processed}}",
+  "@messageSetsProcessed": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "labelNewCount": "({count} new)",
+  "@labelNewCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "messageNoChangesApplied": "No changes were applied",
+  "messageCardsAdded": "{count, plural, =1{1 card added} other{{count} cards added}}",
+  "@messageCardsAdded": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "messageCardsLinked": "{count, plural, =1{1 card linked from library} other{{count} cards linked from library}}",
+  "@messageCardsLinked": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "messageCardsUpdated": "{count, plural, =1{1 card updated} other{{count} cards updated}}",
+  "@messageCardsUpdated": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "messageCardsRemovedFromSets": "{count, plural, =1{1 card removed from sets} other{{count} cards removed from sets}}",
+  "@messageCardsRemovedFromSets": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "messageCardTemplatesCreated": "{count, plural, =1{1 card template created} other{{count} card templates created}}",
+  "@messageCardTemplatesCreated": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "messageQuestionTemplatesCreated": "{count, plural, =1{1 question template created} other{{count} question templates created}}",
+  "@messageQuestionTemplatesCreated": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "errorImportFailed": "Import failed. Please try again."
 }

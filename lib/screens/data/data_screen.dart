@@ -14,6 +14,7 @@ import 'package:flash_me/providers/question_template_provider.dart';
 import 'package:flash_me/providers/tag_provider.dart';
 import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/utils/exceptions.dart';
+import 'package:flash_me/utils/extensions.dart';
 
 // ---------------------------------------------------------------------------
 // DataScreen — account-level import & bulk export.
@@ -39,19 +40,17 @@ class _DataScreenState extends ConsumerState<DataScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Import & Export'),
+        title: Text(context.l10n.titleImportExport),
         actions: const [HelpMenuButton(HelpContext.importExport)],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // ── Import ──────────────────────────────────────────────────────
-          _SectionHeader(title: 'Import', icon: Icons.upload_file_outlined),
+          _SectionHeader(title: context.l10n.titleImport, icon: Icons.upload_file_outlined),
           const SizedBox(height: 8),
           Text(
-            'Import a ZIP archive exported from Agora. '
-            'New sets are created automatically; existing sets are '
-            'matched by name.',
+            context.l10n.messageImportDescription,
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
@@ -63,7 +62,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.folder_open_outlined),
-            label: const Text('Choose ZIP file…'),
+            label: Text(context.l10n.actionChooseZipFile),
             onPressed: _analyzing ? null : () => _pickAndAnalyze(context),
           ),
 
@@ -71,11 +70,10 @@ class _DataScreenState extends ConsumerState<DataScreen> {
           const SizedBox(height: 32),
           const Divider(),
           const SizedBox(height: 16),
-          _SectionHeader(title: 'Export', icon: Icons.download_outlined),
+          _SectionHeader(title: context.l10n.titleExport, icon: Icons.download_outlined),
           const SizedBox(height: 8),
           Text(
-            'Select sets to export as a ZIP archive. '
-            'The archive can be re-imported into any Agora account.',
+            context.l10n.messageExportDescription,
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 12),
@@ -83,7 +81,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
             loading: () =>
                 [const Center(child: CircularProgressIndicator())],
             error: (_, _) =>
-                [const Text('Failed to load sets.')],
+                [Text(context.l10n.errorFailedLoadSets)],
             data: (sets) => _buildExportSection(sets, theme),
           ),
         ],
@@ -92,10 +90,12 @@ class _DataScreenState extends ConsumerState<DataScreen> {
   }
 
   List<Widget> _buildExportSection(List<CardSet> sets, ThemeData theme) {
+    final l10n = context.l10n;
+
     if (sets.isEmpty) {
       return [
         Text(
-          'No sets yet — create a set to export it.',
+          l10n.messageNoSetsYetExport,
           style: theme.textTheme.bodyMedium
               ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
@@ -118,12 +118,12 @@ class _DataScreenState extends ConsumerState<DataScreen> {
                         _selectedSetIds.addAll(sets.map((s) => s.id));
                       }
                     }),
-            child: Text(allSelected ? 'Deselect all' : 'Select all'),
+            child: Text(allSelected ? l10n.actionDeselectAll : l10n.actionSelectAll),
           ),
           Text(
             _selectedSetIds.isEmpty
-                ? 'None selected'
-                : '${_selectedSetIds.length} of ${sets.length} selected',
+                ? l10n.labelNoneSelected
+                : l10n.labelNOfMSelected(_selectedSetIds.length, sets.length),
             style: theme.textTheme.bodySmall
                 ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
@@ -146,8 +146,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
                   }),
           secondary: const Icon(Icons.library_books_outlined),
           title: Text(s.name, overflow: TextOverflow.ellipsis),
-          subtitle: Text(
-              '${s.cardCount} card${s.cardCount == 1 ? '' : 's'}'),
+          subtitle: Text(l10n.labelCardCount(s.cardCount)),
           controlAffinity: ListTileControlAffinity.leading,
         ),
       ),
@@ -162,12 +161,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
                     strokeWidth: 2, color: Colors.white),
               )
             : const Icon(Icons.download_outlined),
-        label: Text(
-          _selectedSetIds.isEmpty
-              ? 'Export'
-              : 'Export ${_selectedSetIds.length} '
-                  'set${_selectedSetIds.length == 1 ? '' : 's'}',
-        ),
+        label: Text(l10n.actionExportN(_selectedSetIds.length)),
         onPressed:
             (_selectedSetIds.isEmpty || _exporting) ? null : _runExport,
       ),
@@ -176,6 +170,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
 
   Future<void> _runExport() async {
     setState(() => _exporting = true);
+    final l10n = context.l10n;
 
     final allSets = ref.read(userSetsProvider).asData?.value ?? [];
     final selected =
@@ -187,11 +182,11 @@ class _DataScreenState extends ConsumerState<DataScreen> {
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const AlertDialog(
+      builder: (_) => AlertDialog(
         content: Row(children: [
-          CircularProgressIndicator(),
-          SizedBox(width: 20),
-          Text('Exporting…'),
+          const CircularProgressIndicator(),
+          const SizedBox(width: 20),
+          Text(l10n.messageExporting),
         ]),
       ),
     );
@@ -220,13 +215,13 @@ class _DataScreenState extends ConsumerState<DataScreen> {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(
-            path != null ? 'Saved to $path' : 'Export ready.'),
+            path != null ? l10n.messageExportSavedTo(path) : l10n.messageExportReady),
       ));
     } catch (e) {
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Export failed. Please try again.')));
+          SnackBar(content: Text(l10n.errorExportFailed)));
     } finally {
       if (mounted) setState(() => _exporting = false);
     }
@@ -234,6 +229,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
 
   Future<void> _pickAndAnalyze(BuildContext context) async {
     setState(() => _analyzing = true);
+    final l10n = context.l10n;
     try {
       // Pick the file.
       final result = await FilePicker.pickFiles(
@@ -251,11 +247,11 @@ class _DataScreenState extends ConsumerState<DataScreen> {
       showDialog<void>(
         context: context,
         barrierDismissible: false,
-        builder: (_) => const AlertDialog(
+        builder: (_) => AlertDialog(
           content: Row(children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 20),
-            Text('Analysing archive…'),
+            const CircularProgressIndicator(),
+            const SizedBox(width: 20),
+            Text(l10n.messageAnalysingArchive),
           ]),
         ),
       );
@@ -299,7 +295,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
       if (!context.mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to read the archive. Check the file format and try again.')),
+        SnackBar(content: Text(l10n.errorFailedReadArchive)),
       );
     } finally {
       if (mounted) setState(() => _analyzing = false);
@@ -369,7 +365,7 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
       if (mounted) {
         setState(() => _importing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Import failed. Please try again.')),
+          SnackBar(content: Text(context.l10n.errorImportFailed)),
         );
       }
     }
@@ -379,8 +375,9 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
   Widget build(BuildContext context) {
     final diffs = widget.analysis.setDiffs;
 
+    final l10n = context.l10n;
     return AlertDialog(
-      title: const Text('Import Preview'),
+      title: Text(l10n.titleImportPreview),
       contentPadding: const EdgeInsets.fromLTRB(0, 16, 0, 0),
       content: SizedBox(
         width: double.maxFinite,
@@ -395,9 +392,8 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
                   SwitchListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Skip card updates'),
-                    subtitle: const Text(
-                        'Only create new cards; leave existing cards unchanged.'),
+                    title: Text(l10n.labelSkipCardUpdates),
+                    subtitle: Text(l10n.messageSkipCardUpdatesSubtitle),
                     value: _skipUpdates,
                     onChanged:
                         _importing ? null : (v) => setState(() => _skipUpdates = v),
@@ -405,10 +401,8 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
                   SwitchListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Remove cards not in import'),
-                    subtitle: const Text(
-                        'Cards absent from the file are removed from the set '
-                        '(not deleted from your library).'),
+                    title: Text(l10n.labelRemoveCardsNotInImport),
+                    subtitle: Text(l10n.messageRemoveCardsNotInImportSubtitle),
                     value: _deleteNotInImport,
                     onChanged: _importing
                         ? null
@@ -442,7 +436,7 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
       actions: [
         TextButton(
           onPressed: _importing ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.labelCancel),
         ),
         FilledButton(
           onPressed: _importing ? null : _runImport,
@@ -453,7 +447,7 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
                   child: CircularProgressIndicator(
                       strokeWidth: 2, color: Colors.white),
                 )
-              : const Text('Import'),
+              : Text(l10n.actionImport),
         ),
       ],
     );
@@ -486,6 +480,7 @@ class _SetDiffTileState extends State<_SetDiffTile> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final diff = widget.diff;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -508,7 +503,7 @@ class _SetDiffTileState extends State<_SetDiffTile> {
                     overflow: TextOverflow.ellipsis),
               ),
               Chip(
-                label: Text(diff.isNewSet ? 'New set' : 'Existing'),
+                label: Text(diff.isNewSet ? l10n.labelNewSet : l10n.labelExistingSet),
                 visualDensity: VisualDensity.compact,
                 backgroundColor: diff.isNewSet
                     ? theme.colorScheme.primaryContainer
@@ -523,7 +518,7 @@ class _SetDiffTileState extends State<_SetDiffTile> {
             _ExpandableCountRow(
               icon: Icons.add_circle_outline,
               color: successColor,
-              label: '${diff.newCards.length} new',
+              label: l10n.labelNNew(diff.newCards.length),
               expanded: _newExpanded,
               onTap: () => setState(() => _newExpanded = !_newExpanded),
               children: diff.newCards
@@ -539,7 +534,7 @@ class _SetDiffTileState extends State<_SetDiffTile> {
             _ExpandableCountRow(
               icon: Icons.link,
               color: theme.colorScheme.secondary,
-              label: '${diff.libraryLinkCards.length} from library',
+              label: l10n.labelNFromLibrary(diff.libraryLinkCards.length),
               expanded: _libraryExpanded,
               onTap: () =>
                   setState(() => _libraryExpanded = !_libraryExpanded),
@@ -559,8 +554,8 @@ class _SetDiffTileState extends State<_SetDiffTile> {
                   ? theme.disabledColor
                   : warningColor,
               label: widget.skipUpdates
-                  ? '${diff.updatedCards.length} updated (skipped)'
-                  : '${diff.updatedCards.length} updated',
+                  ? l10n.labelNUpdatedSkipped(diff.updatedCards.length)
+                  : l10n.labelNUpdated(diff.updatedCards.length),
               expanded: _updatedExpanded,
               onTap: () =>
                   setState(() => _updatedExpanded = !_updatedExpanded),
@@ -577,7 +572,7 @@ class _SetDiffTileState extends State<_SetDiffTile> {
             _ExpandableCountRow(
               icon: Icons.remove_circle_outline,
               color: theme.colorScheme.error,
-              label: '${diff.deletableCards.length} to remove',
+              label: l10n.labelNToRemove(diff.deletableCards.length),
               expanded: _deletedExpanded,
               onTap: () =>
                   setState(() => _deletedExpanded = !_deletedExpanded),
@@ -590,7 +585,7 @@ class _SetDiffTileState extends State<_SetDiffTile> {
             ),
 
           if (!diff.hasChanges)
-            Text('No changes', style: theme.textTheme.bodySmall),
+            Text(l10n.labelNoChanges, style: theme.textTheme.bodySmall),
 
           const Divider(),
         ],
@@ -616,6 +611,7 @@ class _TemplateDiffSectionState extends State<_TemplateDiffSection> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final successColor = isDark ? Colors.green[300]! : Colors.green[700]!;
@@ -631,7 +627,7 @@ class _TemplateDiffSectionState extends State<_TemplateDiffSection> {
             children: [
               const Icon(Icons.copy_all_outlined, size: 18),
               const SizedBox(width: 6),
-              Text('Templates', style: theme.textTheme.titleSmall),
+              Text(l10n.titleTemplates, style: theme.textTheme.titleSmall),
             ],
           ),
           const SizedBox(height: 6),
@@ -640,7 +636,7 @@ class _TemplateDiffSectionState extends State<_TemplateDiffSection> {
             _ExpandableCountRow(
               icon: Icons.add_circle_outline,
               color: successColor,
-              label: '${cts.length} new card template${cts.length == 1 ? '' : 's'}',
+              label: l10n.labelNNewCardTemplates(cts.length),
               expanded: _cardTplExpanded,
               onTap: () =>
                   setState(() => _cardTplExpanded = !_cardTplExpanded),
@@ -650,7 +646,7 @@ class _TemplateDiffSectionState extends State<_TemplateDiffSection> {
                 final desc = t['description'] as String?;
                 return _CardSummaryTile(
                   primary: name,
-                  secondary: desc ?? '$qs question${qs == 1 ? '' : 's'}',
+                  secondary: desc ?? l10n.labelQuestionCount(qs),
                 );
               }).toList(),
             ),
@@ -659,7 +655,7 @@ class _TemplateDiffSectionState extends State<_TemplateDiffSection> {
             _ExpandableCountRow(
               icon: Icons.add_circle_outline,
               color: successColor,
-              label: '${qts.length} new question template${qts.length == 1 ? '' : 's'}',
+              label: l10n.labelNNewQuestionTemplates(qts.length),
               expanded: _questionTplExpanded,
               onTap: () => setState(
                   () => _questionTplExpanded = !_questionTplExpanded),
@@ -668,10 +664,10 @@ class _TemplateDiffSectionState extends State<_TemplateDiffSection> {
                 final importId = t['templateId'] as String?;
                 final q = t['question'] as Map<String, dynamic>? ?? {};
                 final typeLabel = switch (q['type'] as String? ?? '') {
-                  'text_input' => 'Text input',
-                  'multiple_choice' => 'Multiple choice',
-                  'word_order' => 'Word order',
-                  _ => 'Question',
+                  'text_input' => l10n.labelQuestionTypeTextInput,
+                  'multiple_choice' => l10n.labelQuestionTypeMultipleChoice,
+                  'word_order' => l10n.labelQuestionTypeWordOrder,
+                  _ => l10n.labelQuestion,
                 };
                 final secondary = importId != null
                     ? '##$importId  ·  $typeLabel'
@@ -823,7 +819,7 @@ class _UpdatedCardTile extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(left: 8, top: 2),
               child: Text(
-                'Also in: ${otherSets.join(', ')}',
+                context.l10n.messageAlsoIn(otherSets.join(', ')),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.primary,
                   fontStyle: FontStyle.italic,
@@ -871,6 +867,7 @@ class _ImportSummaryDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final successColor = isDark ? Colors.green[300]! : Colors.green[700]!;
@@ -885,7 +882,7 @@ class _ImportSummaryDialog extends StatelessWidget {
         children: [
           Icon(Icons.check_circle_outline, color: successColor),
           const SizedBox(width: 8),
-          const Text('Import Complete'),
+          Text(l10n.titleImportComplete),
         ],
       ),
       content: Column(
@@ -895,51 +892,51 @@ class _ImportSummaryDialog extends StatelessWidget {
           _summaryRow(
             theme,
             Icons.library_books_outlined,
-            '${s.totalSets} set${s.totalSets == 1 ? '' : 's'} processed'
-                '${s.newSets > 0 ? ' (${s.newSets} new)' : ''}',
+            '${l10n.messageSetsProcessed(s.totalSets)}'
+                '${s.newSets > 0 ? ' ${l10n.labelNewCount(s.newSets)}' : ''}',
           ),
           if (!hasChanges)
-            _summaryRow(theme, Icons.info_outline, 'No changes were applied'),
+            _summaryRow(theme, Icons.info_outline, l10n.messageNoChangesApplied),
           if (s.cardsAdded > 0)
             _summaryRow(
               theme,
               Icons.add_circle_outline,
-              '${s.cardsAdded} card${s.cardsAdded == 1 ? '' : 's'} added',
+              l10n.messageCardsAdded(s.cardsAdded),
               color: successColor,
             ),
           if (s.cardsLinked > 0)
             _summaryRow(
               theme,
               Icons.link,
-              '${s.cardsLinked} card${s.cardsLinked == 1 ? '' : 's'} linked from library',
-              color: Theme.of(context).colorScheme.secondary,
+              l10n.messageCardsLinked(s.cardsLinked),
+              color: theme.colorScheme.secondary,
             ),
           if (s.cardsUpdated > 0)
             _summaryRow(
               theme,
               Icons.edit_outlined,
-              '${s.cardsUpdated} card${s.cardsUpdated == 1 ? '' : 's'} updated',
+              l10n.messageCardsUpdated(s.cardsUpdated),
               color: warningColor,
             ),
           if (s.cardsRemoved > 0)
             _summaryRow(
               theme,
               Icons.remove_circle_outline,
-              '${s.cardsRemoved} card${s.cardsRemoved == 1 ? '' : 's'} removed from sets',
+              l10n.messageCardsRemovedFromSets(s.cardsRemoved),
               color: theme.colorScheme.error,
             ),
           if (s.cardTemplatesCreated > 0)
             _summaryRow(
               theme,
               Icons.copy_all_outlined,
-              '${s.cardTemplatesCreated} card template${s.cardTemplatesCreated == 1 ? '' : 's'} created',
+              l10n.messageCardTemplatesCreated(s.cardTemplatesCreated),
               color: successColor,
             ),
           if (s.questionTemplatesCreated > 0)
             _summaryRow(
               theme,
               Icons.quiz_outlined,
-              '${s.questionTemplatesCreated} question template${s.questionTemplatesCreated == 1 ? '' : 's'} created',
+              l10n.messageQuestionTemplatesCreated(s.questionTemplatesCreated),
               color: successColor,
             ),
         ],
@@ -947,7 +944,7 @@ class _ImportSummaryDialog extends StatelessWidget {
       actions: [
         FilledButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Done'),
+          child: Text(l10n.actionDone),
         ),
       ],
     );

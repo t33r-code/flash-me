@@ -12,6 +12,7 @@ import 'package:flash_me/providers/question_template_provider.dart';
 import 'package:flash_me/providers/tag_provider.dart';
 import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/providers/workbook_card_provider.dart';
+import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/screens/sets/set_form_screen.dart';
 import 'package:flash_me/screens/study/study_setup_screen.dart';
@@ -37,21 +38,18 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Set'),
-        content: Text(
-          'Delete "${widget.cardSet.name}"? '
-          'Cards are not deleted, only removed from this set.',
-        ),
+        title: Text(context.l10n.titleDeleteSet),
+        content: Text(context.l10n.messageDeleteSetConfirm(widget.cardSet.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.labelCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(
                 backgroundColor: Theme.of(ctx).colorScheme.error),
-            child: const Text('Delete'),
+            child: Text(context.l10n.labelDelete),
           ),
         ],
       ),
@@ -74,8 +72,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Failed to delete set. Please try again.')),
+          SnackBar(content: Text(context.l10n.errorFailedDeleteSet)),
         );
       }
     } finally {
@@ -100,7 +97,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to remove card.')),
+          SnackBar(content: Text(context.l10n.errorFailedRemoveCard)),
         );
       }
       return false; // cancels the dismiss animation so the card stays visible
@@ -129,12 +126,12 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const AlertDialog(
+      builder: (ctx) => AlertDialog(
         content: Row(
           children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 20),
-            Text('Preparing export…'),
+            const CircularProgressIndicator(),
+            const SizedBox(width: 20),
+            Text(ctx.l10n.messagePreparingExport),
           ],
         ),
       ),
@@ -153,7 +150,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
         Navigator.of(context).pop(); // dismiss progress dialog
         if (savedPath != null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Saved to $savedPath')),
+            SnackBar(content: Text(context.l10n.messageSavedTo(savedPath))),
           );
         }
       }
@@ -161,7 +158,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       if (mounted) {
         Navigator.of(context).pop(); // dismiss progress dialog
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Export failed. Please try again.')),
+          SnackBar(content: Text(context.l10n.errorExportFailed)),
         );
       }
     } finally {
@@ -185,7 +182,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to publish. Please try again.')),
+          SnackBar(content: Text(context.l10n.errorFailedPublish)),
         );
       }
     } finally {
@@ -199,26 +196,22 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Remove from Market'),
+        title: Text(context.l10n.titleRemoveFromMarket),
         content: Text(
           count > 0
-              ? '"${liveSet.name}" has been acquired by $count '
-                '${count == 1 ? 'user' : 'users'}. Removing it from the '
-                'Market will not affect their copies — this set will simply '
-                'stop appearing to new users.'
-              : 'Remove "${liveSet.name}" from the Market? '
-                'It will no longer appear for other users.',
+              ? context.l10n.messageRemoveFromMarketAcquired(liveSet.name, count)
+              : context.l10n.messageRemoveFromMarketNoAcquisitions(liveSet.name),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.labelCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(
                 backgroundColor: Theme.of(ctx).colorScheme.error),
-            child: const Text('Remove'),
+            child: Text(context.l10n.labelDelete),
           ),
         ],
       ),
@@ -232,8 +225,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Failed to remove from Market. Please try again.')),
+          SnackBar(content: Text(context.l10n.errorFailedRemoveFromMarket)),
         );
       }
     } finally {
@@ -265,6 +257,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     // Keep title in sync with edits made via SetFormScreen.
     final liveSet =
         ref.watch(setByIdProvider(widget.cardSet.id)) ?? widget.cardSet;
@@ -293,7 +286,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     if (isLoading) {
       body = const Center(child: CircularProgressIndicator());
     } else if (hasError) {
-      body = const Center(child: Text('Failed to load cards.'));
+      body = Center(child: Text(l10n.errorFailedLoadCards));
     } else if (totalCount == 0) {
       body = _EmptyState(onAddCards: _showCardPicker);
     } else {
@@ -348,8 +341,9 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
             icon: liveSet.isPublic
                 ? const Icon(Icons.unpublished_outlined)
                 : const Icon(Icons.storefront_outlined),
-            tooltip:
-                liveSet.isPublic ? 'Remove from Market' : 'Offer in Market',
+            tooltip: liveSet.isPublic
+                ? l10n.tooltipRemoveFromMarket
+                : l10n.tooltipOfferInMarket,
             onPressed: _isPublishing
                 ? null
                 : () => liveSet.isPublic
@@ -358,17 +352,17 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.download_outlined),
-            tooltip: 'Export set',
+            tooltip: l10n.tooltipExportSet,
             onPressed: _isExporting ? null : () => _exportSet(liveSet),
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
-            tooltip: 'Delete set',
+            tooltip: l10n.tooltipDeleteSet,
             onPressed: _isDeleting ? null : _confirmDelete,
           ),
           IconButton(
             icon: const Icon(Icons.edit_outlined),
-            tooltip: 'Edit set',
+            tooltip: l10n.tooltipEditSet,
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => SetFormScreen(cardSet: liveSet),
@@ -378,7 +372,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
           // Quick-study shortcut — bypasses the Study tab set picker for this set.
           IconButton(
             icon: const Icon(Icons.play_circle_outline),
-            tooltip: 'Study this set',
+            tooltip: l10n.tooltipStudyThisSet,
             onPressed: _study,
           ),
           const HelpMenuButton(HelpContext.sets),
@@ -388,7 +382,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       floatingActionButton: FloatingActionButton(
         heroTag: 'addCards',
         onPressed: _showCardPicker,
-        tooltip: 'Add cards',
+        tooltip: l10n.tooltipAddCards,
         child: const Icon(Icons.add),
       ),
     );
@@ -414,11 +408,11 @@ class _EmptyState extends StatelessWidget {
                 size: 80,
                 color: Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(height: 16),
-            Text('No cards yet',
+            Text(context.l10n.titleNoCardsYet,
                 style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(
-              'Tap + to add cards to this set.',
+              context.l10n.messageNoCardsHint,
               style: Theme.of(context)
                   .textTheme
                   .bodyMedium
@@ -430,7 +424,7 @@ class _EmptyState extends StatelessWidget {
             FilledButton.icon(
               onPressed: onAddCards,
               icon: const Icon(Icons.add),
-              label: const Text('Add Cards'),
+              label: Text(context.l10n.actionAddCards),
             ),
           ],
         ),
@@ -474,7 +468,6 @@ class _WorkbookCardInSetTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final qCount = card.questions.length;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
@@ -484,7 +477,7 @@ class _WorkbookCardInSetTile extends StatelessWidget {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        subtitle: Text('$qCount question${qCount == 1 ? '' : 's'}'),
+        subtitle: Text(context.l10n.labelQuestionCount(card.questions.length)),
         trailing: card.tags.isNotEmpty
             ? Chip(
                 label: Text(card.tags.first),
@@ -556,7 +549,7 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to add cards.')),
+          SnackBar(content: Text(context.l10n.errorFailedLoadCards)),
         );
         setState(() => _isAdding = false); // re-enable button for retry
       }
@@ -577,6 +570,7 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final allFlashAsync = ref.watch(userCardsProvider);
     final allWorkbookAsync = ref.watch(userWorkbookCardsProvider);
     final cardIdsInSet =
@@ -608,7 +602,7 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Row(
               children: [
-                Text('Add Cards',
+                Text(l10n.actionAddCards,
                     style: Theme.of(context).textTheme.titleMedium),
                 const Spacer(),
                 FilledButton(
@@ -622,8 +616,8 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
                               strokeWidth: 2, color: Colors.white),
                         )
                       : Text(_selected.isEmpty
-                          ? 'Add'
-                          : 'Add (${_selected.length})'),
+                          ? l10n.actionAdd
+                          : l10n.actionAddCount(_selected.length)),
                 ),
               ],
             ),
@@ -635,7 +629,7 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : hasError
-                    ? const Center(child: Text('Failed to load cards.'))
+                    ? Center(child: Text(l10n.errorFailedLoadCards))
                     : _buildList(
                         context,
                         scrollController,
@@ -656,6 +650,7 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
     List<WorkbookCard> allWorkbook,
     Set<String> cardIdsInSet,
   ) {
+    final l10n = context.l10n;
     // Flash card buckets.
     final flashInSet =
         allFlash.where((c) => cardIdsInSet.contains(c.id)).toList();
@@ -688,11 +683,11 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
     }
 
     if (allFlash.isEmpty && allWorkbook.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(32),
+          padding: const EdgeInsets.all(32),
           child: Text(
-            'No cards yet. Create cards from the Cards tab.',
+            l10n.messageNoCardsYetTab,
             textAlign: TextAlign.center,
           ),
         ),
@@ -700,11 +695,11 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
     }
 
     if (!hasAnythingSelectable) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(32),
+          padding: const EdgeInsets.all(32),
           child: Text(
-            'All your cards are already in this set.',
+            l10n.messageAllCardsInSet,
             textAlign: TextAlign.center,
           ),
         ),
@@ -716,7 +711,7 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
       children: [
         // ── Selectable flash cards ──────────────────────────────────────────
         if (flashNotInSet.isNotEmpty) ...[
-          _SectionHeader(label: 'Flash Cards', icon: Icons.style_outlined),
+          _SectionHeader(label: l10n.labelSectionFlashCards, icon: Icons.style_outlined),
           ...flashNotInSet.map(
             (card) => CheckboxListTile(
               value: _selected.contains(card.id),
@@ -735,7 +730,7 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Text(
-              'Duplicate word — already in set',
+              l10n.labelDuplicateWordInSet,
               style: Theme.of(context)
                   .textTheme
                   .labelMedium
@@ -759,7 +754,7 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Text(
-              'Already in set',
+              l10n.labelAlreadyInSet,
               style: Theme.of(context)
                   .textTheme
                   .labelMedium
@@ -781,7 +776,7 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
         if (workbookNotInSet.isNotEmpty) ...[
           if (flashNotInSet.isNotEmpty || flashWordConflict.isNotEmpty || flashInSet.isNotEmpty)
             const Divider(),
-          _SectionHeader(label: 'Workbook Cards', icon: Icons.book_outlined),
+          _SectionHeader(label: l10n.labelSectionWorkbookCards, icon: Icons.book_outlined),
           ...workbookNotInSet.map(
             (card) => CheckboxListTile(
               value: _selected.contains(card.id),
@@ -793,9 +788,7 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              subtitle: Text(
-                '${card.questions.length} question${card.questions.length == 1 ? '' : 's'}',
-              ),
+              subtitle: Text(l10n.labelQuestionCount(card.questions.length)),
             ),
           ),
         ],
@@ -806,7 +799,7 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Text(
-              'Already in set',
+              l10n.labelAlreadyInSet,
               style: Theme.of(context)
                   .textTheme
                   .labelMedium
@@ -822,9 +815,7 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              subtitle: Text(
-                '${card.questions.length} question${card.questions.length == 1 ? '' : 's'}',
-              ),
+              subtitle: Text(l10n.labelQuestionCount(card.questions.length)),
               trailing: const Icon(Icons.check),
             ),
           ),
@@ -884,6 +875,7 @@ class _MarketPublishSheetState extends State<_MarketPublishSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final theme = Theme.of(context);
     return SafeArea(
       child: Padding(
@@ -905,24 +897,22 @@ class _MarketPublishSheetState extends State<_MarketPublishSheet> {
               ),
             ),
 
-            Text('Offer in Market', style: theme.textTheme.titleLarge),
+            Text(l10n.titleOfferInMarket, style: theme.textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(
-              'Make "${widget.cardSet.name}" visible in the Market tab so '
-              'other users can discover and acquire it.',
+              l10n.messageOfferInMarketDescription(widget.cardSet.name),
               style: theme.textTheme.bodyMedium
                   ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 20),
 
             // Options — each future acquisition type appears here as a tile.
-            Text('Options', style: theme.textTheme.titleSmall),
+            Text(l10n.titleOptions, style: theme.textTheme.titleSmall),
             const SizedBox(height: 4),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Allow Clone'),
-              subtitle: const Text(
-                  'Users can copy this set into their own library.'),
+              title: Text(l10n.labelAllowClone),
+              subtitle: Text(l10n.messageAllowCloneSubtitle),
               value: _allowClone,
               // Not yet user-toggleable — the only supported type in this phase.
               onChanged: null,
@@ -934,14 +924,14 @@ class _MarketPublishSheetState extends State<_MarketPublishSheet> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text('Cancel'),
+                    child: Text(l10n.labelCancel),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: FilledButton.icon(
                     icon: const Icon(Icons.storefront_outlined),
-                    label: const Text('Offer in Market'),
+                    label: Text(l10n.actionOfferInMarket),
                     onPressed: () => Navigator.of(context).pop(true),
                   ),
                 ),

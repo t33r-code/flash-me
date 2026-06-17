@@ -4,6 +4,7 @@ import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/tag_provider.dart';
+import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/widgets/tag_input_field.dart';
 import 'package:flash_me/widgets/language_picker.dart';
@@ -121,8 +122,7 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Failed to save set. Please try again.')),
+          SnackBar(content: Text(context.l10n.errorFailedSaveSet)),
         );
       }
     }
@@ -135,6 +135,20 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
   }
 
   Widget _buildColorPicker() {
+    final l10n = context.l10n;
+    // Map each hex to its localized accessibility label.
+    final colorLabels = <String?, String>{
+      null: l10n.semanticsColorNone,
+      '#EF5350': l10n.semanticsColorRed,
+      '#FF7043': l10n.semanticsColorDeepOrange,
+      '#FFCA28': l10n.semanticsColorAmber,
+      '#66BB6A': l10n.semanticsColorGreen,
+      '#26A69A': l10n.semanticsColorTeal,
+      '#42A5F5': l10n.semanticsColorBlue,
+      '#5C6BC0': l10n.semanticsColorIndigo,
+      '#AB47BC': l10n.semanticsColorPurple,
+      '#EC407A': l10n.semanticsColorPink,
+    };
     return Wrap(
       spacing: 0,
       runSpacing: 0,
@@ -142,24 +156,11 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
         final selected = _selectedColor == hex;
         final itemColor =
             hex == null ? Colors.transparent : _hexColor(hex);
+        final colorLabel = colorLabels[hex] ?? hex ?? '';
         // Semantics label announces colour name and selection state.
         // SizedBox expands the hit area to 48dp without changing the 36dp visual.
-        final colorLabel = hex == null
-            ? 'No colour'
-            : const {
-                '#EF5350': 'Red',
-                '#FF7043': 'Deep orange',
-                '#FFCA28': 'Amber',
-                '#66BB6A': 'Green',
-                '#26A69A': 'Teal',
-                '#42A5F5': 'Blue',
-                '#5C6BC0': 'Indigo',
-                '#AB47BC': 'Purple',
-                '#EC407A': 'Pink',
-              }[hex] ??
-            hex;
         return Semantics(
-          label: '$colorLabel${selected ? ', selected' : ''}',
+          label: selected ? l10n.semanticsColorSelected(colorLabel) : colorLabel,
           button: true,
           child: GestureDetector(
             onTap: _isSaving ? null : () => setState(() => _selectedColor = hex),
@@ -205,9 +206,10 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Set' : 'New Set'),
+        title: Text(_isEditing ? l10n.titleEditSet : l10n.titleNewSet),
       ),
       body: Form(
         key: _formKey,
@@ -220,13 +222,13 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
               TextFormField(
                 controller: _nameController,
                 enabled: !_isSaving,
-                decoration: const InputDecoration(
-                  labelText: 'Set name *',
-                  hintText: 'e.g. Spanish Verbs',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.labelSetNameRequired,
+                  hintText: l10n.hintSetNameExample,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (v) =>
-                    v?.trim().isEmpty ?? true ? 'Name is required' : null,
+                    v?.trim().isEmpty ?? true ? l10n.validatorSetNameRequired : null,
               ),
               const SizedBox(height: 12),
 
@@ -234,27 +236,27 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
               TextFormField(
                 controller: _descController,
                 enabled: !_isSaving,
-                decoration: const InputDecoration(
-                  labelText: 'Description (optional)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.labelDescriptionOptional,
+                  border: const OutlineInputBorder(),
                 ),
                 maxLines: 3,
               ),
               const SizedBox(height: 24),
 
               // --- Languages ---
-              Text('Languages',
+              Text(l10n.titleLanguagesSection,
                   style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
               LanguagePicker(
-                label: 'Target language (being studied)',
+                label: l10n.labelTargetLanguage,
                 value: _targetLanguage,
                 enabled: !_isSaving,
                 onChanged: (v) => setState(() => _targetLanguage = v),
               ),
               const SizedBox(height: 12),
               LanguagePicker(
-                label: 'Native language',
+                label: l10n.labelNativeLanguage,
                 value: _nativeLanguage,
                 enabled: !_isSaving,
                 onChanged: (v) => setState(() => _nativeLanguage = v),
@@ -262,13 +264,15 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
               const SizedBox(height: 24),
 
               // --- Colour ---
-              Text('Colour', style: Theme.of(context).textTheme.titleMedium),
+              Text(l10n.titleColorSection,
+                  style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
               _buildColorPicker(),
               const SizedBox(height: 24),
 
               // --- Tags ---
-              Text('Tags', style: Theme.of(context).textTheme.titleMedium),
+              Text(l10n.titleTagsSection,
+                  style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               TagInputField(
                 tags: _tags,
@@ -285,7 +289,7 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
                       onPressed: _isSaving
                           ? null
                           : () => Navigator.of(context).pop(),
-                      child: const Text('Cancel'),
+                      child: Text(l10n.labelCancel),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -300,7 +304,7 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
                                   strokeWidth: 2, color: Colors.white),
                             )
                           : Text(
-                              _isEditing ? 'Save Changes' : 'Create Set'),
+                              _isEditing ? l10n.actionSaveChanges : l10n.actionCreateSet),
                     ),
                   ),
                 ],

@@ -113,5 +113,205 @@
   "labelTheme": "Theme",
   "labelThemeSystem": "System",
   "labelThemeLight": "Light",
-  "labelThemeDark": "Dark"
+  "labelThemeDark": "Dark",
+
+  "tabMySets": "My Sets",
+  "tabMarket": "Market",
+  "tooltipSortBy": "Sort by",
+  "labelSortLastUpdated": "Last updated",
+  "labelSortName": "Name",
+  "labelSortCardCount": "Card count",
+  "tooltipCreateSet": "Create set",
+  "hintSearchSets": "Search sets…",
+  "hintSearchMarket": "Search market…",
+  "labelAll": "All",
+  "messageNoSetsMatchSearch": "No sets match your search.",
+  "errorFailedLoadSets": "Failed to load sets.",
+  "errorFailedLoadMarket": "Failed to load market.",
+  "titleNoSetsYet": "No sets yet",
+  "messageNoSetsHint": "Tap + to create your first set.",
+  "titleMarketEmpty": "Market is empty",
+  "messageMarketEmpty": "No sets have been published yet.\nPublish your own from a set's detail screen.",
+  "tooltipOfferedInMarket": "Offered in Market",
+  "labelInMarket": "In Market",
+  "labelToday": "Today",
+  "labelYesterday": "Yesterday",
+  "labelMonthJan": "Jan",
+  "labelMonthFeb": "Feb",
+  "labelMonthMar": "Mar",
+  "labelMonthApr": "Apr",
+  "labelMonthMay": "May",
+  "labelMonthJun": "Jun",
+  "labelMonthJul": "Jul",
+  "labelMonthAug": "Aug",
+  "labelMonthSep": "Sep",
+  "labelMonthOct": "Oct",
+  "labelMonthNov": "Nov",
+  "labelMonthDec": "Dec",
+  "labelAcquiredCloned": "Cloned {date}",
+  "@labelAcquiredCloned": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "labelAcquiredSubscribed": "Subscribed {date}",
+  "@labelAcquiredSubscribed": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "labelCardCount": "{count, plural, =1{1 card} other{{count} cards}}",
+  "@labelCardCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "labelQuestionCount": "{count, plural, =1{1 question} other{{count} questions}}",
+  "@labelQuestionCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "titleNewSet": "New Set",
+  "titleEditSet": "Edit Set",
+  "labelSetNameRequired": "Set name *",
+  "hintSetNameExample": "e.g. Spanish Verbs",
+  "validatorSetNameRequired": "Name is required",
+  "labelDescriptionOptional": "Description (optional)",
+  "titleLanguagesSection": "Languages",
+  "labelTargetLanguage": "Target language (being studied)",
+  "labelNativeLanguage": "Native language",
+  "titleColorSection": "Colour",
+  "titleTagsSection": "Tags",
+  "errorFailedSaveSet": "Failed to save set. Please try again.",
+  "actionSaveChanges": "Save Changes",
+  "semanticsColorNone": "No colour",
+  "semanticsColorRed": "Red",
+  "semanticsColorDeepOrange": "Deep orange",
+  "semanticsColorAmber": "Amber",
+  "semanticsColorGreen": "Green",
+  "semanticsColorTeal": "Teal",
+  "semanticsColorBlue": "Blue",
+  "semanticsColorIndigo": "Indigo",
+  "semanticsColorPurple": "Purple",
+  "semanticsColorPink": "Pink",
+  "semanticsColorSelected": "{colorName}, selected",
+  "@semanticsColorSelected": {
+    "placeholders": {
+      "colorName": {"type": "String"}
+    }
+  },
+
+  "titleDeleteSet": "Delete Set",
+  "messageDeleteSetConfirm": "Delete \"{name}\"? Cards are not deleted, only removed from this set.",
+  "@messageDeleteSetConfirm": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "errorFailedDeleteSet": "Failed to delete set. Please try again.",
+  "errorFailedRemoveCard": "Failed to remove card.",
+  "messagePreparingExport": "Preparing export…",
+  "messageSavedTo": "Saved to {path}",
+  "@messageSavedTo": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "errorExportFailed": "Export failed. Please try again.",
+  "titleRemoveFromMarket": "Remove from Market",
+  "messageRemoveFromMarketAcquired": "\"{name}\" has been acquired by {count, plural, =1{1 user} other{{count} users}}. Removing it from the Market will not affect their copies — this set will simply stop appearing to new users.",
+  "@messageRemoveFromMarketAcquired": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "count": {"type": "int"}
+    }
+  },
+  "messageRemoveFromMarketNoAcquisitions": "Remove \"{name}\" from the Market? It will no longer appear for other users.",
+  "@messageRemoveFromMarketNoAcquisitions": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "errorFailedPublish": "Failed to publish. Please try again.",
+  "errorFailedRemoveFromMarket": "Failed to remove from Market. Please try again.",
+  "tooltipRemoveFromMarket": "Remove from Market",
+  "tooltipOfferInMarket": "Offer in Market",
+  "tooltipExportSet": "Export set",
+  "tooltipDeleteSet": "Delete set",
+  "tooltipEditSet": "Edit set",
+  "tooltipStudyThisSet": "Study this set",
+  "tooltipAddCards": "Add cards",
+  "titleNoCardsYet": "No cards yet",
+  "messageNoCardsHint": "Tap + to add cards to this set.",
+  "actionAddCards": "Add Cards",
+  "actionAdd": "Add",
+  "actionAddCount": "Add ({count})",
+  "@actionAddCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "errorFailedLoadCards": "Failed to load cards.",
+  "messageNoCardsYetTab": "No cards yet. Create cards from the Cards tab.",
+  "messageAllCardsInSet": "All your cards are already in this set.",
+  "labelSectionFlashCards": "Flash Cards",
+  "labelSectionWorkbookCards": "Workbook Cards",
+  "labelDuplicateWordInSet": "Duplicate word — already in set",
+  "labelAlreadyInSet": "Already in set",
+  "labelAllowClone": "Allow Clone",
+  "messageAllowCloneSubtitle": "Users can copy this set into their own library.",
+  "titleOfferInMarket": "Offer in Market",
+  "messageOfferInMarketDescription": "Make \"{name}\" visible in the Market tab so other users can discover and acquire it.",
+  "@messageOfferInMarketDescription": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "titleOptions": "Options",
+  "actionOfferInMarket": "Offer in Market",
+
+  "titleCloneSet": "Clone Set",
+  "infoCloneAddedToMySets": "A copy of this set is added to your My Sets.",
+  "infoCloneFullyEditable": "Your copy is fully editable and independent.",
+  "infoCloneNoChanges": "Changes to the original won't affect your copy.",
+  "actionCloneToMySets": "Clone to My Sets",
+  "labelCloning": "Cloning…",
+  "messageCloneSuccess": "\"{name}\" added to My Sets.",
+  "@messageCloneSuccess": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "errorFailedCloneSet": "Failed to clone set. Please try again.",
+  "titleAlreadyHaveSet": "You Already Have This Set",
+  "infoAlreadyHaveCopy": "You already have a copy of this set in My Sets.",
+  "messageCheckingForUpdates": "Checking for updates…",
+  "messageSetNoLongerAvailable": "This set is no longer available — the creator's account has been deleted.",
+  "messageCouldNotCheckUpdates": "Could not check for updates. Please try again later.",
+  "labelOk": "OK",
+  "messageNewCardsAdded": "{count, plural, =1{1 new card added to the original since you cloned it.} other{{count} new cards added to the original since you cloned it.}}",
+  "@messageNewCardsAdded": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "messageCardsUpdatedSinceClone": "{count, plural, =1{1 card updated in the original since you cloned it.} other{{count} cards updated in the original since you cloned it.}}",
+  "@messageCardsUpdatedSinceClone": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "infoUpdateInPlace": "Your existing set will be updated in place. No new set will be created.",
+  "actionUpdateMyCopy": "Update My Copy",
+  "labelUpdating": "Updating…",
+  "messageUpdateSuccess": "\"{name}\" updated.",
+  "@messageUpdateSuccess": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "errorFailedUpdateSet": "Failed to update set. Please try again.",
+  "infoUpToDate": "Your copy is up to date."
 }

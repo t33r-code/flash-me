@@ -240,4 +240,74 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get labelCsv => 'CSV';
+
+  @override
+  String get titleProfile => 'Profile';
+
+  @override
+  String get tooltipEditProfile => 'Edit profile';
+
+  @override
+  String get errorFailedLoadProfile => 'Failed to load profile.';
+
+  @override
+  String get messageProfileUpdated => 'Profile updated.';
+
+  @override
+  String get messageFailedUpdateProfile =>
+      'Failed to update profile. Please try again.';
+
+  @override
+  String get messageSignOutFailed => 'Sign out failed. Please try again.';
+
+  @override
+  String get titleDeleteAccount => 'Delete account?';
+
+  @override
+  String get messageDeleteAccountConfirm =>
+      'This will permanently delete:\n• All your cards and card sets\n• All templates and study history\n• Your profile and account\n\nPublic sets you have published will be unpublished first. This cannot be undone.';
+
+  @override
+  String get actionDeleteMyAccount => 'Delete my account';
+
+  @override
+  String get actionDeleteAccount => 'Delete Account';
+
+  @override
+  String get messageRecentLoginRequired =>
+      'Please sign out and sign back in before deleting your account.';
+
+  @override
+  String messageFailedDeleteAccountError(String errorMessage) {
+    return 'Failed to delete account: $errorMessage';
+  }
+
+  @override
+  String get messageFailedDeleteAccountGeneric =>
+      'Failed to delete account. Please try again.';
+
+  @override
+  String get labelDisplayName => 'Display Name';
+
+  @override
+  String get labelNotSet => 'Not set';
+
+  @override
+  String get labelImportExport => 'Import & Export';
+
+  @override
+  String get messageImportExportSubtitle =>
+      'Import or export card sets as ZIP files';
+
+  @override
+  String get labelTheme => 'Theme';
+
+  @override
+  String get labelThemeSystem => 'System';
+
+  @override
+  String get labelThemeLight => 'Light';
+
+  @override
+  String get labelThemeDark => 'Dark';
 }

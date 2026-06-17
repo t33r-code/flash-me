@@ -84,5 +84,34 @@
   "actionChooseFile": "Choose File",
   "labelSelectFormat": "Select Format",
   "labelJson": "JSON",
-  "labelCsv": "CSV"
+  "labelCsv": "CSV",
+
+  "titleProfile": "Profile",
+  "tooltipEditProfile": "Edit profile",
+  "errorFailedLoadProfile": "Failed to load profile.",
+  "messageProfileUpdated": "Profile updated.",
+  "messageFailedUpdateProfile": "Failed to update profile. Please try again.",
+  "messageSignOutFailed": "Sign out failed. Please try again.",
+  "titleDeleteAccount": "Delete account?",
+  "messageDeleteAccountConfirm": "This will permanently delete:\n• All your cards and card sets\n• All templates and study history\n• Your profile and account\n\nPublic sets you have published will be unpublished first. This cannot be undone.",
+  "actionDeleteMyAccount": "Delete my account",
+  "actionDeleteAccount": "Delete Account",
+  "messageRecentLoginRequired": "Please sign out and sign back in before deleting your account.",
+  "messageFailedDeleteAccountError": "Failed to delete account: {errorMessage}",
+  "@messageFailedDeleteAccountError": {
+    "placeholders": {
+      "errorMessage": {
+        "type": "String"
+      }
+    }
+  },
+  "messageFailedDeleteAccountGeneric": "Failed to delete account. Please try again.",
+  "labelDisplayName": "Display Name",
+  "labelNotSet": "Not set",
+  "labelImportExport": "Import & Export",
+  "messageImportExportSubtitle": "Import or export card sets as ZIP files",
+  "labelTheme": "Theme",
+  "labelThemeSystem": "System",
+  "labelThemeLight": "Light",
+  "labelThemeDark": "Dark"
 }

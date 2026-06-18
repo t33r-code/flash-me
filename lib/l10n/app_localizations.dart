@@ -94,6 +94,12 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[Locale('en')];
 
+  /// No description provided for @messageOfflineBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re offline — studying from cached data'**
+  String get messageOfflineBanner;
+
   /// No description provided for @statusLoading.
   ///
   /// In en, this message translates to:

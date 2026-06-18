@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flash_me/l10n/app_localizations.dart';
 import 'package:flash_me/utils/extensions.dart';
@@ -27,6 +28,19 @@ void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+    // Enable Firestore offline persistence on supported platforms.
+    // Mobile (Android/iOS) already has it on by default; web needs it set
+    // explicitly. Desktop is unsupported by the Firestore SDK — see #152.
+    final isMobile = !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
+    if (kIsWeb || isMobile) {
+      // Must be set before any Firestore read/write.
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: true,
+      );
+    }
 
     // Crashlytics is only supported on Android, iOS, and macOS.
     // Windows, Linux, and Web have no native plugin — guard every call.

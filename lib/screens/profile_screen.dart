@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/providers/auth_provider.dart';
@@ -23,6 +24,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _isEditing = false;
   bool _isSigningOut = false;
   bool _isDeletingAccount = false;
+  bool _isLinking = false; // true while any link/unlink operation is in flight
 
   @override
   void dispose() {
@@ -125,11 +127,217 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  // --- Account linking -------------------------------------------------------
+
+  // Google Sign-In is only available on mobile and web — not desktop.
+  bool get _canLinkGoogle =>
+      kIsWeb ||
+      defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS;
+
+  Future<void> _linkGoogle() async {
+    setState(() => _isLinking = true);
+    try {
+      final linked = await ref.read(authRepositoryProvider).linkWithGoogle();
+      if (mounted && linked) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.messageAccountLinked)),
+        );
+      }
+    } on AppException catch (e) {
+      if (!mounted) return;
+      final msg = switch (e.code) {
+        'provider-already-linked' => context.l10n.errorProviderAlreadyLinked,
+        'credential-already-in-use' => context.l10n.errorCredentialAlreadyInUse,
+        'requires-recent-login' =>
+          context.l10n.messageRecentLoginRequiredForLinking,
+        _ => context.l10n.errorLinkFailed,
+      };
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    } finally {
+      if (mounted) setState(() => _isLinking = false);
+    }
+  }
+
+  Future<void> _showLinkEmailPasswordDialog(String prefillEmail) async {
+    final emailController = TextEditingController(text: prefillEmail);
+    final passwordController = TextEditingController();
+    final confirmController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool obscurePassword = true;
+    bool obscureConfirm = true;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(ctx.l10n.titleAddEmailPassword),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(ctx.l10n.messageAddEmailPasswordInfo,
+                      style: Theme.of(ctx).textTheme.bodySmall),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      labelText: ctx.l10n.labelEmail,
+                      prefixIcon: const Icon(Icons.email_outlined),
+                      border: const OutlineInputBorder(),
+                    ),
+                    validator: AppValidators.validateEmail,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: passwordController,
+                    obscureText: obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: ctx.l10n.labelPassword,
+                      prefixIcon: const Icon(Icons.lock_outlined),
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined),
+                        onPressed: () =>
+                            setDialogState(() => obscurePassword = !obscurePassword),
+                      ),
+                    ),
+                    validator: AppValidators.validatePassword,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: confirmController,
+                    obscureText: obscureConfirm,
+                    decoration: InputDecoration(
+                      labelText: ctx.l10n.labelConfirmPassword,
+                      prefixIcon: const Icon(Icons.lock_outlined),
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(obscureConfirm
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined),
+                        onPressed: () =>
+                            setDialogState(() => obscureConfirm = !obscureConfirm),
+                      ),
+                    ),
+                    validator: (v) => v != passwordController.text
+                        ? ctx.l10n.validatorPasswordsDoNotMatch
+                        : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(ctx.l10n.labelCancel),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  Navigator.of(ctx).pop(true);
+                }
+              },
+              child: Text(ctx.l10n.actionLink),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isLinking = true);
+    try {
+      await ref.read(authRepositoryProvider).linkWithEmailPassword(
+            email: emailController.text.trim(),
+            password: passwordController.text,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.messageAccountLinked)),
+        );
+      }
+    } on AppException catch (e) {
+      if (!mounted) return;
+      final msg = switch (e.code) {
+        'provider-already-linked' => context.l10n.errorProviderAlreadyLinked,
+        'requires-recent-login' =>
+          context.l10n.messageRecentLoginRequiredForLinking,
+        _ => context.l10n.errorLinkFailed,
+      };
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    } finally {
+      emailController.dispose();
+      passwordController.dispose();
+      confirmController.dispose();
+      if (mounted) setState(() => _isLinking = false);
+    }
+  }
+
+  Future<void> _confirmUnlink(String providerId, String providerName) async {
+    // Guard: never leave the account with zero sign-in methods.
+    final providers =
+        ref.read(authRepositoryProvider).getLinkedProviderIds();
+    if (providers.length <= 1) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(context.l10n.errorCannotUnlinkOnlyMethod),
+      ));
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(ctx.l10n.titleConfirmUnlink),
+        content: Text(ctx.l10n.messageConfirmUnlink(providerName)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(ctx.l10n.labelCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error),
+            child: Text(ctx.l10n.actionUnlink),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isLinking = true);
+    try {
+      await ref.read(authRepositoryProvider).unlinkProvider(providerId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.messageAccountUnlinked)),
+        );
+      }
+    } on AppException catch (e) {
+      if (!mounted) return;
+      final msg = e.code == 'requires-recent-login'
+          ? context.l10n.messageRecentLoginRequiredForLinking
+          : context.l10n.errorUnlinkFailed;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    } finally {
+      if (mounted) setState(() => _isLinking = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // No pop-back listener needed here — main.dart watches authStateProvider
     // and replaces MainScreen with AuthScreen on sign-out automatically.
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final appUser = ref.watch(appUserProvider);
 
     return Scaffold(
@@ -233,6 +441,47 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   subtitle: Text(user?.email ?? ''),
                 ),
                 const Divider(),
+                // ── Linked accounts ──────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: Text(
+                    context.l10n.titleLinkedAccounts,
+                    style: theme.textTheme.labelLarge
+                        ?.copyWith(color: scheme.primary),
+                  ),
+                ),
+                Builder(builder: (_) {
+                  final providers = ref
+                      .read(authRepositoryProvider)
+                      .getLinkedProviderIds();
+                  return Column(
+                    children: [
+                      _ProviderTile(
+                        icon: Icons.g_mobiledata_rounded,
+                        label: context.l10n.labelGoogle,
+                        isLinked: providers.contains('google.com'),
+                        // Link/unlink only possible on mobile and web.
+                        canAct: _canLinkGoogle,
+                        isBusy: _isLinking,
+                        onLink: _linkGoogle,
+                        onUnlink: () => _confirmUnlink(
+                            'google.com', context.l10n.labelGoogle),
+                      ),
+                      _ProviderTile(
+                        icon: Icons.email_outlined,
+                        label: context.l10n.labelEmailPassword,
+                        isLinked: providers.contains('password'),
+                        canAct: true,
+                        isBusy: _isLinking,
+                        onLink: () => _showLinkEmailPasswordDialog(
+                            user?.email ?? ''),
+                        onUnlink: () => _confirmUnlink(
+                            'password', context.l10n.labelEmailPassword),
+                      ),
+                    ],
+                  );
+                }),
+                const Divider(),
                 ListTile(
                   leading: const Icon(Icons.import_export_outlined),
                   title: Text(context.l10n.labelImportExport),
@@ -326,6 +575,56 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+// One row in the Linked accounts section.
+class _ProviderTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isLinked;
+  final bool canAct;   // false on desktop for Google (no GSI support)
+  final bool isBusy;
+  final VoidCallback onLink;
+  final VoidCallback onUnlink;
+
+  const _ProviderTile({
+    required this.icon,
+    required this.label,
+    required this.isLinked,
+    required this.canAct,
+    required this.isBusy,
+    required this.onLink,
+    required this.onUnlink,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final scheme = Theme.of(context).colorScheme;
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(label),
+      subtitle: Text(
+        isLinked ? l10n.labelLinked : l10n.labelNotLinked,
+        style: TextStyle(
+          color: isLinked ? scheme.primary : scheme.onSurfaceVariant,
+          fontSize: 12,
+        ),
+      ),
+      trailing: canAct
+          ? isLinked
+              ? TextButton(
+                  onPressed: isBusy ? null : onUnlink,
+                  child: Text(l10n.actionUnlink,
+                      style: TextStyle(color: scheme.error)),
+                )
+              : FilledButton.tonal(
+                  onPressed: isBusy ? null : onLink,
+                  child: Text(l10n.actionLink),
+                )
+          : null,
     );
   }
 }

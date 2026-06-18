@@ -81,6 +81,65 @@ class FirebaseAuthRepository implements AuthRepository {
     }
   }
 
+  // --- Account linking -------------------------------------------------------
+
+  @override
+  List<String> getLinkedProviderIds() =>
+      _auth.currentUser?.providerData.map((p) => p.providerId).toList() ?? [];
+
+  @override
+  Future<bool> linkWithGoogle() async {
+    try {
+      _logger.i('Linking Google to existing account');
+      final googleAccount = await GoogleSignIn.instance.authenticate();
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleAccount.authentication.idToken,
+      );
+      await _auth.currentUser!.linkWithCredential(credential);
+      return true;
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) return false;
+      _logger.e('Google link cancelled or failed: ${e.code}');
+      throw AppException('Google link failed', code: e.code.toString());
+    } on FirebaseAuthException catch (e) {
+      _logger.e('Firebase link failed: ${e.code}');
+      throw AppException(e.message ?? 'Link failed', code: e.code);
+    }
+  }
+
+  @override
+  Future<void> linkWithEmailPassword({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      _logger.i('Linking email/password to existing account');
+      final credential =
+          EmailAuthProvider.credential(email: email, password: password);
+      await _auth.currentUser!.linkWithCredential(credential);
+    } on FirebaseAuthException catch (e) {
+      _logger.e('Email/password link failed: ${e.code}');
+      throw AppException(e.message ?? 'Link failed', code: e.code);
+    }
+  }
+
+  @override
+  Future<void> unlinkProvider(String providerId) async {
+    if (getLinkedProviderIds().length <= 1) {
+      throw AppException(
+        'Cannot remove the only sign-in method',
+        code: 'cannot-unlink-only-provider',
+      );
+    }
+    try {
+      _logger.i('Unlinking provider: $providerId');
+      await _auth.currentUser!.unlink(providerId);
+    } on FirebaseAuthException catch (e) {
+      _logger.e('Unlink failed: ${e.code}');
+      throw AppException(e.message ?? 'Unlink failed', code: e.code);
+    }
+  }
+
   @override
   Future<void> signOut() async {
     try {

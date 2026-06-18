@@ -29,6 +29,25 @@ abstract class AuthRepository {
 
   Future<void> signOut();
 
+  // --- Account linking -------------------------------------------------------
+
+  // Returns provider IDs currently linked to the signed-in account.
+  // Known values: 'google.com' (Google), 'password' (email & password).
+  List<String> getLinkedProviderIds();
+
+  // Link Google as an additional sign-in method. Returns false if cancelled.
+  Future<bool> linkWithGoogle();
+
+  // Link an email & password credential to the current account.
+  Future<void> linkWithEmailPassword({
+    required String email,
+    required String password,
+  });
+
+  // Remove a linked provider. Throws AppException with code
+  // 'cannot-unlink-only-provider' if this would leave the account with none.
+  Future<void> unlinkProvider(String providerId);
+
   Future<void> sendEmailVerification();
 
   Future<void> resetPassword(String email);

@@ -2860,6 +2860,120 @@ abstract class AppLocalizations {
   /// **'Import failed. Please try again.'**
   String get errorImportFailed;
 
+  /// No description provided for @titleLinkedAccounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked accounts'**
+  String get titleLinkedAccounts;
+
+  /// No description provided for @labelGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Google'**
+  String get labelGoogle;
+
+  /// No description provided for @labelEmailPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Email & password'**
+  String get labelEmailPassword;
+
+  /// No description provided for @labelLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked'**
+  String get labelLinked;
+
+  /// No description provided for @labelNotLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'Not linked'**
+  String get labelNotLinked;
+
+  /// No description provided for @actionLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get actionLink;
+
+  /// No description provided for @actionUnlink.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink'**
+  String get actionUnlink;
+
+  /// No description provided for @titleAddEmailPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Add email & password'**
+  String get titleAddEmailPassword;
+
+  /// No description provided for @messageAddEmailPasswordInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a password so you can also sign in with your email address.'**
+  String get messageAddEmailPasswordInfo;
+
+  /// No description provided for @messageAccountLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in method added.'**
+  String get messageAccountLinked;
+
+  /// No description provided for @messageAccountUnlinked.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in method removed.'**
+  String get messageAccountUnlinked;
+
+  /// No description provided for @titleConfirmUnlink.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove sign-in method?'**
+  String get titleConfirmUnlink;
+
+  /// No description provided for @messageConfirmUnlink.
+  ///
+  /// In en, this message translates to:
+  /// **'You won’t be able to sign in with {provider} after this.'**
+  String messageConfirmUnlink(String provider);
+
+  /// No description provided for @errorCannotUnlinkOnlyMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'You can’t remove your only sign-in method.'**
+  String get errorCannotUnlinkOnlyMethod;
+
+  /// No description provided for @errorProviderAlreadyLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'This sign-in method is already linked to your account.'**
+  String get errorProviderAlreadyLinked;
+
+  /// No description provided for @errorCredentialAlreadyInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'This Google account is already linked to a different user.'**
+  String get errorCredentialAlreadyInUse;
+
+  /// No description provided for @errorLinkFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not link account. Please try again.'**
+  String get errorLinkFailed;
+
+  /// No description provided for @errorUnlinkFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not remove sign-in method. Please try again.'**
+  String get errorUnlinkFailed;
+
+  /// No description provided for @messageRecentLoginRequiredForLinking.
+  ///
+  /// In en, this message translates to:
+  /// **'Please sign out and sign back in before changing sign-in methods.'**
+  String get messageRecentLoginRequiredForLinking;
+
   /// No description provided for @titleSendReport.
   ///
   /// In en, this message translates to:

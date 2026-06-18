@@ -6,8 +6,6 @@ import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/question_template_provider.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
-import 'package:flash_me/widgets/offline_banner.dart';
-
 // Characters that are valid in a templateId (alphanumeric, hyphen, underscore).
 final _templateIdPattern = RegExp(r'^[a-zA-Z0-9_-]+$');
 
@@ -382,7 +380,6 @@ class _QuestionTemplateFormScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const OfflineBanner(),
                 // --- Template metadata ---
                 Text(l10n.titleTemplateDetails,
                     style: Theme.of(context).textTheme.titleMedium),

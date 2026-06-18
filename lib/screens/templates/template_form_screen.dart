@@ -8,7 +8,6 @@ import 'package:flash_me/providers/question_template_provider.dart';
 import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
-import 'package:flash_me/widgets/offline_banner.dart';
 
 // ---------------------------------------------------------------------------
 // _TplQuestionState — mutable holder for one question while the template form
@@ -534,7 +533,6 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const OfflineBanner(),
               // --- Template metadata ---
               Text(l10n.titleTemplateDetails,
                   style: Theme.of(context).textTheme.titleMedium),

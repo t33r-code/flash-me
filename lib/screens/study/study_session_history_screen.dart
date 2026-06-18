@@ -5,7 +5,6 @@ import 'package:flash_me/models/study_session.dart';
 import 'package:flash_me/providers/study_session_provider.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
-import 'package:flash_me/widgets/offline_banner.dart';
 
 // ---------------------------------------------------------------------------
 // StudySessionHistoryScreen — list of all past sessions for a single set.
@@ -23,33 +22,26 @@ class StudySessionHistoryScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.titleSetHistory(cardSet.name))),
-      body: Column(
-        children: [
-          const OfflineBanner(),
-          Expanded(
-            child: historyAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, _) =>
-                  Center(child: Text(context.l10n.errorFailedLoadHistory)),
-              data: (sessions) => sessions.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Text(
-                          context.l10n.messageNoSessionsYet,
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(8),
-                      itemCount: sessions.length,
-                      itemBuilder: (ctx, i) =>
-                          _SessionHistoryTile(session: sessions[i]),
-                    ),
-            ),
-          ),
-        ],
+      body: historyAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, _) =>
+            Center(child: Text(context.l10n.errorFailedLoadHistory)),
+        data: (sessions) => sessions.isEmpty
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Text(
+                    context.l10n.messageNoSessionsYet,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.all(8),
+                itemCount: sessions.length,
+                itemBuilder: (ctx, i) =>
+                    _SessionHistoryTile(session: sessions[i]),
+              ),
       ),
     );
   }

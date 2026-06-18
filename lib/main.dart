@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flash_me/l10n/app_localizations.dart';
+import 'package:flash_me/providers/connectivity_provider.dart';
 import 'package:flash_me/utils/extensions.dart';
+import 'package:flash_me/widgets/offline_banner.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -122,6 +124,28 @@ class MyApp extends ConsumerWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ref.watch(themeModeProvider),
       debugShowCheckedModeBanner: false,
+      // Global offline banner — sits above all routes so it appears at a
+      // consistent position regardless of whether a screen has an AppBar.
+      // When offline, the banner consumes the top safe-area inset and
+      // MediaQuery.removePadding tells inner Scaffolds not to double-count it.
+      builder: (context, child) => Consumer(
+        builder: (_, ref, _) {
+          final isOnline = ref.watch(isOnlineProvider);
+          if (isOnline) return child!;
+          return Column(
+            children: [
+              const OfflineBanner(),
+              Expanded(
+                child: MediaQuery.removePadding(
+                  context: context,
+                  removeTop: true,
+                  child: child!,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
       // authStateProvider now emits a uid String? — null means signed out.
       home: authState.when(
         data: (uid) => uid != null ? const MainScreen() : const AuthScreen(),

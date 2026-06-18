@@ -8,7 +8,6 @@ import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/widgets/tag_input_field.dart';
 import 'package:flash_me/widgets/language_picker.dart';
-import 'package:flash_me/widgets/offline_banner.dart';
 
 // ---------------------------------------------------------------------------
 // SetFormScreen — create or edit a CardSet.
@@ -219,7 +218,6 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const OfflineBanner(),
               // --- Name ---
               TextFormField(
                 controller: _nameController,

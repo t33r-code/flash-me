@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/languages.dart';
 
 // Sentinel returned when the user picks "Not set" — lets us distinguish
@@ -35,7 +36,7 @@ class LanguagePicker extends StatelessWidget {
           enabled: enabled,
         ),
         child: Text(
-          displayName ?? 'Not set',
+          displayName ?? context.l10n.labelNotSet,
           style: displayName == null
               ? TextStyle(color: Theme.of(context).hintColor)
               : null,
@@ -142,7 +143,7 @@ class _LanguageSearchSheetState extends State<_LanguageSearchSheet> {
           // "Not set" always visible above the filtered list.
           ListTile(
             leading: const Icon(Icons.block_outlined),
-            title: const Text('Not set'),
+            title: Text(context.l10n.labelNotSet),
             selected: widget.currentValue == null,
             onTap: () => Navigator.of(ctx).pop(_kClear),
           ),

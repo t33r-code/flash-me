@@ -2853,6 +2853,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Import failed. Please try again.'**
   String get errorImportFailed;
+
+  /// No description provided for @titleSendReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Report'**
+  String get titleSendReport;
+
+  /// No description provided for @labelFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback'**
+  String get labelFeedback;
+
+  /// No description provided for @labelIssue.
+  ///
+  /// In en, this message translates to:
+  /// **'Issue'**
+  String get labelIssue;
+
+  /// No description provided for @labelSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Subject'**
+  String get labelSubject;
+
+  /// No description provided for @labelMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Message'**
+  String get labelMessage;
+
+  /// No description provided for @labelIncludeAppLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Include app logs'**
+  String get labelIncludeAppLogs;
+
+  /// No description provided for @messageIncludeAppLogsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Helps diagnose technical issues'**
+  String get messageIncludeAppLogsSubtitle;
+
+  /// No description provided for @actionSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get actionSend;
+
+  /// No description provided for @messageReportSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you — your report has been sent.'**
+  String get messageReportSent;
+
+  /// No description provided for @errorCouldNotSendReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not send report. Please try again.'**
+  String get errorCouldNotSendReport;
 }
 
 class _AppLocalizationsDelegate

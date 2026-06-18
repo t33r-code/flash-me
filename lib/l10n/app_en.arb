@@ -762,5 +762,16 @@
       "count": {"type": "int"}
     }
   },
-  "errorImportFailed": "Import failed. Please try again."
+  "errorImportFailed": "Import failed. Please try again.",
+
+  "titleSendReport": "Send Report",
+  "labelFeedback": "Feedback",
+  "labelIssue": "Issue",
+  "labelSubject": "Subject",
+  "labelMessage": "Message",
+  "labelIncludeAppLogs": "Include app logs",
+  "messageIncludeAppLogsSubtitle": "Helps diagnose technical issues",
+  "actionSend": "Send",
+  "messageReportSent": "Thank you — your report has been sent.",
+  "errorCouldNotSendReport": "Could not send report. Please try again."
 }

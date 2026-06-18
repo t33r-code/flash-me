@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flash_me/providers/connectivity_provider.dart';
 import 'package:flash_me/utils/extensions.dart';
+import 'package:flash_me/widgets/offline_banner.dart';
 import 'package:flash_me/screens/sets/sets_screen.dart';
 import 'package:flash_me/screens/cards/my_cards_screen.dart';
 import 'package:flash_me/screens/study/study_screen.dart';
@@ -31,13 +31,11 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isOnline = ref.watch(isOnlineProvider);
-
     return Scaffold(
       body: Column(
         children: [
           // Offline banner — visible only when all network interfaces are down.
-          if (!isOnline) const _OfflineBanner(),
+          const OfflineBanner(),
           // Tab content — Expanded so the Stack fills remaining vertical space.
           Expanded(
             child: Stack(
@@ -87,37 +85,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             label: context.l10n.navProfile,
           ),
         ],
-      ),
-    );
-  }
-}
-
-// Slim banner shown at the top of the app when the device has no network.
-class _OfflineBanner extends StatelessWidget {
-  const _OfflineBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return ColoredBox(
-      color: scheme.surfaceContainerHighest,
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          child: Row(
-            children: [
-              Icon(Icons.wifi_off, size: 16, color: scheme.onSurfaceVariant),
-              const SizedBox(width: 8),
-              Text(
-                context.l10n.messageOfflineBanner,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/widgets/help_menu_button.dart';
+import 'package:flash_me/widgets/offline_banner.dart';
 
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/import_diff.dart';
@@ -46,6 +47,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const OfflineBanner(),
           // ── Import ──────────────────────────────────────────────────────
           _SectionHeader(title: context.l10n.titleImport, icon: Icons.upload_file_outlined),
           const SizedBox(height: 8),

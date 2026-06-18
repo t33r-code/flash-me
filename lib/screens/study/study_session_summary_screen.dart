@@ -11,6 +11,7 @@ import 'package:flash_me/screens/study/study_session_screen.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/transitions.dart';
+import 'package:flash_me/widgets/offline_banner.dart';
 
 // ---------------------------------------------------------------------------
 // StudySessionSummaryScreen — shown immediately after session completion.
@@ -225,6 +226,7 @@ class _StudySessionSummaryScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const OfflineBanner(),
             // ── Hero area ────────────────────────────────────────────────
             _animated(
               _heroAnim,

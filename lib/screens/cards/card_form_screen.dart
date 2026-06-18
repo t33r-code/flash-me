@@ -21,6 +21,7 @@ import 'package:flash_me/models/question_template.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/screens/templates/template_form_screen.dart';
 import 'package:flash_me/widgets/language_picker.dart';
+import 'package:flash_me/widgets/offline_banner.dart';
 
 // ---------------------------------------------------------------------------
 // _TemplatePickerSheet — two-tab bottom sheet.
@@ -1044,6 +1045,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const OfflineBanner(),
               // --- Primary field ----
               Text(l10n.titlePrimaryField,
                   style: Theme.of(context).textTheme.titleMedium),

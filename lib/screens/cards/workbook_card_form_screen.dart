@@ -8,6 +8,7 @@ import 'package:flash_me/providers/tag_provider.dart';
 import 'package:flash_me/providers/workbook_card_provider.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
+import 'package:flash_me/widgets/offline_banner.dart';
 import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/widgets/language_picker.dart';
 import 'package:flash_me/widgets/tag_input_field.dart';
@@ -852,6 +853,7 @@ class _WorkbookCardFormScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const OfflineBanner(),
                 // --- Prompt -----------------------------------------------
                 Text(l10n.titlePromptSection,
                     style: Theme.of(context).textTheme.titleMedium),

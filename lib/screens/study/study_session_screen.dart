@@ -15,6 +15,7 @@ import 'package:flash_me/screens/study/study_session_summary_screen.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/transitions.dart';
+import 'package:flash_me/widgets/offline_banner.dart';
 
 // ---------------------------------------------------------------------------
 // StudySessionScreen — displays one card at a time from a StudySession.
@@ -257,16 +258,17 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     }
   }
 
-  // "End" button — saves as in_progress so the user can resume later, then pops.
-  Future<void> _endSession() async {
+  // "End" button — fires the final save and pops immediately without awaiting.
+  // The session is auto-saved every ~1 s, so at most one second of state is
+  // deferred to the background write. On platforms with Firestore persistence
+  // (mobile/web) the write queues locally and syncs when back online.
+  void _endSession() {
     if (_saving) return;
     setState(() => _saving = true);
     _saveDebounce?.cancel();
-    try {
-      await ref
-          .read(studySessionRepositoryProvider)
-          .saveSession(_session, _uid);
-    } catch (_) {}
+    ref.read(studySessionRepositoryProvider)
+        .saveSession(_session, _uid)
+        .ignore();
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -296,11 +298,11 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
       sessionStats: stats,
     );
 
-    try {
-      await ref
-          .read(studySessionRepositoryProvider)
-          .completeSession(completed, _uid);
-    } catch (_) {}
+    // Fire-and-forget: the summary screen uses local data, so we don't need
+    // to wait for Firestore before navigating.
+    ref.read(studySessionRepositoryProvider)
+        .completeSession(completed, _uid)
+        .ignore();
 
     if (mounted) {
       Navigator.of(context).pushReplacement(
@@ -329,6 +331,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
       ),
       body: Column(
         children: [
+          const OfflineBanner(),
           // Thin bar showing how far through the session the user is.
           LinearProgressIndicator(
             value: (_currentIndex + 1) / _total,

@@ -15,6 +15,7 @@ import 'package:flash_me/screens/study/study_session_summary_screen.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/transitions.dart';
+import 'package:flash_me/widgets/offline_banner.dart';
 
 // ---------------------------------------------------------------------------
 // StudySessionScreen — displays one card at a time from a StudySession.
@@ -258,6 +259,9 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   }
 
   // "End" button — saves as in_progress so the user can resume later, then pops.
+  // Timeout guards against Firestore writes hanging indefinitely when offline
+  // on platforms without local persistence (see #152). With persistence enabled
+  // the write resolves from cache immediately so the timeout never fires.
   Future<void> _endSession() async {
     if (_saving) return;
     setState(() => _saving = true);
@@ -265,7 +269,8 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     try {
       await ref
           .read(studySessionRepositoryProvider)
-          .saveSession(_session, _uid);
+          .saveSession(_session, _uid)
+          .timeout(const Duration(seconds: 3));
     } catch (_) {}
     if (mounted) Navigator.of(context).pop();
   }
@@ -299,7 +304,8 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     try {
       await ref
           .read(studySessionRepositoryProvider)
-          .completeSession(completed, _uid);
+          .completeSession(completed, _uid)
+          .timeout(const Duration(seconds: 3));
     } catch (_) {}
 
     if (mounted) {
@@ -329,6 +335,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
       ),
       body: Column(
         children: [
+          const OfflineBanner(),
           // Thin bar showing how far through the session the user is.
           LinearProgressIndicator(
             value: (_currentIndex + 1) / _total,

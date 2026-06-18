@@ -1,6 +1,8 @@
 {
   "@@locale": "en",
 
+  "messageOfflineBanner": "You're offline — studying from cached data",
+
   "statusLoading": "Loading...",
   "labelError": "Error",
   "labelSuccess": "Success",

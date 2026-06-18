@@ -9,6 +9,10 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get messageOfflineBanner =>
+      'You\'re offline — studying from cached data';
+
+  @override
   String get statusLoading => 'Loading...';
 
   @override

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flash_me/providers/connectivity_provider.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/screens/sets/sets_screen.dart';
 import 'package:flash_me/screens/cards/my_cards_screen.dart';
@@ -9,14 +11,14 @@ import 'package:flash_me/screens/profile_screen.dart';
 // Root shell — owns the BottomNavigationBar and switches between the five tabs.
 // IndexedStack keeps each tab's widget tree alive so scroll positions and state
 // are preserved when the user switches tabs.
-class MainScreen extends StatefulWidget {
+class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key});
 
   @override
-  State<MainScreen> createState() => _MainScreenState();
+  ConsumerState<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends ConsumerState<MainScreen> {
   int _selectedIndex = 0;
 
   static const List<Widget> _tabs = [
@@ -29,20 +31,29 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isOnline = ref.watch(isOnlineProvider);
+
     return Scaffold(
-      // Stack + AnimatedOpacity preserves each tab's state (equivalent to
-      // IndexedStack) while crossfading between them on tab switch.
-      body: Stack(
-        fit: StackFit.expand,
-        children: List.generate(_tabs.length, (i) => AnimatedOpacity(
-          opacity: i == _selectedIndex ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          child: IgnorePointer(
-            ignoring: i != _selectedIndex,
-            child: _tabs[i],
+      body: Column(
+        children: [
+          // Offline banner — visible only when all network interfaces are down.
+          if (!isOnline) const _OfflineBanner(),
+          // Tab content — Expanded so the Stack fills remaining vertical space.
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: List.generate(_tabs.length, (i) => AnimatedOpacity(
+                opacity: i == _selectedIndex ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                child: IgnorePointer(
+                  ignoring: i != _selectedIndex,
+                  child: _tabs[i],
+                ),
+              )),
+            ),
           ),
-        )),
+        ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
@@ -76,6 +87,37 @@ class _MainScreenState extends State<MainScreen> {
             label: context.l10n.navProfile,
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Slim banner shown at the top of the app when the device has no network.
+class _OfflineBanner extends StatelessWidget {
+  const _OfflineBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return ColoredBox(
+      color: scheme.surfaceContainerHighest,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          child: Row(
+            children: [
+              Icon(Icons.wifi_off, size: 16, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Text(
+                context.l10n.messageOfflineBanner,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

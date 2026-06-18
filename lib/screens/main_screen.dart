@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/utils/extensions.dart';
-import 'package:flash_me/widgets/offline_banner.dart';
 import 'package:flash_me/screens/sets/sets_screen.dart';
 import 'package:flash_me/screens/cards/my_cards_screen.dart';
 import 'package:flash_me/screens/study/study_screen.dart';
@@ -11,14 +9,14 @@ import 'package:flash_me/screens/profile_screen.dart';
 // Root shell — owns the BottomNavigationBar and switches between the five tabs.
 // IndexedStack keeps each tab's widget tree alive so scroll positions and state
 // are preserved when the user switches tabs.
-class MainScreen extends ConsumerStatefulWidget {
+class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
   @override
-  ConsumerState<MainScreen> createState() => _MainScreenState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends ConsumerState<MainScreen> {
+class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
   static const List<Widget> _tabs = [
@@ -32,26 +30,17 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          // Offline banner — visible only when all network interfaces are down.
-          const OfflineBanner(),
-          // Tab content — Expanded so the Stack fills remaining vertical space.
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: List.generate(_tabs.length, (i) => AnimatedOpacity(
-                opacity: i == _selectedIndex ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOut,
-                child: IgnorePointer(
-                  ignoring: i != _selectedIndex,
-                  child: _tabs[i],
-                ),
-              )),
-            ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: List.generate(_tabs.length, (i) => AnimatedOpacity(
+          opacity: i == _selectedIndex ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          child: IgnorePointer(
+            ignoring: i != _selectedIndex,
+            child: _tabs[i],
           ),
-        ],
+        )),
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,

@@ -15,7 +15,6 @@ import 'package:flash_me/screens/study/study_session_summary_screen.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/transitions.dart';
-import 'package:flash_me/widgets/offline_banner.dart';
 
 // ---------------------------------------------------------------------------
 // StudySessionScreen — displays one card at a time from a StudySession.
@@ -331,7 +330,6 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
       ),
       body: Column(
         children: [
-          const OfflineBanner(),
           // Thin bar showing how far through the session the user is.
           LinearProgressIndicator(
             value: (_currentIndex + 1) / _total,

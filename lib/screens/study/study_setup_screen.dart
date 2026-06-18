@@ -12,7 +12,6 @@ import 'package:flash_me/screens/study/study_session_screen.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/transitions.dart';
-import 'package:flash_me/widgets/offline_banner.dart';
 
 
 // ---------------------------------------------------------------------------
@@ -174,7 +173,6 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const OfflineBanner(),
                   // ── Set info card ──────────────────────────────────────
                   Card(
                     child: Padding(

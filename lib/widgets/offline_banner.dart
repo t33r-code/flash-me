@@ -1,19 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flash_me/providers/connectivity_provider.dart';
 import 'package:flash_me/utils/extensions.dart';
 
-// Slim top strip shown app-wide when the device has no network connection.
-// Wraps its content in SafeArea(bottom: false) so it sits flush against the
-// status bar on notched devices without clipping the inner text.
-class OfflineBanner extends ConsumerWidget {
+// Pure UI widget. Visibility is controlled by the root MaterialApp builder —
+// this widget just renders the strip content and is never shown when online.
+class OfflineBanner extends StatelessWidget {
   const OfflineBanner({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isOnline = ref.watch(isOnlineProvider);
-    if (isOnline) return const SizedBox.shrink();
-
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return ColoredBox(
       color: scheme.surfaceContainerHighest,

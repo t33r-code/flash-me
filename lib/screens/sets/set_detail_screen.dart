@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/widgets/help_menu_button.dart';
-import 'package:flash_me/widgets/offline_banner.dart';
 import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/models/workbook_card.dart';
 import 'package:flash_me/providers/auth_provider.dart';
@@ -379,12 +378,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
           const HelpMenuButton(HelpContext.sets),
         ],
       ),
-      body: Column(
-        children: [
-          const OfflineBanner(),
-          Expanded(child: body),
-        ],
-      ),
+      body: body,
       floatingActionButton: FloatingActionButton(
         heroTag: 'addCards',
         onPressed: _showCardPicker,

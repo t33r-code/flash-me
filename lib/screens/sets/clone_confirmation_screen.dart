@@ -8,7 +8,6 @@ import 'package:flash_me/providers/set_acquisition_provider.dart';
 import 'package:flash_me/utils/exceptions.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
-import 'package:flash_me/widgets/offline_banner.dart';
 
 // ---------------------------------------------------------------------------
 // CloneConfirmationScreen — shown when the user taps a Market set tile.
@@ -117,7 +116,6 @@ class _CloneConfirmationScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const OfflineBanner(),
             _SetHeader(set: widget.marketSet, creator: widget.creatorDisplayName),
             const SizedBox(height: 32),
             const Divider(),
@@ -168,7 +166,6 @@ class _CloneConfirmationScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const OfflineBanner(),
             _SetHeader(set: widget.marketSet, creator: widget.creatorDisplayName),
             const SizedBox(height: 24),
             const Divider(),

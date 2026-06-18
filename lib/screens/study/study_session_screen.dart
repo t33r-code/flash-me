@@ -258,20 +258,17 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     }
   }
 
-  // "End" button — saves as in_progress so the user can resume later, then pops.
-  // Timeout guards against Firestore writes hanging indefinitely when offline
-  // on platforms without local persistence (see #152). With persistence enabled
-  // the write resolves from cache immediately so the timeout never fires.
-  Future<void> _endSession() async {
+  // "End" button — fires the final save and pops immediately without awaiting.
+  // The session is auto-saved every ~1 s, so at most one second of state is
+  // deferred to the background write. On platforms with Firestore persistence
+  // (mobile/web) the write queues locally and syncs when back online.
+  void _endSession() {
     if (_saving) return;
     setState(() => _saving = true);
     _saveDebounce?.cancel();
-    try {
-      await ref
-          .read(studySessionRepositoryProvider)
-          .saveSession(_session, _uid)
-          .timeout(const Duration(seconds: 3));
-    } catch (_) {}
+    ref.read(studySessionRepositoryProvider)
+        .saveSession(_session, _uid)
+        .ignore();
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -301,12 +298,11 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
       sessionStats: stats,
     );
 
-    try {
-      await ref
-          .read(studySessionRepositoryProvider)
-          .completeSession(completed, _uid)
-          .timeout(const Duration(seconds: 3));
-    } catch (_) {}
+    // Fire-and-forget: the summary screen uses local data, so we don't need
+    // to wait for Firestore before navigating.
+    ref.read(studySessionRepositoryProvider)
+        .completeSession(completed, _uid)
+        .ignore();
 
     if (mounted) {
       Navigator.of(context).pushReplacement(

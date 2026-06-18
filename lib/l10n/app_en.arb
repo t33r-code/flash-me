@@ -766,6 +766,31 @@
   },
   "errorImportFailed": "Import failed. Please try again.",
 
+  "titleLinkedAccounts": "Linked accounts",
+  "labelGoogle": "Google",
+  "labelEmailPassword": "Email & password",
+  "labelLinked": "Linked",
+  "labelNotLinked": "Not linked",
+  "actionLink": "Link",
+  "actionUnlink": "Unlink",
+  "titleAddEmailPassword": "Add email & password",
+  "messageAddEmailPasswordInfo": "Create a password so you can also sign in with your email address.",
+  "messageAccountLinked": "Sign-in method added.",
+  "messageAccountUnlinked": "Sign-in method removed.",
+  "titleConfirmUnlink": "Remove sign-in method?",
+  "messageConfirmUnlink": "You won’t be able to sign in with {provider} after this.",
+  "@messageConfirmUnlink": {
+    "placeholders": {
+      "provider": {"type": "String"}
+    }
+  },
+  "errorCannotUnlinkOnlyMethod": "You can’t remove your only sign-in method.",
+  "errorProviderAlreadyLinked": "This sign-in method is already linked to your account.",
+  "errorCredentialAlreadyInUse": "This Google account is already linked to a different user.",
+  "errorLinkFailed": "Could not link account. Please try again.",
+  "errorUnlinkFailed": "Could not remove sign-in method. Please try again.",
+  "messageRecentLoginRequiredForLinking": "Please sign out and sign back in before changing sign-in methods.",
+
   "titleSendReport": "Send Report",
   "labelFeedback": "Feedback",
   "labelIssue": "Issue",

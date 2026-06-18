@@ -1651,6 +1651,71 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorImportFailed => 'Import failed. Please try again.';
 
   @override
+  String get titleLinkedAccounts => 'Linked accounts';
+
+  @override
+  String get labelGoogle => 'Google';
+
+  @override
+  String get labelEmailPassword => 'Email & password';
+
+  @override
+  String get labelLinked => 'Linked';
+
+  @override
+  String get labelNotLinked => 'Not linked';
+
+  @override
+  String get actionLink => 'Link';
+
+  @override
+  String get actionUnlink => 'Unlink';
+
+  @override
+  String get titleAddEmailPassword => 'Add email & password';
+
+  @override
+  String get messageAddEmailPasswordInfo =>
+      'Create a password so you can also sign in with your email address.';
+
+  @override
+  String get messageAccountLinked => 'Sign-in method added.';
+
+  @override
+  String get messageAccountUnlinked => 'Sign-in method removed.';
+
+  @override
+  String get titleConfirmUnlink => 'Remove sign-in method?';
+
+  @override
+  String messageConfirmUnlink(String provider) {
+    return 'You won’t be able to sign in with $provider after this.';
+  }
+
+  @override
+  String get errorCannotUnlinkOnlyMethod =>
+      'You can’t remove your only sign-in method.';
+
+  @override
+  String get errorProviderAlreadyLinked =>
+      'This sign-in method is already linked to your account.';
+
+  @override
+  String get errorCredentialAlreadyInUse =>
+      'This Google account is already linked to a different user.';
+
+  @override
+  String get errorLinkFailed => 'Could not link account. Please try again.';
+
+  @override
+  String get errorUnlinkFailed =>
+      'Could not remove sign-in method. Please try again.';
+
+  @override
+  String get messageRecentLoginRequiredForLinking =>
+      'Please sign out and sign back in before changing sign-in methods.';
+
+  @override
   String get titleSendReport => 'Send Report';
 
   @override

@@ -18,6 +18,27 @@ Tap **Sign in with Google** on the sign-in screen and choose your Google account
 
 ---
 
+## Linked Accounts { #linked-accounts }
+
+You can link multiple sign-in methods to your account so you can use either one to sign in.
+
+1. Tap the **Profile** tab (:material-account-circle-outline:).
+2. Under **Linked accounts**, you'll see **Google** and **Email & password**, each showing whether they're currently linked.
+
+### Link Google to an email/password account
+
+Tap **Link** next to **Google** and follow the Google Sign-In prompt. Once linked, you can sign in with either your email/password or Google.
+
+### Add email & password to a Google account
+
+Tap **Link** next to **Email & password**. Enter your email address and choose a password. Once saved, you can sign in with either method.
+
+### Remove a linked sign-in method
+
+Tap **Unlink** next to the method you want to remove. You'll be asked to confirm. You cannot remove a sign-in method if it's the only one on your account.
+
+---
+
 ## Signing Out { #sign-out }
 
 Tap the **Profile** tab (:material-account-circle-outline:) and scroll to the bottom of the screen. Tap **Sign Out**. Your data is stored in the cloud and will be waiting when you sign back in.

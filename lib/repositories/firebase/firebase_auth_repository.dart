@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:logger/logger.dart';
 import 'package:flash_me/models/user.dart';
@@ -56,10 +57,23 @@ class FirebaseAuthRepository implements AuthRepository {
     }
   }
 
-  // google_sign_in v7: singleton pattern, authenticate() not signIn().
+  // google_sign_in v7: authenticate() is mobile-only.
+  // On web the plugin throws UnimplementedError — use Firebase's popup flow instead.
   // Returns false if the user cancelled — not treated as an error.
   @override
   Future<bool> signInWithGoogle() async {
+    if (kIsWeb) {
+      try {
+        _logger.i('Starting Google Sign-In (web popup)');
+        final result = await _auth.signInWithPopup(GoogleAuthProvider());
+        if (result.user != null) await _createUserDocument(result.user!);
+        return true;
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'popup-closed-by-user') return false;
+        _logger.e('Google sign-in (web) failed: ${e.code}');
+        throw AppException(e.message ?? 'Sign-in failed', code: e.code);
+      }
+    }
     try {
       _logger.i('Starting Google Sign-In');
       final googleAccount = await GoogleSignIn.instance.authenticate();
@@ -78,6 +92,76 @@ class FirebaseAuthRepository implements AuthRepository {
     } on FirebaseAuthException catch (e) {
       _logger.e('Firebase auth failed after Google sign-in: ${e.code}');
       throw AppException(e.message ?? 'Sign-in failed', code: e.code);
+    }
+  }
+
+  // --- Account linking -------------------------------------------------------
+
+  @override
+  List<String> getLinkedProviderIds() =>
+      _auth.currentUser?.providerData.map((p) => p.providerId).toList() ?? [];
+
+  @override
+  Future<bool> linkWithGoogle() async {
+    if (kIsWeb) {
+      try {
+        _logger.i('Linking Google to existing account (web popup)');
+        await _auth.currentUser!.linkWithPopup(GoogleAuthProvider());
+        return true;
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'popup-closed-by-user') return false;
+        _logger.e('Google link (web) failed: ${e.code}');
+        throw AppException(e.message ?? 'Link failed', code: e.code);
+      }
+    }
+    try {
+      _logger.i('Linking Google to existing account');
+      final googleAccount = await GoogleSignIn.instance.authenticate();
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleAccount.authentication.idToken,
+      );
+      await _auth.currentUser!.linkWithCredential(credential);
+      return true;
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) return false;
+      _logger.e('Google link cancelled or failed: ${e.code}');
+      throw AppException('Google link failed', code: e.code.toString());
+    } on FirebaseAuthException catch (e) {
+      _logger.e('Firebase link failed: ${e.code}');
+      throw AppException(e.message ?? 'Link failed', code: e.code);
+    }
+  }
+
+  @override
+  Future<void> linkWithEmailPassword({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      _logger.i('Linking email/password to existing account');
+      final credential =
+          EmailAuthProvider.credential(email: email, password: password);
+      await _auth.currentUser!.linkWithCredential(credential);
+    } on FirebaseAuthException catch (e) {
+      _logger.e('Email/password link failed: ${e.code}');
+      throw AppException(e.message ?? 'Link failed', code: e.code);
+    }
+  }
+
+  @override
+  Future<void> unlinkProvider(String providerId) async {
+    if (getLinkedProviderIds().length <= 1) {
+      throw AppException(
+        'Cannot remove the only sign-in method',
+        code: 'cannot-unlink-only-provider',
+      );
+    }
+    try {
+      _logger.i('Unlinking provider: $providerId');
+      await _auth.currentUser!.unlink(providerId);
+    } on FirebaseAuthException catch (e) {
+      _logger.e('Unlink failed: ${e.code}');
+      throw AppException(e.message ?? 'Unlink failed', code: e.code);
     }
   }
 

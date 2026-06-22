@@ -14,6 +14,8 @@
 // The emulator resets every time it restarts, so each `firebase emulators:start`
 // begins with a clean slate — no manual data teardown needed between full runs.
 
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -25,11 +27,29 @@ const authPort = 9099;
 
 bool _initialized = false;
 
+// Minimal FirebaseOptions for Linux CI runners, where DefaultFirebaseOptions
+// throws UnsupportedError. The emulator ignores apiKey/appId; only projectId
+// needs to match the --project flag passed to `firebase emulators:exec`.
+const _linuxOptions = FirebaseOptions(
+  apiKey: 'emulator-only',
+  appId: '1:000000000000:linux:000000000000',
+  messagingSenderId: '000000000000',
+  projectId: 'demo-test',
+  storageBucket: 'demo-test.appspot.com',
+);
+
 /// Initialise Firebase once per test process and point it at the local emulators.
 /// Safe to call from multiple setUpAll() blocks — subsequent calls are no-ops.
+///
+/// On Linux, DefaultFirebaseOptions is not configured, so a hardcoded demo-project
+/// config is used instead. This matches `firebase emulators:exec --project demo-test`
+/// in the CI workflow.
 Future<void> initTestFirebase() async {
   if (_initialized) return;
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  final options = Platform.isLinux
+      ? _linuxOptions
+      : DefaultFirebaseOptions.currentPlatform;
+  await Firebase.initializeApp(options: options);
   await FirebaseAuth.instance.useAuthEmulator(emulatorHost, authPort);
   FirebaseFirestore.instance.useFirestoreEmulator(emulatorHost, firestorePort);
   _initialized = true;

@@ -244,6 +244,63 @@ flutter run -d chrome
   firebase emulators:start
   ```
 
+## Integration Tests (Firebase Emulator)
+
+Integration tests hit a local Firebase emulator instead of production, so they run without credentials and without affecting real data.
+
+### Prerequisites
+
+**Java** is required by the Firestore emulator. Verify with:
+```bash
+java -version
+```
+If missing, install the [JDK](https://adoptium.net/) (version 11 or later).
+
+**Firebase CLI** must be installed and logged in:
+```bash
+npm install -g firebase-tools
+firebase login
+```
+
+**Emulator components** — install once per machine:
+```bash
+firebase emulators:install --only auth,firestore
+```
+
+### Running the tests
+
+**Step 1 — start the emulator** (keep this terminal open):
+```bash
+firebase emulators:start --only auth,firestore
+```
+The emulator UI is available at http://localhost:4000. Emulator data resets every time it restarts, so each fresh start is a clean slate.
+
+**Step 2 — run all integration tests** (separate terminal):
+```bash
+flutter test integration_test/all_tests.dart -d windows
+```
+
+Run a single test file for faster iteration:
+```bash
+flutter test integration_test/repositories/card_repository_test.dart -d windows
+```
+
+### What the tests cover
+
+| File | Coverage |
+|------|----------|
+| `card_repository_test.dart` | Card CRUD, stream, find-by-word |
+| `card_set_repository_test.dart` | Set CRUD, add/remove card, membership stream |
+| `study_session_repository_test.dart` | Session create/save/complete, history ordering |
+| `template_repository_test.dart` | Template CRUD, stream |
+| `firestore_rules_test.dart` | Cross-user isolation, public set access, unauthenticated block |
+
+### Notes
+
+- The first build is slow (~3–5 min on Windows); subsequent runs use the incremental cache (~15 s).
+- All test files can also run individually; `all_tests.dart` bundles them to avoid a known Flutter-on-Windows issue where the device manager stalls between per-file app launches.
+- Do **not** point `flutter test` at the `integration_test/` directory directly — use `all_tests.dart` instead.
+
 ## Next: Phase 1 Implementation
 
 After Firebase is configured, proceed with:

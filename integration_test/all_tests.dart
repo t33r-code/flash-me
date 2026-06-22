@@ -22,6 +22,7 @@ import 'repositories/template_repository_test.dart' as template_tests;
 import 'workflows/card_set_lifecycle_test.dart' as lifecycle_tests;
 import 'workflows/study_session_workflow_test.dart' as workflow_tests;
 import 'workflows/import_export_workflow_test.dart' as impexp_tests;
+import 'workflows/import_export_fields_test.dart' as impexp_fields_tests;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -36,4 +37,5 @@ void main() {
   group('card_set_lifecycle', lifecycle_tests.main);
   group('study_session_workflow', workflow_tests.main);
   group('import_export_workflow', impexp_tests.main);
+  group('import_export_fields', impexp_fields_tests.main);
 }

@@ -1,1 +1,52 @@
-{"hosting":{"public":"docs-site/site","ignore":["firebase.json","**/.*"],"cleanUrls":true},"firestore":{"rules":"firestore.rules","indexes":"firestore.indexes.json"},"storage":{"rules":"storage.rules"},"flutter":{"platforms":{"android":{"default":{"projectId":"flash-me-7a1a2","appId":"1:1012255770120:android:e59e1a011f585cc220f3bd","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"flash-me-7a1a2","configurations":{"android":"1:1012255770120:android:e59e1a011f585cc220f3bd","ios":"1:1012255770120:ios:35b3767d4f9ca9a620f3bd","macos":"1:1012255770120:ios:35b3767d4f9ca9a620f3bd","web":"1:1012255770120:web:0d60f98d6bbb665020f3bd","windows":"1:1012255770120:web:d06cb6c0291fbca420f3bd"}}}}}}
+{
+  "hosting": {
+    "public": "docs-site/site",
+    "ignore": ["firebase.json", "**/.*"],
+    "cleanUrls": true
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "storage": {
+      "port": 9199
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    }
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "flash-me-7a1a2",
+          "appId": "1:1012255770120:android:e59e1a011f585cc220f3bd",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "flash-me-7a1a2",
+          "configurations": {
+            "android": "1:1012255770120:android:e59e1a011f585cc220f3bd",
+            "ios": "1:1012255770120:ios:35b3767d4f9ca9a620f3bd",
+            "macos": "1:1012255770120:ios:35b3767d4f9ca9a620f3bd",
+            "web": "1:1012255770120:web:0d60f98d6bbb665020f3bd",
+            "windows": "1:1012255770120:web:d06cb6c0291fbca420f3bd"
+          }
+        }
+      }
+    }
+  }
+}

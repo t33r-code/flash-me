@@ -60,8 +60,13 @@ service cloud.firestore {
 
     // Card sets are owned by their creator but public sets are readable by
     // any authenticated user so they can be browsed in the Market tab.
+    // resource == null guard: when the document does not exist, resource.data
+    // throws a null-value error in the rules engine instead of returning a
+    // "not found" snapshot. Allowing null-resource reads lets the SDK return
+    // doc.exists == false rather than a permission-denied error.
     match /sets/{setId} {
       allow read: if isAuth() && (
+          resource == null ||
           resource.data.userId == request.auth.uid ||
           resource.data.isPublic == true);
       allow update: if isAuth() && (
@@ -105,16 +110,22 @@ service cloud.firestore {
     }
 
     // Templates are private to the user who created them.
+    // read uses resource == null guard (see sets comment above).
     match /templates/{templateId} {
-      allow read, update, delete: if isAuth() &&
+      allow read: if isAuth() &&
+          (resource == null || resource.data.createdBy == request.auth.uid);
+      allow update, delete: if isAuth() &&
           resource.data.createdBy == request.auth.uid;
       allow create: if isAuth() &&
           request.resource.data.createdBy == request.auth.uid;
     }
 
     // Question templates are private to the user who created them.
+    // read uses resource == null guard (see sets comment above).
     match /questionTemplates/{templateId} {
-      allow read, update, delete: if isAuth() &&
+      allow read: if isAuth() &&
+          (resource == null || resource.data.createdBy == request.auth.uid);
+      allow update, delete: if isAuth() &&
           resource.data.createdBy == request.auth.uid;
       allow create: if isAuth() &&
           request.resource.data.createdBy == request.auth.uid;

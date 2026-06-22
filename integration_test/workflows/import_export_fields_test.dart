@@ -3,12 +3,16 @@
 // Completes the #88 acceptance criteria (minus media, which is tracked
 // separately in #160 and requires the Storage emulator).
 //
+// ZIPs are built in memory using the same serialisation format as ExportService
+// so that these tests run on all platforms including web (dart:io and
+// ExportService's file-delivery path are not available on web).
+//
 // Requires the Firebase emulator:
 //   firebase emulators:start --only auth,firestore
-// Run with: flutter test integration_test/all_tests.dart -d windows
+// Run all tests with: flutter test integration_test/all_tests.dart -d windows
+// CI runs with:       flutter test integration_test/all_tests.dart -d chrome
 
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
@@ -16,14 +20,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
 import 'package:flash_me/models/card_question.dart';
-import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/repositories/firebase/firebase_card_repository.dart';
 import 'package:flash_me/repositories/firebase/firebase_card_set_repository.dart';
 import 'package:flash_me/repositories/firebase/firebase_question_template_repository.dart';
 import 'package:flash_me/repositories/firebase/firebase_tag_repository.dart';
 import 'package:flash_me/repositories/firebase/firebase_template_repository.dart';
-import 'package:flash_me/services/export_service.dart';
 import 'package:flash_me/services/import_service.dart';
 import 'package:flash_me/utils/constants.dart';
 import '../firebase_test_config.dart';
@@ -58,6 +60,23 @@ void main() {
     return Uint8List.fromList(ZipEncoder().encode(archive)!);
   }
 
+  // Serialise a FlashCard to the ExportService wire format (toJson minus
+  // questionId, so importers generate fresh IDs on import).
+  Map<String, dynamic> cardToExportMap(FlashCard card) => {
+        'primaryWord': card.primaryWord,
+        'translation': card.translation,
+        'primaryWordHidden': card.primaryWordHidden,
+        'primaryImageUrl': null,
+        'primaryAudioUrl': null,
+        'questions': card.questions.map((q) {
+          final m = Map<String, dynamic>.from(q.toJson());
+          m.remove('questionId');
+          return m;
+        }).toList(),
+        'templateId': card.templateId,
+        'tags': card.tags,
+      };
+
   // Run the full analyze → execute pipeline with default options.
   Future<void> runImport(Uint8List zipBytes) async {
     final analysis = await ImportService().analyze(
@@ -90,52 +109,46 @@ void main() {
     for (final c in cards) { await cardRepo.deleteCard(c.id); }
   }
 
-  // ── Question-type round-trips via ExportService ────────────────────────────
+  // Creates a card in Firestore with [questions], serialises it to the
+  // ExportService format in memory, deletes the original, imports, and
+  // returns the reimported card for assertion.
+  Future<FlashCard> roundTrip(
+    String setName,
+    List<CardQuestion> questions,
+  ) async {
+    final card = await cardRepo.createCard(FlashCard(
+      id: '',
+      primaryWord: 'test_word',
+      translation: 'test_translation',
+      questions: questions,
+      tags: [],
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      createdBy: uid,
+    ));
+
+    final zipBytes = buildZip({
+      'version': '1.0',
+      'exportDate': DateTime.now().toUtc().toIso8601String(),
+      'set': {
+        'name': setName,
+        'tags': <String>[],
+        'cards': [cardToExportMap(card)],
+      },
+    });
+
+    await cardRepo.deleteCard(card.id);
+    await runImport(zipBytes);
+
+    final importedSet = await setRepo.findSetByName(setName, uid);
+    final importedCards =
+        await setRepo.watchCardsInSet(importedSet!.id, uid).first;
+    return importedCards.first;
+  }
+
+  // ── Question-type round-trips ──────────────────────────────────────────────
 
   group('question types round-trip', () {
-    // Creates a card with the given questions, exports it, deletes the
-    // originals, imports, and returns the reimported card for assertion.
-    Future<FlashCard> roundTrip(
-      String setName,
-      List<CardQuestion> questions,
-    ) async {
-      final card = await cardRepo.createCard(FlashCard(
-        id: '',
-        primaryWord: 'test_word',
-        translation: 'test_translation',
-        questions: questions,
-        tags: [],
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        createdBy: uid,
-      ));
-      final set = await setRepo.createSet(CardSet(
-        id: '',
-        userId: uid,
-        name: setName,
-        cardCount: 0,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ));
-      await setRepo.addCardToSet(setId: set.id, cardId: card.id, userId: uid);
-
-      // Export → read file → delete file.
-      final path = await ExportService().exportSet(set, [card]);
-      final zipBytes = await File(path!).readAsBytes();
-      await File(path).delete();
-
-      // Delete originals so the import treats them as new.
-      await setRepo.deleteSet(set.id, uid);
-      await cardRepo.deleteCard(card.id);
-
-      await runImport(zipBytes);
-
-      final importedSet = await setRepo.findSetByName(setName, uid);
-      final importedCards =
-          await setRepo.watchCardsInSet(importedSet!.id, uid).first;
-      return importedCards.first;
-    }
-
     test('text_input question survives round-trip', () async {
       const setName = 'Fields: TextInput';
       final q = TextInputQuestion(
@@ -249,23 +262,18 @@ void main() {
         updatedAt: DateTime.now(),
         createdBy: uid,
       ));
-      final set = await setRepo.createSet(CardSet(
-        id: '',
-        userId: uid,
-        name: setName,
-        cardCount: 0,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ));
-      await setRepo.addCardToSet(setId: set.id, cardId: card.id, userId: uid);
 
-      final path = await ExportService().exportSet(set, [card]);
-      final zipBytes = await File(path!).readAsBytes();
-      await File(path).delete();
+      final zipBytes = buildZip({
+        'version': '1.0',
+        'exportDate': DateTime.now().toUtc().toIso8601String(),
+        'set': {
+          'name': setName,
+          'tags': <String>[],
+          'cards': [cardToExportMap(card)],
+        },
+      });
 
-      await setRepo.deleteSet(set.id, uid);
       await cardRepo.deleteCard(card.id);
-
       await runImport(zipBytes);
 
       final importedSet = await setRepo.findSetByName(setName, uid);
@@ -315,11 +323,10 @@ void main() {
               'primaryWordHidden': false,
               'primaryImageUrl': null,
               'primaryAudioUrl': null,
-              // Reference the template by its ##id.
               'questions': [
                 {
                   'template': '##$templateId',
-                  'correctIndex': 1, // die Sonne
+                  'correctIndex': 1,
                 },
               ],
               'templateId': null,
@@ -331,16 +338,13 @@ void main() {
 
       await runImport(zip);
 
-      // The question template should now exist in Firestore.
       final templates = await questionTemplateRepo.getUserTemplates(uid);
       final created =
           templates.where((t) => t.templateId == templateId).toList();
       expect(created, hasLength(1));
       expect(created.first.name, 'Gender picker');
 
-      // The card should have the question expanded correctly.
       final importedSet = await setRepo.findSetByName(setName, uid);
-      expect(importedSet, isNotNull);
       final importedCards =
           await setRepo.watchCardsInSet(importedSet!.id, uid).first;
       expect(importedCards.first.questions.length, 1);
@@ -348,13 +352,10 @@ void main() {
       expect(q.options, ['der', 'die', 'das']);
       expect(q.correctIndex, 1);
 
-      // Re-importing should not duplicate the template.
+      // Re-importing must not duplicate the template.
       await runImport(zip);
       final templatesAfter = await questionTemplateRepo.getUserTemplates(uid);
-      expect(
-        templatesAfter.where((t) => t.templateId == templateId).length,
-        1,
-      );
+      expect(templatesAfter.where((t) => t.templateId == templateId).length, 1);
 
       await cleanup(setName);
     });
@@ -397,7 +398,7 @@ void main() {
       final templates = await templateRepo.watchUserTemplates(uid).first;
       expect(templates.any((t) => t.name == ctName), isTrue);
 
-      // Re-importing should not duplicate the card template.
+      // Re-importing must not duplicate the card template.
       await runImport(zip);
       final templatesAfter = await templateRepo.watchUserTemplates(uid).first;
       expect(templatesAfter.where((t) => t.name == ctName).length, 1);

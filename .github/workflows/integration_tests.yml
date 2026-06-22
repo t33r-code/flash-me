@@ -49,26 +49,17 @@ jobs:
           channel: stable
           cache: true
 
-      # GTK and related libraries are required to build and link the Flutter Linux target.
-      - name: Install Linux desktop dependencies
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
-
-      - name: Enable Flutter Linux desktop
-        run: flutter config --enable-linux-desktop
-
       - name: Install Flutter dependencies
         run: flutter pub get
 
       # `firebase emulators:exec` starts the emulator, runs the command, then shuts
       # it down. --project demo-test uses Firebase's demo-project prefix so no
       # real Firebase credentials are needed in CI.
-      # The Linux Firebase SDK is initialised with matching projectId: 'demo-test'
-      # in integration_test/firebase_test_config.dart.
+      # Tests run on Chrome (-d chrome / web) because FlutterFire does not support
+      # the Linux desktop target. The web Firebase SDK is used for Firestore/Auth.
       - name: Run integration tests
         run: |
           firebase emulators:exec \
             --only auth,firestore \
             --project demo-test \
-            "flutter test integration_test/all_tests.dart -d linux --reporter expanded"
+            "flutter test integration_test/all_tests.dart -d chrome --reporter expanded"

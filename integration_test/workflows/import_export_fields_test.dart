@@ -10,7 +10,7 @@
 // Requires the Firebase emulator:
 //   firebase emulators:start --only auth,firestore
 // Run all tests with: flutter test integration_test/all_tests.dart -d windows
-// CI runs with:       flutter test integration_test/all_tests.dart -d chrome
+// CI runs with:       flutter test integration_test/all_tests.dart -d windows
 
 import 'dart:convert';
 import 'dart:typed_data';

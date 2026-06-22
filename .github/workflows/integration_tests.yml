@@ -1,0 +1,79 @@
+name: Integration Tests
+
+# Run when code that affects repository logic, tests, or security rules changes.
+# Skipped automatically on PRs that only touch docs, UI, or l10n files.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'lib/repositories/**'
+      - 'lib/models/**'
+      - 'lib/services/**'
+      - 'integration_test/**'
+      - 'firestore.rules'
+      - 'firebase.json'
+
+jobs:
+  integration-tests:
+    # Windows runner required: Flutter integration_test does not support web (-d chrome),
+    # and cloud_firestore does not support the Linux desktop target. Windows desktop
+    # matches the local dev workflow and has full FlutterFire support.
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Java is required by the Firestore emulator binary.
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      # Resolve the Windows emulator cache path at runtime and export it so the
+      # cache action receives a plain string rather than an env context expression.
+      - name: Set emulator cache path
+        run: echo "EMULATOR_CACHE=$env:LOCALAPPDATA\firebase\emulators" >> $env:GITHUB_ENV
+
+      # Cache the emulator JARs so they are only downloaded once per firebase.json change.
+      - name: Cache Firebase emulator binaries
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.EMULATOR_CACHE }}
+          key: firebase-emulators-${{ hashFiles('firebase.json') }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      # Start the emulator in the background. --project demo-test uses Firebase's
+      # demo-project prefix so no real Firebase credentials are needed in CI.
+      # shell: bash is required on windows-latest so that & backgrounds the process.
+      - name: Start Firebase emulators
+        shell: bash
+        run: firebase emulators:start --only auth,firestore --project demo-test &
+
+      # Poll until both emulator ports accept TCP connections before running tests.
+      - name: Wait for emulators to be ready
+        shell: bash
+        run: |
+          timeout 60 bash -c 'until (echo > /dev/tcp/localhost/8080) 2>/dev/null; do echo "waiting for Firestore..."; sleep 3; done'
+          timeout 60 bash -c 'until (echo > /dev/tcp/localhost/9099) 2>/dev/null; do echo "waiting for Auth..."; sleep 3; done'
+          echo "Emulators ready"
+
+      - name: Run integration tests
+        run: flutter test integration_test/all_tests.dart -d windows --reporter expanded

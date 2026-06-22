@@ -19,6 +19,9 @@ import 'repositories/card_set_repository_test.dart' as set_tests;
 import 'repositories/firestore_rules_test.dart' as rules_tests;
 import 'repositories/study_session_repository_test.dart' as session_tests;
 import 'repositories/template_repository_test.dart' as template_tests;
+import 'workflows/card_set_lifecycle_test.dart' as lifecycle_tests;
+import 'workflows/study_session_workflow_test.dart' as workflow_tests;
+import 'workflows/import_export_workflow_test.dart' as impexp_tests;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -30,4 +33,7 @@ void main() {
   group('study_session_repository', session_tests.main);
   group('template_repository', template_tests.main);
   group('firestore_rules', rules_tests.main);
+  group('card_set_lifecycle', lifecycle_tests.main);
+  group('study_session_workflow', workflow_tests.main);
+  group('import_export_workflow', impexp_tests.main);
 }

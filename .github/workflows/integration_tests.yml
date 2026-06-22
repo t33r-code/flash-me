@@ -16,7 +16,10 @@ on:
 
 jobs:
   integration-tests:
-    runs-on: ubuntu-latest
+    # Windows runner required: Flutter integration_test does not support web (-d chrome),
+    # and cloud_firestore does not support the Linux desktop target. Windows desktop
+    # matches the local dev workflow and has full FlutterFire support.
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -36,11 +39,16 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
+      # Resolve the Windows emulator cache path at runtime and export it so the
+      # cache action receives a plain string rather than an env context expression.
+      - name: Set emulator cache path
+        run: echo "EMULATOR_CACHE=$env:LOCALAPPDATA\firebase\emulators" >> $env:GITHUB_ENV
+
       # Cache the emulator JARs so they are only downloaded once per firebase.json change.
       - name: Cache Firebase emulator binaries
         uses: actions/cache@v4
         with:
-          path: ~/.cache/firebase/emulators
+          path: ${{ env.EMULATOR_CACHE }}
           key: firebase-emulators-${{ hashFiles('firebase.json') }}
 
       - name: Set up Flutter
@@ -54,19 +62,18 @@ jobs:
 
       # Start the emulator in the background. --project demo-test uses Firebase's
       # demo-project prefix so no real Firebase credentials are needed in CI.
+      # shell: bash is required on windows-latest so that & backgrounds the process.
       - name: Start Firebase emulators
+        shell: bash
         run: firebase emulators:start --only auth,firestore --project demo-test &
 
-      # Poll until both emulator ports are accepting connections before running tests.
+      # Poll until both emulator ports accept TCP connections before running tests.
       - name: Wait for emulators to be ready
+        shell: bash
         run: |
           timeout 60 bash -c 'until (echo > /dev/tcp/localhost/8080) 2>/dev/null; do echo "waiting for Firestore..."; sleep 3; done'
           timeout 60 bash -c 'until (echo > /dev/tcp/localhost/9099) 2>/dev/null; do echo "waiting for Auth..."; sleep 3; done'
           echo "Emulators ready"
 
-      # Tests run on Chrome (-d chrome / web) because FlutterFire does not support
-      # the Linux desktop target. The web Firebase SDK is used for Firestore/Auth.
-      # Running flutter directly (not via emulators:exec) keeps test output visible
-      # in the Actions log.
       - name: Run integration tests
-        run: flutter test integration_test/all_tests.dart -d chrome --reporter expanded
+        run: flutter test integration_test/all_tests.dart -d windows --reporter expanded

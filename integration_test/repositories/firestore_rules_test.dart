@@ -21,9 +21,15 @@ final _permissionDenied = isA<FirebaseException>()
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  final db = FirebaseFirestore.instance;
+  // Defer access to FirebaseFirestore.instance until after initTestFirebase()
+  // has run. Accessing it at main() top-level would call Firebase.app() before
+  // Firebase is initialized, which throws [core/no-app].
+  late FirebaseFirestore db;
 
-  setUpAll(() async => initTestFirebase());
+  setUpAll(() async {
+    await initTestFirebase();
+    db = FirebaseFirestore.instance;
+  });
 
   // Build a minimal valid `sets` document owned by [userId].
   Map<String, dynamic> setDoc(String userId, {bool isPublic = false}) => {

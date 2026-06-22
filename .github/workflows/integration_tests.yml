@@ -52,14 +52,21 @@ jobs:
       - name: Install Flutter dependencies
         run: flutter pub get
 
-      # `firebase emulators:exec` starts the emulator, runs the command, then shuts
-      # it down. --project demo-test uses Firebase's demo-project prefix so no
-      # real Firebase credentials are needed in CI.
+      # Start the emulator in the background. --project demo-test uses Firebase's
+      # demo-project prefix so no real Firebase credentials are needed in CI.
+      - name: Start Firebase emulators
+        run: firebase emulators:start --only auth,firestore --project demo-test &
+
+      # Poll until both emulator ports are accepting connections before running tests.
+      - name: Wait for emulators to be ready
+        run: |
+          timeout 60 bash -c 'until (echo > /dev/tcp/localhost/8080) 2>/dev/null; do echo "waiting for Firestore..."; sleep 3; done'
+          timeout 60 bash -c 'until (echo > /dev/tcp/localhost/9099) 2>/dev/null; do echo "waiting for Auth..."; sleep 3; done'
+          echo "Emulators ready"
+
       # Tests run on Chrome (-d chrome / web) because FlutterFire does not support
       # the Linux desktop target. The web Firebase SDK is used for Firestore/Auth.
+      # Running flutter directly (not via emulators:exec) keeps test output visible
+      # in the Actions log.
       - name: Run integration tests
-        run: |
-          firebase emulators:exec \
-            --only auth,firestore \
-            --project demo-test \
-            "flutter test integration_test/all_tests.dart -d chrome --reporter expanded"
+        run: flutter test integration_test/all_tests.dart -d chrome --reporter expanded

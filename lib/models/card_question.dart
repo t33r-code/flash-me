@@ -145,6 +145,7 @@ class MultipleChoiceQuestion extends CardQuestion {
   final int? correctIndex;       // index into options; null in templates
   final MultipleChoiceDisplayMode displayMode;
   final String? explanation;     // shown after the user answers
+  final bool randomizeOptions;   // shuffle option order each time shown in study
 
   const MultipleChoiceQuestion({
     required super.questionId,
@@ -153,6 +154,7 @@ class MultipleChoiceQuestion extends CardQuestion {
     this.correctIndex,
     this.displayMode = MultipleChoiceDisplayMode.list,
     this.explanation,
+    this.randomizeOptions = false,
   });
 
   factory MultipleChoiceQuestion.fromJson({
@@ -170,6 +172,7 @@ class MultipleChoiceQuestion extends CardQuestion {
         displayMode: MultipleChoiceDisplayMode.fromString(
             content['displayMode'] as String?),
         explanation: content['explanation'] as String?,
+        randomizeOptions: content['randomizeOptions'] as bool? ?? false,
       );
 
   @override
@@ -182,6 +185,7 @@ class MultipleChoiceQuestion extends CardQuestion {
           'correctIndex': correctIndex,
           'displayMode': displayMode.name,
           'explanation': explanation,
+          'randomizeOptions': randomizeOptions,
         },
       };
 
@@ -208,6 +212,7 @@ class MultipleChoiceQuestion extends CardQuestion {
     int? correctIndex,
     MultipleChoiceDisplayMode? displayMode,
     String? explanation,
+    bool? randomizeOptions,
   }) =>
       MultipleChoiceQuestion(
         questionId: questionId ?? this.questionId,
@@ -216,6 +221,7 @@ class MultipleChoiceQuestion extends CardQuestion {
         correctIndex: correctIndex ?? this.correctIndex,
         displayMode: displayMode ?? this.displayMode,
         explanation: explanation ?? this.explanation,
+        randomizeOptions: randomizeOptions ?? this.randomizeOptions,
       );
 }
 

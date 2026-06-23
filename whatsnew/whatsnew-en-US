@@ -1,1 +1,5 @@
-Initial release — closed testing.
+Alpha 0.3
+
+New: shuffle multiple choice options in study mode. Richer session summary with per-question results and time per card. Cards now load offline with local caching. Link Google and email accounts together. Delete your account from within the app. Card edit screen shows creation and update timestamps. Question type indicators on card previews.
+
+Bug fix: Firestore listener leak fixed for better performance.

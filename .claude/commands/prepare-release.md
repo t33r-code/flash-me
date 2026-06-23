@@ -35,9 +35,9 @@ Sort closed issues into three buckets based on their labels:
 
 For each issue include the number and a short plain-English description derived from the title (rephrase to be user-facing — not internal/technical).
 
-## Step 4 — Draft the release notes template entry
+## Step 4 — Append the release notes entry
 
-Append a new entry to `docs/release-notes-template.md` using the template format already in that file:
+Append a new entry to `docs/release-notes.md` (the running history file, not the template):
 
 ```
 ## v<VERSION> — <MILESTONE_TITLE> — <TODAY'S DATE>

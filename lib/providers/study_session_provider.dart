@@ -10,9 +10,10 @@ final studySessionRepositoryProvider = Provider<StudySessionRepository>(
 );
 
 // Streams the session history for a specific set, newest first.
+// autoDispose closes the Firestore listener when the history screen is gone.
 // Usage: ref.watch(sessionHistoryProvider('setId123'))
 final sessionHistoryProvider =
-    StreamProvider.family<List<StudySession>, String>((ref, setId) {
+    StreamProvider.autoDispose.family<List<StudySession>, String>((ref, setId) {
   final uid = ref.watch(authStateProvider).asData?.value;
   if (uid == null) return Stream.value([]);
   return ref

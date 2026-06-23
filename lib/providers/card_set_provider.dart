@@ -30,18 +30,20 @@ final setByIdProvider = Provider.family<CardSet?, String>((ref, setId) {
 });
 
 // Streams card IDs in a specific set (lightweight — no card document data).
+// autoDispose closes the Firestore listener when the screen watching it is gone.
 // Usage: ref.watch(cardIdsInSetProvider('setId123'))
 final cardIdsInSetProvider =
-    StreamProvider.family<List<String>, String>((ref, setId) {
+    StreamProvider.autoDispose.family<List<String>, String>((ref, setId) {
   final uid = ref.watch(authStateProvider).asData?.value;
   if (uid == null) return Stream.value([]);
   return ref.watch(cardSetRepositoryProvider).watchCardIdsInSet(setId, uid);
 });
 
 // Streams the full FlashCard objects for all cards in a specific set.
+// autoDispose closes the Firestore listener when the screen watching it is gone.
 // Usage: ref.watch(cardsInSetProvider('setId123'))
 final cardsInSetProvider =
-    StreamProvider.family<List<FlashCard>, String>((ref, setId) {
+    StreamProvider.autoDispose.family<List<FlashCard>, String>((ref, setId) {
   final uid = ref.watch(authStateProvider).asData?.value;
   if (uid == null) return Stream.value([]);
   return ref.watch(cardSetRepositoryProvider).watchCardsInSet(setId, uid);

@@ -1745,4 +1745,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorCouldNotSendReport =>
       'Could not send report. Please try again.';
+
+  @override
+  String get titleCardInfo => 'Card info';
+
+  @override
+  String get labelMetaCreated => 'Created';
+
+  @override
+  String get labelMetaUpdated => 'Last updated';
+
+  @override
+  String get labelMetaBy => 'By';
 }

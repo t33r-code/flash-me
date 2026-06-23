@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/l10n/app_localizations.dart';
 import 'package:flash_me/models/card_question.dart';
@@ -1003,6 +1004,53 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
     );
   }
 
+  // --- metadata display (edit mode only) ---
+
+  // Read-only section showing creation/update timestamps and the owning user.
+  Widget _buildMetadata(BuildContext context) {
+    final l10n = context.l10n;
+    final card = widget.card!;
+    final fmt = DateFormat.yMMMd().add_jm(); // e.g. "Jun 23, 2026, 2:34 PM"
+    final user = ref.watch(appUserProvider).asData?.value;
+    final byName = user?.displayName ?? user?.email ?? card.createdBy;
+    final labelStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        );
+    final valueStyle = labelStyle;
+
+    // One label+value row used for each metadata field.
+    Widget metaRow(String label, String value) => Padding(
+          padding: const EdgeInsets.only(bottom: 2),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 100,
+                child: Text('$label:', style: labelStyle),
+              ),
+              Expanded(child: Text(value, style: valueStyle)),
+            ],
+          ),
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        const Divider(),
+        const SizedBox(height: 8),
+        Text(l10n.titleCardInfo,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  letterSpacing: 0.8,
+                )),
+        const SizedBox(height: 6),
+        metaRow(l10n.labelMetaCreated, fmt.format(card.createdAt.toLocal())),
+        metaRow(l10n.labelMetaUpdated, fmt.format(card.updatedAt.toLocal())),
+        metaRow(l10n.labelMetaBy, byName),
+      ],
+    );
+  }
+
   // --- main build -----------------------------------------------------------
 
   @override
@@ -1175,6 +1223,9 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
                   ),
                 ],
               ),
+
+              // --- Card metadata (edit mode only) ---
+              if (_isEditing) _buildMetadata(context),
               const SizedBox(height: 16),
             ],
           ),

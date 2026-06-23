@@ -3033,6 +3033,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not send report. Please try again.'**
   String get errorCouldNotSendReport;
+
+  /// No description provided for @titleCardInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Card info'**
+  String get titleCardInfo;
+
+  /// No description provided for @labelMetaCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Created'**
+  String get labelMetaCreated;
+
+  /// No description provided for @labelMetaUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Last updated'**
+  String get labelMetaUpdated;
+
+  /// No description provided for @labelMetaBy.
+  ///
+  /// In en, this message translates to:
+  /// **'By'**
+  String get labelMetaBy;
 }
 
 class _AppLocalizationsDelegate

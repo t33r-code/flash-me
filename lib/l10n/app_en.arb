@@ -800,5 +800,10 @@
   "messageIncludeAppLogsSubtitle": "Helps diagnose technical issues",
   "actionSend": "Send",
   "messageReportSent": "Thank you — your report has been sent.",
-  "errorCouldNotSendReport": "Could not send report. Please try again."
+  "errorCouldNotSendReport": "Could not send report. Please try again.",
+
+  "titleCardInfo": "Card info",
+  "labelMetaCreated": "Created",
+  "labelMetaUpdated": "Last updated",
+  "labelMetaBy": "By"
 }

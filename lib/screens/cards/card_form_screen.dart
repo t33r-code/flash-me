@@ -184,6 +184,7 @@ class _QuestionState {
   // multiple_choice
   final List<TextEditingController> optionControllers;
   int? correctOptionIndex;
+  bool randomizeOptions;
 
   _QuestionState({
     required this.questionId,
@@ -194,6 +195,7 @@ class _QuestionState {
     this.exactMatch = false,
     required this.optionControllers,
     this.correctOptionIndex,
+    this.randomizeOptions = false,
   });
 
   // Blank question defaulting to text-input type with 2 empty MC options pre-allocated.
@@ -213,6 +215,7 @@ class _QuestionState {
     bool exactMatch = false;
     final List<TextEditingController> optionControllers = [];
     int? correctIndex;
+    bool randomizeOptions = false;
 
     switch (q) {
       case TextInputQuestion q:
@@ -224,6 +227,7 @@ class _QuestionState {
           optionControllers.add(TextEditingController(text: opt));
         }
         correctIndex = q.correctIndex;
+        randomizeOptions = q.randomizeOptions;
       case WordOrderQuestion _:
         break; // word_order editing not yet implemented in this form (Step 3)
     }
@@ -245,6 +249,7 @@ class _QuestionState {
       exactMatch: exactMatch,
       optionControllers: optionControllers,
       correctOptionIndex: correctIndex,
+      randomizeOptions: randomizeOptions,
     );
   }
 
@@ -275,6 +280,7 @@ class _QuestionState {
         prompt: prompt,
         options: optionControllers.map((c) => c.text.trim()).toList(),
         correctIndex: correctOptionIndex,
+        randomizeOptions: randomizeOptions,
       );
     }
   }
@@ -842,6 +848,14 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
           onPressed: () => _addOption(qIndex),
           icon: const Icon(Icons.add),
           label: Text(l10n.actionAddOption),
+        ),
+        SwitchListTile(
+          title: Text(l10n.labelRandomizeOptions),
+          subtitle: Text(l10n.messageRandomizeOptionsSubtitle),
+          value: q.randomizeOptions,
+          onChanged: (v) => setState(() => q.randomizeOptions = v),
+          contentPadding: EdgeInsets.zero,
+          dense: true,
         ),
       ],
     );

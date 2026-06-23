@@ -1747,6 +1747,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not send report. Please try again.';
 
   @override
+  String get labelRandomizeOptions => 'Randomize option order';
+
+  @override
+  String get messageRandomizeOptionsSubtitle =>
+      'Shuffle the options each time this card is shown';
+
+  @override
   String get titleCardInfo => 'Card info';
 
   @override

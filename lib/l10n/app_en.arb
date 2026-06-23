@@ -802,6 +802,9 @@
   "messageReportSent": "Thank you — your report has been sent.",
   "errorCouldNotSendReport": "Could not send report. Please try again.",
 
+  "labelRandomizeOptions": "Randomize option order",
+  "messageRandomizeOptionsSubtitle": "Shuffle the options each time this card is shown",
+
   "titleCardInfo": "Card info",
   "labelMetaCreated": "Created",
   "labelMetaUpdated": "Last updated",

@@ -3034,6 +3034,18 @@ abstract class AppLocalizations {
   /// **'Could not send report. Please try again.'**
   String get errorCouldNotSendReport;
 
+  /// No description provided for @labelRandomizeOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Randomize option order'**
+  String get labelRandomizeOptions;
+
+  /// No description provided for @messageRandomizeOptionsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shuffle the options each time this card is shown'**
+  String get messageRandomizeOptionsSubtitle;
+
   /// No description provided for @titleCardInfo.
   ///
   /// In en, this message translates to:

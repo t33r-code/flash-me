@@ -1370,12 +1370,33 @@ class _WorkbookMultipleChoiceCard extends StatefulWidget {
 class _WorkbookMultipleChoiceCardState
     extends State<_WorkbookMultipleChoiceCard> {
   int? _selectedIndex;
+  late final List<String> _displayOptions;
+  late final int? _displayCorrectIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    final q = widget.question;
+    final original = q.options ?? [];
+    if (q.randomizeOptions && original.isNotEmpty) {
+      // Zip each option with its original index, shuffle, then split back.
+      // This lets us find where the correct answer landed after the shuffle.
+      final indexed = original.asMap().entries.toList()..shuffle();
+      _displayOptions = indexed.map((e) => e.value).toList();
+      _displayCorrectIndex = q.correctIndex == null
+          ? null
+          : indexed.indexWhere((e) => e.key == q.correctIndex);
+    } else {
+      _displayOptions = original;
+      _displayCorrectIndex = q.correctIndex;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final options = widget.question.options ?? [];
-    final correctIndex = widget.question.correctIndex;
+    final options = _displayOptions;
+    final correctIndex = _displayCorrectIndex;
     final answered = _selectedIndex != null;
     final prompt = widget.question.prompt;
 

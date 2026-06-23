@@ -1193,6 +1193,9 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
                 label: Text(l10n.actionAddQuestion),
               ),
 
+              // --- Card metadata (edit mode only) ---
+              if (_isEditing) _buildMetadata(context),
+
               // --- Save / Cancel ---
               const SizedBox(height: 32),
               Row(
@@ -1224,8 +1227,6 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
                 ],
               ),
 
-              // --- Card metadata (edit mode only) ---
-              if (_isEditing) _buildMetadata(context),
               const SizedBox(height: 16),
             ],
           ),

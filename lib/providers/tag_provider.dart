@@ -9,8 +9,9 @@ final tagRepositoryProvider = Provider<TagRepository>(
 );
 
 // Stream tag suggestions for a given prefix string.
-// Returns an empty list when the prefix is blank (avoids a full collection scan).
+// autoDispose is critical here: each unique prefix creates a new provider
+// instance, so without it every search keystroke leaks a Firestore listener.
 final tagSearchProvider =
-    StreamProvider.family<List<Tag>, String>((ref, prefix) {
+    StreamProvider.autoDispose.family<List<Tag>, String>((ref, prefix) {
   return ref.watch(tagRepositoryProvider).searchTags(prefix);
 });

@@ -392,7 +392,7 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
   - Synthetic `CardSet` (`isSynthetic` + `memberCardIds`, not persisted); sentinel set IDs `__review__` / `__mistakes__`
   - `StudySetupScreen` synthetic-aware (no resume; pool/typeMap from candidates; sentinel `setId`); summary "Study Again" re-enters the mode; `StudyScreen` entry points + empty states
   - Reuses the by-ID session loader from #172 — no new session-screen path
-- [ ] #180 (171b) — target-language filter via the `StudyFilter` predicate seam
+- [x] #180 (171b) — target-language filter via the `StudyFilter` predicate seam in `utils/study_filters.dart`; selector on the synthetic setup screen (shown only for multi-language pools; defaults to last-used / most-common; "All" + per-language + "Unspecified" buckets; live count)
 
 ##### Phase 7a — Study flow enhancements (complete)
 - [x] Three-phase card reveal: tap word → translation fades in with MORE / NEXT buttons; MORE expands full card; mark buttons activate only after MORE

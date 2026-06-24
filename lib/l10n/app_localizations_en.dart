@@ -1273,6 +1273,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'No recent mistakes to review. Answer questions incorrectly while studying and they\'ll appear here.';
 
   @override
+  String get labelStudyLanguage => 'Language';
+
+  @override
+  String get labelAllLanguages => 'All languages';
+
+  @override
+  String get labelLanguageUnspecified => 'Unspecified';
+
+  @override
   String get labelSessionInProgress => 'Session in progress';
 
   @override

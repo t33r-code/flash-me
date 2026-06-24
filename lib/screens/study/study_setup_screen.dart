@@ -7,12 +7,15 @@ import 'package:flash_me/models/study_session.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_mark_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
+import 'package:flash_me/providers/language_provider.dart';
 import 'package:flash_me/providers/study_filter_provider.dart';
 import 'package:flash_me/providers/study_session_provider.dart';
 import 'package:flash_me/screens/study/study_session_history_screen.dart';
 import 'package:flash_me/screens/study/study_session_screen.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
+import 'package:flash_me/utils/languages.dart';
+import 'package:flash_me/utils/study_filters.dart';
 import 'package:flash_me/utils/transitions.dart';
 
 
@@ -44,6 +47,10 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
   bool _checkingSession = true;
   bool _starting = false;
   StudySession? _activeSession;
+  // Selected language-filter key for synthetic sets (null = not yet chosen, so
+  // the computed default applies). One of: langFilterAll, langFilterUnspecified,
+  // or an ISO 639-1 code.
+  String? _selectedLangKey;
 
   @override
   void initState() {
@@ -164,6 +171,56 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
     );
   }
 
+  // Dropdown to filter the synthetic pool by target language. Options: "All
+  // languages", each present language (by count desc, then name) with its count,
+  // and "Unspecified" for language-less cards (only if any exist).
+  Widget _buildLanguageFilterCard(
+      BuildContext context, Map<String?, int> counts, String selection) {
+    final langEntries = counts.entries.where((e) => e.key != null).toList()
+      ..sort((a, b) {
+        final byCount = b.value.compareTo(a.value);
+        return byCount != 0
+            ? byCount
+            : (languageName(a.key) ?? a.key!)
+                .compareTo(languageName(b.key) ?? b.key!);
+      });
+
+    final items = <DropdownMenuItem<String>>[
+      DropdownMenuItem(
+          value: langFilterAll, child: Text(context.l10n.labelAllLanguages)),
+      for (final e in langEntries)
+        DropdownMenuItem(
+          value: e.key,
+          child: Text('${languageName(e.key) ?? e.key} (${e.value})'),
+        ),
+      if (counts.containsKey(null))
+        DropdownMenuItem(
+          value: langFilterUnspecified,
+          child: Text(
+              '${context.l10n.labelLanguageUnspecified} (${counts[null]})'),
+        ),
+    ];
+
+    return Card(
+      child: ListTile(
+        title: Text(context.l10n.labelStudyLanguage),
+        trailing: DropdownButton<String>(
+          value: selection,
+          underline: const SizedBox.shrink(),
+          // Suppress the grey focus highlight that otherwise boxes the selected
+          // value after a choice is made, so it sits flush in the bar.
+          focusColor: Colors.transparent,
+          onChanged: _starting
+              ? null
+              : (v) {
+                  if (v != null) setState(() => _selectedLangKey = v);
+                },
+          items: items,
+        ),
+      ),
+    );
+  }
+
   // The empty-pool hint — specific to the synthetic mode, generic otherwise.
   String _emptyPoolMessage(BuildContext context) {
     final l10n = context.l10n;
@@ -176,17 +233,39 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
   @override
   Widget build(BuildContext context) {
     // Resolve the card pool. Real sets stream their membership; synthetic
-    // filtered modes resolve candidates from the user's study signals.
+    // filtered modes resolve candidates from the user's study signals and apply
+    // the language filter.
     final List<String> cardIds;
     Map<String, String> syntheticTypeMap = const {};
     bool poolLoading = false;
+    bool showLanguageFilter = false;
+    String langSelection = langFilterAll;
+    Map<String?, int> langCounts = const {};
+
     if (widget.isSynthetic) {
       final candidatesAsync =
           ref.watch(studyCandidatesProvider(widget.syntheticMode!));
       poolLoading = candidatesAsync.isLoading;
-      final candidates = candidatesAsync.asData?.value ?? const [];
-      cardIds = [for (final c in candidates) c.cardId];
-      syntheticTypeMap = {for (final c in candidates) c.cardId: c.cardType};
+      final candidates =
+          candidatesAsync.asData?.value ?? const <StudyCandidate>[];
+
+      // Show a language selector only when the pool spans more than one
+      // language bucket; default to last-used / most-common (see study_filters).
+      showLanguageFilter = shouldShowLanguageFilter(candidates);
+      if (showLanguageFilter) {
+        langCounts = targetLanguageCounts(candidates);
+        final lastTarget = ref.watch(lastUsedLanguagesProvider)?.target;
+        langSelection = _selectedLangKey ??
+            defaultLanguageSelection(candidates, lastTarget);
+      }
+
+      final filtered = showLanguageFilter
+          ? applyStudyFilters(candidates,
+              [(c) => candidateMatchesLanguage(c, langSelection)])
+          : candidates;
+
+      cardIds = [for (final c in filtered) c.cardId];
+      syntheticTypeMap = {for (final c in filtered) c.cardId: c.cardType};
     } else {
       // Already streamed by SetDetailScreen's provider; reading here keeps the
       // count in sync without a second Firestore request.
@@ -246,6 +325,12 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
                   Text(context.l10n.titleOptions,
                       style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
+
+                  // ── Language filter (synthetic, multi-language only) ────
+                  if (showLanguageFilter) ...[
+                    _buildLanguageFilterCard(context, langCounts, langSelection),
+                    const SizedBox(height: 8),
+                  ],
 
                   // ── Shuffle toggle ─────────────────────────────────────
                   Card(

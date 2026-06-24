@@ -2326,6 +2326,18 @@ abstract class AppLocalizations {
   /// **'Add cards to this set before studying.'**
   String get messageAddCardsBeforeStudying;
 
+  /// No description provided for @messageNoReviewCards.
+  ///
+  /// In en, this message translates to:
+  /// **'No cards are flagged for review yet. Mark cards with Review while studying to build this list.'**
+  String get messageNoReviewCards;
+
+  /// No description provided for @messageNoMistakeCards.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent mistakes to review. Answer questions incorrectly while studying and they\'ll appear here.'**
+  String get messageNoMistakeCards;
+
   /// No description provided for @labelSessionInProgress.
   ///
   /// In en, this message translates to:

@@ -381,9 +381,18 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 
 ##### Phase 7c — Study tab & study modes (complete)
 - [x] Add Study tab to bottom nav (centre position: Sets | Cards | Study | Templates | Profile); icon: `Icons.school`
-- [x] `StudyScreen` — mode card list: "Study a Set" (enabled), "Study Review" + "Study Mistakes" (disabled, "Soon" badge)
+- [x] `StudyScreen` — mode card list: "Study a Set", "Study Review", "Study Mistakes" (all enabled as of #179)
 - [x] Set-picker bottom sheet (`DraggableScrollableSheet`) on "Study a Set" tap; shows name, card count, colour accent; tapping a set navigates to `StudySetupScreen`
 - [x] Remove Study FAB from `SetDetailScreen`; replace with play-circle AppBar icon as a quick shortcut
+
+##### Filtered study modes — Study Review & Study Mistakes (#171)
+- [x] #179 (171a) — core modes end-to-end:
+  - `StudyMode` enum + `StudyCandidate`; pure selection logic in `utils/study_filters.dart` (review marks, recent-fail mistakes, candidate classification)
+  - `study_filter_provider.dart` — `studyReviewCardIdsProvider`, `studyMistakesCardIdsProvider`, `studyCandidatesProvider` (all autoDispose)
+  - Synthetic `CardSet` (`isSynthetic` + `memberCardIds`, not persisted); sentinel set IDs `__review__` / `__mistakes__`
+  - `StudySetupScreen` synthetic-aware (no resume; pool/typeMap from candidates; sentinel `setId`); summary "Study Again" re-enters the mode; `StudyScreen` entry points + empty states
+  - Reuses the by-ID session loader from #172 — no new session-screen path
+- [ ] #180 (171b) — target-language filter via the `StudyFilter` predicate seam
 
 ##### Phase 7a — Study flow enhancements (complete)
 - [x] Three-phase card reveal: tap word → translation fades in with MORE / NEXT buttons; MORE expands full card; mark buttons activate only after MORE

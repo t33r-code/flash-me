@@ -14,6 +14,19 @@ You can also start a session directly from a set's detail screen — tap the :ma
 
 ---
 
+## Study Review & Study Mistakes { #filtered-modes }
+
+Alongside **Study a Set**, the Study tab offers two focused modes that pull cards from across your whole library based on how you've been doing:
+
+- **Study Review** — gathers every card you've flagged with the **Review** mark (see [Skip & Review](#skip-review)). Use it to drill the cards you've told Agora you want more practice on.
+- **Study Mistakes** — gathers cards whose questions you've recently answered **incorrectly**. Use it to clean up your weak spots.
+
+Tap either mode to go straight to the setup screen, then **Start Session** as usual. Both behave like a normal session — shuffle, scoring, and the summary all work the same way — and they appear in your session history grouped under that mode.
+
+If you haven't marked any cards for review yet (or haven't made any recent mistakes), the setup screen explains that there's nothing to study in that mode yet.
+
+---
+
 ## Session Setup { #session-setup }
 
 On the setup screen you'll see:

@@ -2,12 +2,14 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_set.dart';
+import 'package:flash_me/models/study_candidate.dart';
 import 'package:flash_me/models/study_session.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_mark_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/study_session_provider.dart';
 import 'package:flash_me/screens/study/study_session_screen.dart';
+import 'package:flash_me/screens/study/study_setup_screen.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/transitions.dart';
@@ -88,6 +90,24 @@ class _StudySessionSummaryScreenState
   // completed session so the user doesn't need to go back to the setup screen.
   Future<void> _studyAgain() async {
     if (_starting) return;
+
+    // Synthetic sets (Review / Mistakes) rebuild their pool from current study
+    // signals — re-enter that mode's setup rather than rebuilding from a real
+    // set's membership (which a synthetic set doesn't have).
+    if (widget.cardSet.isSynthetic) {
+      final mode = studyModeFromSetId(widget.cardSet.id);
+      if (mode != null) {
+        Navigator.of(context).pushReplacement(
+          studyEnterRoute(StudySetupScreen(
+            cardSet: CardSet.synthetic(
+                id: widget.cardSet.id, name: widget.cardSet.name),
+            syntheticMode: mode,
+          )),
+        );
+      }
+      return;
+    }
+
     setState(() => _starting = true);
 
     try {

@@ -7,7 +7,7 @@ import 'package:flash_me/models/study_session.dart';
 import 'package:flash_me/models/workbook_card.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_mark_provider.dart';
-import 'package:flash_me/providers/card_set_provider.dart';
+import 'package:flash_me/providers/card_provider.dart';
 import 'package:flash_me/providers/question_result_provider.dart';
 import 'package:flash_me/providers/study_session_provider.dart';
 import 'package:flash_me/providers/workbook_card_provider.dart';
@@ -53,10 +53,16 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   // True while a background auto-save has failed; drives the warning banner.
   bool _saveFailed = false;
 
-  // Workbook cards fetched once on init; keyed by card ID.
+  // Flash + workbook card content, fetched once on init by ID. The session owns
+  // a fixed cardSequence + cardTypeMap, so it loads content by ID rather than
+  // via live set membership. Each map is keyed by card ID.
+  Map<String, FlashCard> _flashCardsMap = {};
   Map<String, WorkbookCard> _workbookCardsMap = {};
-  // True after the workbook card fetch completes (or if there are none to fetch).
+  // True once the initial card batch has loaded (or failed).
+  bool _flashCardsLoaded = false;
   bool _workbookCardsLoaded = false;
+  // True if the initial load threw — drives the error view.
+  bool _cardLoadFailed = false;
 
   // Question keys ('{cardId}_{questionId}') already counted toward the session
   // score. Ensures first-attempt-only scoring — retries via "Try Again" and
@@ -73,33 +79,61 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     if (seen > _session.totalCardsStudied) {
       _session = _session.copyWith(totalCardsStudied: seen);
     }
-    _loadWorkbookCards();
+    _loadSessionCards();
   }
 
-  // Fetches all workbook cards referenced by this session in one batch.
-  Future<void> _loadWorkbookCards() async {
-    final workbookIds = _session.cardTypeMap.entries
-        .where((e) => e.value == AppConstants.cardTypeWorkbook)
-        .map((e) => e.key)
+  // Fetches all card content for this session in one batch, by ID.
+  //
+  // Both card types load the same way: the session owns a fixed cardSequence +
+  // cardTypeMap, so content is fetched by ID rather than via live set
+  // membership. Workbook cards are explicitly typed; anything else is treated
+  // as a flashcard (old sessions have an empty cardTypeMap and are all flash).
+  Future<void> _loadSessionCards() async {
+    final seq = _session.cardSequence;
+    final types = _session.cardTypeMap;
+    final workbookIds = seq
+        .where((id) => types[id] == AppConstants.cardTypeWorkbook)
         .toList();
-    if (workbookIds.isEmpty) {
-      if (mounted) setState(() => _workbookCardsLoaded = true);
-      return;
-    }
-    try {
-      final uid = ref.read(authStateProvider).asData?.value ?? '';
-      final cards = await ref
-          .read(workbookCardRepositoryProvider)
-          .getCardsByIds(workbookIds, uid);
-      if (mounted) {
-        setState(() {
-          _workbookCardsMap = {for (final c in cards) c.id: c};
-          _workbookCardsLoaded = true;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _workbookCardsLoaded = true);
-    }
+    final flashIds = seq
+        .where((id) => types[id] != AppConstants.cardTypeWorkbook)
+        .toList();
+
+    final uid = _uid;
+    List<FlashCard> flash = [];
+    List<WorkbookCard> workbook = [];
+    bool failed = false;
+
+    // Fetch both types in parallel; a failure in one shouldn't blank the other.
+    await Future.wait([
+      () async {
+        try {
+          flash =
+              await ref.read(cardRepositoryProvider).getCardsByIds(flashIds, uid);
+        } catch (_) {
+          failed = true;
+        }
+      }(),
+      () async {
+        try {
+          workbook = await ref
+              .read(workbookCardRepositoryProvider)
+              .getCardsByIds(workbookIds, uid);
+        } catch (_) {
+          failed = true;
+        }
+      }(),
+    ]);
+
+    if (!mounted) return;
+    setState(() {
+      _flashCardsMap = {for (final c in flash) c.id: c};
+      _workbookCardsMap = {for (final c in workbook) c.id: c};
+      _flashCardsLoaded = true;
+      _workbookCardsLoaded = true;
+      // Only surfaces the error view when nothing loaded (see _buildCardArea);
+      // a partial success still shows whatever cards did load.
+      _cardLoadFailed = failed;
+    });
   }
 
   @override
@@ -315,8 +349,6 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cardsAsync = ref.watch(cardsInSetProvider(widget.cardSet.id));
-
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.cardSet.name),
@@ -338,77 +370,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
           // Card content — two-phase:
           //   • Before reveal: word card centred on screen (_WordCard)
           //   • After tap: card slides to top, fields appear below
-          Expanded(
-            child: cardsAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
-              error: (_, _) =>
-                  Center(child: Text(context.l10n.errorFailedLoadCards)),
-              data: (cards) {
-                final cardsMap = {for (final c in cards) c.id: c};
-                final flashCard = cardsMap[_currentCardId];
-                final workbookCard = _workbookCardsMap[_currentCardId];
-
-                // Current card is a workbook card that's still loading.
-                if (flashCard == null &&
-                    workbookCard == null &&
-                    !_workbookCardsLoaded) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                // Route to the workbook view if this card is a workbook card.
-                if (workbookCard != null) {
-                  return _buildWorkbookView(workbookCard);
-                }
-
-                if (flashCard == null) {
-                  return Center(child: Text(context.l10n.messageCardNotFound));
-                }
-
-                // Flash card view — existing two-phase reveal.
-                return AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      // Incoming content rises in from slightly below.
-                      position: Tween<Offset>(
-                        begin: const Offset(0, 0.04),
-                        end: Offset.zero,
-                      ).animate(CurvedAnimation(
-                          parent: animation, curve: Curves.easeOut)),
-                      child: child,
-                    ),
-                  ),
-                  // _WordCard keeps the same key whether or not translation
-                  // is visible, so AnimatedSwitcher only fires for the
-                  // fully-revealed transition (the desired slide-in effect).
-                  child: _fullyRevealed
-                      ? SingleChildScrollView(
-                          key: ValueKey('$_currentIndex-revealed'),
-                          padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                          child: Column(
-                            children: [
-                              _PrimaryFieldCard(card: flashCard),
-                              for (final q in flashCard.questions)
-                                _buildQuestion(q),
-                              const SizedBox(height: 16),
-                            ],
-                          ),
-                        )
-                      : _WordCard(
-                          key: ValueKey('$_currentIndex-word'),
-                          card: flashCard,
-                          selectedResult: _currentCardData.primaryResult,
-                          onSelfEval: _setPrimaryResult,
-                          onMore: () =>
-                              setState(() => _fullyRevealed = true),
-                          onNext: _next,
-                        ),
-                );
-              },
-            ),
-          ),
+          Expanded(child: _buildCardArea(context)),
 
           // Navigation bar — Previous/Next + Know/Don't Know marking.
           _NavigationBar(
@@ -423,6 +385,71 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // Builds the central card area: a spinner until the initial card batch is
+  // ready, an error message if the load failed, otherwise the current card
+  // (workbook or flash) routed to its view.
+  Widget _buildCardArea(BuildContext context) {
+    if (!_flashCardsLoaded || !_workbookCardsLoaded) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    // Nothing loaded and the fetch failed — show the error message.
+    if (_cardLoadFailed &&
+        _flashCardsMap.isEmpty &&
+        _workbookCardsMap.isEmpty) {
+      return Center(child: Text(context.l10n.errorFailedLoadCards));
+    }
+
+    final flashCard = _flashCardsMap[_currentCardId];
+    final workbookCard = _workbookCardsMap[_currentCardId];
+
+    // Route to the workbook view if this card is a workbook card.
+    if (workbookCard != null) {
+      return _buildWorkbookView(workbookCard);
+    }
+    if (flashCard == null) {
+      return Center(child: Text(context.l10n.messageCardNotFound));
+    }
+
+    // Flash card view — two-phase reveal.
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          // Incoming content rises in from slightly below.
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.04),
+            end: Offset.zero,
+          ).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+          child: child,
+        ),
+      ),
+      // _WordCard keeps the same key whether or not translation is visible, so
+      // AnimatedSwitcher only fires for the fully-revealed transition.
+      child: _fullyRevealed
+          ? SingleChildScrollView(
+              key: ValueKey('$_currentIndex-revealed'),
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+              child: Column(
+                children: [
+                  _PrimaryFieldCard(card: flashCard),
+                  for (final q in flashCard.questions) _buildQuestion(q),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            )
+          : _WordCard(
+              key: ValueKey('$_currentIndex-word'),
+              card: flashCard,
+              selectedResult: _currentCardData.primaryResult,
+              onSelfEval: _setPrimaryResult,
+              onMore: () => setState(() => _fullyRevealed = true),
+              onNext: _next,
+            ),
     );
   }
 

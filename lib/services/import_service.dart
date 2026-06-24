@@ -568,12 +568,27 @@ class ImportService {
     for (var i = 0; i < existing.length; i++) {
       final e = existing[i];
       final imp = incoming[i];
+
+      // Normalise the incoming map through the same model before comparing, so
+      // both sides are canonical (identical key set, order, and filled
+      // defaults). Comparing the raw incoming JSON directly is brittle: it
+      // breaks whenever a field is added to a question's toJson (e.g.
+      // randomizeOptions) or when the incoming map omits a defaulted key.
+      // fromJson also accepts both 'prompt' and legacy 'name' for the prompt.
+      final CardQuestion impQuestion;
+      try {
+        impQuestion =
+            CardQuestion.fromJson({...imp, 'questionId': e.questionId});
+      } on ArgumentError {
+        // Unknown / unsupported incoming question type — treat as a change.
+        return true;
+      }
+
       final eJson = e.toJson();
-      final ePrompt = e.prompt ?? '';
-      final impPrompt = (imp['prompt'] ?? imp['name']) as String? ?? '';
-      if (ePrompt != impPrompt ||
-          eJson['type'] != imp['type'] ||
-          jsonEncode(eJson['content']) != jsonEncode(imp['content'])) {
+      final impJson = impQuestion.toJson();
+      if ((e.prompt ?? '') != (impQuestion.prompt ?? '') ||
+          eJson['type'] != impJson['type'] ||
+          jsonEncode(eJson['content']) != jsonEncode(impJson['content'])) {
         return true;
       }
     }

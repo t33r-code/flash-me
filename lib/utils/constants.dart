@@ -44,6 +44,13 @@ class AppConstants {
   static const String cardTypeFlashcard = 'flashcard';
   static const String cardTypeWorkbook = 'workbook';
 
+  // Sentinel set IDs for synthetic study sets (filtered modes — not real sets).
+  // Sessions for these modes are stored under these reserved IDs so their
+  // history groups separately from real sets. The leading/trailing underscores
+  // ensure they can never collide with a generated Firestore document ID.
+  static const String syntheticReviewSetId = '__review__';
+  static const String syntheticMistakesSetId = '__mistakes__';
+
   // Firestore collection for workbook cards (parallel to cards/).
   static const String workbookCardsCollection = 'workbookCards';
   static const String setAcquisitionsCollection = 'setAcquisitions';

@@ -998,13 +998,13 @@ Study is the core use case of Agora. Rather than being a secondary action buried
 
 ### Study Mode Cards
 
-The Study tab home displays a card for each available study mode. Modes that are not yet implemented are shown in a disabled state with a "Soon" badge — the UI scales to new modes without structural changes.
+The Study tab home displays a tappable card for each study mode. The list scales to new modes without structural changes.
 
 | Mode | Status | Description |
 |---|---|---|
 | **Study a Set** | Available | Choose a set from a bottom-sheet picker; proceeds to the session setup screen |
-| **Study Review** | Coming soon | Study only cards the user has flagged with the Review mark |
-| **Study Mistakes** | Coming soon | Drill questions the user has answered incorrectly in recent sessions |
+| **Study Review** | Available | Study only cards the user has flagged with the Review mark |
+| **Study Mistakes** | Available | Drill cards with a recent incorrect answer |
 
 ### Set Picker Flow
 
@@ -1014,9 +1014,23 @@ Tapping "Study a Set" opens a `DraggableScrollableSheet` listing all the user's 
 
 The Set Detail screen retains a play-circle icon in the AppBar that navigates directly to `StudySetupScreen` for that set — bypassing the Study tab set picker for users who arrive at a set and want to study immediately.
 
-### Future Modes
+### Filtered Modes — Study Review & Study Mistakes
 
-"Study Review" and "Study Mistakes" will be implemented once sufficient `cardMarks` and `questionResults` data exists to make them meaningful. Each mode generates a synthetic card set at session start (filtered from the user's full card library) and passes it to the existing `StudySetupScreen` + `StudySessionScreen` pipeline.
+"Study Review" and "Study Mistakes" consume signals the app already collects and reuse the existing study pipeline rather than introducing a new one.
+
+- **Study Review** — cards flagged with the Review mark (`cardMarks` where `mark == review`).
+- **Study Mistakes** — cards with a recent failure: any question field whose rolling window (`questionResults`, last `questionResultsWindowSize` outcomes) contains a `fail`. Distinct card IDs.
+
+**Synthetic sets.** Each mode assembles an in-memory **synthetic `CardSet`** (`isSynthetic = true`, never persisted) from those card IDs, carried through the existing `StudySetupScreen` → `StudySessionScreen` → summary pipeline. Key points:
+
+- The synthetic set has no `setCards` membership; the session screen already loads card content by ID (from the session's `cardSequence` + `cardTypeMap`), so synthetic sessions flow through unchanged.
+- Candidate cards are loaded by ID from both the flash and workbook collections to classify type (and carry language for the filter below); cards that no longer exist are dropped.
+- Sessions are stored under reserved **sentinel set IDs** (`__review__` / `__mistakes__`) so their history groups separately from real sets. Synthetic sets are **not resumable** (no active-session lookup); "Study Again" re-enters the mode's setup to rebuild a fresh pool.
+- The setup screen shows a mode-specific empty state when the pool is empty.
+
+**Filtering (extensible).** Pool construction runs candidates through a list of `StudyFilter` predicates. The first is a **target-language filter** (a multilingual user won't want mixed-language sessions): shown only when the candidate pool spans more than one target language, defaulting to the last-used target language (else the most common), with an "Any / unspecified" bucket so language-less cards are never dropped. The predicate-list design is the seam for future filters (by subject/topic, field type, mark age, date studied) with no change to the builder or session code.
+
+> Implemented in #171 — core modes (#179, this), language filter (#180).
 
 ---
 

@@ -2,10 +2,12 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_set.dart';
+import 'package:flash_me/models/study_candidate.dart';
 import 'package:flash_me/models/study_session.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_mark_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
+import 'package:flash_me/providers/study_filter_provider.dart';
 import 'package:flash_me/providers/study_session_provider.dart';
 import 'package:flash_me/screens/study/study_session_history_screen.dart';
 import 'package:flash_me/screens/study/study_session_screen.dart';
@@ -23,7 +25,14 @@ import 'package:flash_me/utils/transitions.dart';
 // ---------------------------------------------------------------------------
 class StudySetupScreen extends ConsumerStatefulWidget {
   final CardSet cardSet;
-  const StudySetupScreen({super.key, required this.cardSet});
+  // When non-null, this is a synthetic filtered-study set (Review / Mistakes):
+  // the pool is resolved from study signals, there is no resumable session, and
+  // the session is stored under the mode's sentinel set ID.
+  final StudyMode? syntheticMode;
+  const StudySetupScreen(
+      {super.key, required this.cardSet, this.syntheticMode});
+
+  bool get isSynthetic => syntheticMode != null;
 
   @override
   ConsumerState<StudySetupScreen> createState() => _StudySetupScreenState();
@@ -39,7 +48,12 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
   @override
   void initState() {
     super.initState();
-    _checkActiveSession();
+    if (widget.isSynthetic) {
+      // Synthetic sets are not resumable — skip the active-session lookup.
+      _checkingSession = false;
+    } else {
+      _checkActiveSession();
+    }
   }
 
   Future<void> _checkActiveSession() async {
@@ -61,19 +75,23 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
 
   // Builds a new card sequence, writes the session to Firestore, then
   // navigates into the session screen (replacing this screen in the stack).
-  Future<void> _startNew(List<String> cardIds) async {
+  Future<void> _startNew(List<String> cardIds,
+      {Map<String, String> cardTypeMap = const {}}) async {
     setState(() => _starting = true);
     final l10n = context.l10n;
     try {
       final uid = ref.read(authStateProvider).asData?.value ?? '';
 
-      // Fetch setCard join docs to build the cardTypeMap (cardId → type).
-      // This allows the study session to dispatch flash vs workbook cards.
-      final setCards = await ref
-          .read(cardSetRepositoryProvider)
-          .watchSetCards(widget.cardSet.id, uid)
-          .first;
-      final cardTypeMap = {for (final sc in setCards) sc.cardId: sc.cardType};
+      // Real sets derive the cardId→type map from their setCards join docs;
+      // synthetic sets pass it in (built from the resolved candidates). The map
+      // lets the study session dispatch flash vs workbook cards.
+      if (!widget.isSynthetic) {
+        final setCards = await ref
+            .read(cardSetRepositoryProvider)
+            .watchSetCards(widget.cardSet.id, uid)
+            .first;
+        cardTypeMap = {for (final sc in setCards) sc.cardId: sc.cardType};
+      }
 
       // Build card order — optionally shuffled via Fisher-Yates.
       final sequence = List<String>.from(cardIds);
@@ -146,12 +164,38 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
     );
   }
 
+  // The empty-pool hint — specific to the synthetic mode, generic otherwise.
+  String _emptyPoolMessage(BuildContext context) {
+    final l10n = context.l10n;
+    if (!widget.isSynthetic) return l10n.messageAddCardsBeforeStudying;
+    return widget.syntheticMode == StudyMode.review
+        ? l10n.messageNoReviewCards
+        : l10n.messageNoMistakeCards;
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Card IDs are already streamed by SetDetailScreen's provider; reading
-    // them here keeps the count in sync without a second Firestore request.
-    final cardIds =
-        ref.watch(cardIdsInSetProvider(widget.cardSet.id)).asData?.value ?? [];
+    // Resolve the card pool. Real sets stream their membership; synthetic
+    // filtered modes resolve candidates from the user's study signals.
+    final List<String> cardIds;
+    Map<String, String> syntheticTypeMap = const {};
+    bool poolLoading = false;
+    if (widget.isSynthetic) {
+      final candidatesAsync =
+          ref.watch(studyCandidatesProvider(widget.syntheticMode!));
+      poolLoading = candidatesAsync.isLoading;
+      final candidates = candidatesAsync.asData?.value ?? const [];
+      cardIds = [for (final c in candidates) c.cardId];
+      syntheticTypeMap = {for (final c in candidates) c.cardId: c.cardType};
+    } else {
+      // Already streamed by SetDetailScreen's provider; reading here keeps the
+      // count in sync without a second Firestore request.
+      cardIds = ref
+              .watch(cardIdsInSetProvider(widget.cardSet.id))
+              .asData
+              ?.value ??
+          [];
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -166,7 +210,7 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
           ),
         ],
       ),
-      body: _checkingSession
+      body: _checkingSession || poolLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -226,7 +270,8 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
                     OutlinedButton.icon(
                       onPressed: _starting || cardIds.isEmpty
                           ? null
-                          : () => _startNew(cardIds),
+                          : () => _startNew(cardIds,
+                              cardTypeMap: syntheticTypeMap),
                       icon: const Icon(Icons.refresh),
                       label: Text(context.l10n.actionStartNewSession),
                     ),
@@ -235,7 +280,8 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
                     FilledButton.icon(
                       onPressed: _starting || cardIds.isEmpty
                           ? null
-                          : () => _startNew(cardIds),
+                          : () => _startNew(cardIds,
+                              cardTypeMap: syntheticTypeMap),
                       icon: _starting
                           ? const SizedBox(
                               width: 16,
@@ -247,11 +293,12 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
                       label: Text(context.l10n.actionStartSession),
                     ),
 
-                  // Hint if the set has no cards.
+                  // Hint when the pool is empty — mode-specific for synthetic
+                  // sets, generic for real sets.
                   if (cardIds.isEmpty) ...[
                     const SizedBox(height: 8),
                     Text(
-                      context.l10n.messageAddCardsBeforeStudying,
+                      _emptyPoolMessage(context),
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.error),

@@ -1265,6 +1265,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Add cards to this set before studying.';
 
   @override
+  String get messageNoReviewCards =>
+      'No cards are flagged for review yet. Mark cards with Review while studying to build this list.';
+
+  @override
+  String get messageNoMistakeCards =>
+      'No recent mistakes to review. Answer questions incorrectly while studying and they\'ll appear here.';
+
+  @override
   String get labelSessionInProgress => 'Session in progress';
 
   @override

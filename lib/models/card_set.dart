@@ -18,6 +18,13 @@ class CardSet {
   final String? nativeLanguage; // ISO 639-1 code for the user's native language
   final String? targetLanguage; // ISO 639-1 code for the language being studied
 
+  // Synthetic sets (Study Review / Study Mistakes) are assembled in memory from
+  // the user's study signals and never persisted. isSynthetic flags this, and
+  // memberCardIds holds the explicit card list (real sets derive membership
+  // from the setCards join collection instead). Neither is serialized.
+  final bool isSynthetic;
+  final List<String> memberCardIds;
+
   const CardSet({
     required this.id,
     required this.userId,
@@ -32,7 +39,28 @@ class CardSet {
     this.color,
     this.nativeLanguage,
     this.targetLanguage,
+    this.isSynthetic = false,
+    this.memberCardIds = const [],
   });
+
+  // Builds an in-memory synthetic set for a filtered study mode. Not persisted.
+  factory CardSet.synthetic({
+    required String id,
+    required String name,
+    List<String> memberCardIds = const [],
+  }) {
+    final now = DateTime.now();
+    return CardSet(
+      id: id,
+      userId: '',
+      name: name,
+      cardCount: memberCardIds.length,
+      createdAt: now,
+      updatedAt: now,
+      isSynthetic: true,
+      memberCardIds: memberCardIds,
+    );
+  }
 
   factory CardSet.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -105,6 +133,8 @@ class CardSet {
     String? color,
     String? nativeLanguage,
     String? targetLanguage,
+    bool? isSynthetic,
+    List<String>? memberCardIds,
   }) =>
       CardSet(
         id: id ?? this.id,
@@ -120,5 +150,7 @@ class CardSet {
         color: color ?? this.color,
         nativeLanguage: nativeLanguage ?? this.nativeLanguage,
         targetLanguage: targetLanguage ?? this.targetLanguage,
+        isSynthetic: isSynthetic ?? this.isSynthetic,
+        memberCardIds: memberCardIds ?? this.memberCardIds,
       );
 }

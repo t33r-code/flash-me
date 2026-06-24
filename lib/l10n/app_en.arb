@@ -540,6 +540,8 @@
   "actionStartSession": "Start Session",
   "errorFailedStartSession": "Failed to start session. Please try again.",
   "messageAddCardsBeforeStudying": "Add cards to this set before studying.",
+  "messageNoReviewCards": "No cards are flagged for review yet. Mark cards with Review while studying to build this list.",
+  "messageNoMistakeCards": "No recent mistakes to review. Answer questions incorrectly while studying and they'll appear here.",
   "labelSessionInProgress": "Session in progress",
   "messageCardsReviewed": "{done} of {total} cards reviewed",
   "@messageCardsReviewed": {

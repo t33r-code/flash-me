@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_set.dart';
+import 'package:flash_me/models/study_candidate.dart';
 import 'package:flash_me/widgets/help_menu_button.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/screens/study/study_setup_screen.dart';
@@ -39,14 +40,14 @@ class StudyScreen extends ConsumerWidget {
             icon: Icons.flag_outlined,
             title: l10n.titleStudyReview,
             subtitle: l10n.messageStudyReviewSubtitle,
-            comingSoon: true,
+            onTap: () => _openSynthetic(context, StudyMode.review),
           ),
           const SizedBox(height: 12),
           _StudyModeCard(
             icon: Icons.trending_down_outlined,
             title: l10n.titleStudyMistakes,
             subtitle: l10n.messageStudyMistakesSubtitle,
-            comingSoon: true,
+            onTap: () => _openSynthetic(context, StudyMode.mistakes),
           ),
         ],
       ),
@@ -75,46 +76,50 @@ class StudyScreen extends ConsumerWidget {
       studyEnterRoute(StudySetupScreen(cardSet: selected)),
     );
   }
+
+  // Opens the synthetic study setup for a filtered mode (Review / Mistakes).
+  // The pool is assembled on the setup screen, which shows an empty state when
+  // there are no eligible cards — so tapping is never blocked here.
+  void _openSynthetic(BuildContext context, StudyMode mode) {
+    final name = mode == StudyMode.review
+        ? context.l10n.titleStudyReview
+        : context.l10n.titleStudyMistakes;
+    final shell = CardSet.synthetic(id: syntheticSetIdFor(mode), name: name);
+    Navigator.of(context).push(
+      studyEnterRoute(StudySetupScreen(cardSet: shell, syntheticMode: mode)),
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
-// _StudyModeCard — tappable card for one study mode; disabled when comingSoon.
+// _StudyModeCard — tappable card for one study mode.
 // ---------------------------------------------------------------------------
 class _StudyModeCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback? onTap;
-  final bool comingSoon;
 
   const _StudyModeCard({
     required this.icon,
     required this.title,
     required this.subtitle,
     this.onTap,
-    this.comingSoon = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final enabled = !comingSoon;
-    // Use .withAlpha instead of deprecated .withOpacity
-    final disabledColor = scheme.onSurface.withAlpha(97); // ~0.38 opacity
 
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: enabled ? onTap : null,
+        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
           child: Row(
             children: [
-              Icon(
-                icon,
-                size: 32,
-                color: enabled ? scheme.primary : disabledColor,
-              ),
+              Icon(icon, size: 32, color: scheme.primary),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -122,41 +127,20 @@ class _StudyModeCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: enabled ? null : disabledColor,
-                          ),
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: enabled
-                                ? scheme.onSurfaceVariant
-                                : disabledColor,
+                            color: scheme.onSurfaceVariant,
                           ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              if (comingSoon)
-                // "Soon" badge for unimplemented modes
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    context.l10n.labelComingSoon,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                  ),
-                )
-              else
-                Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+              Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
             ],
           ),
         ),

@@ -207,6 +207,9 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
         trailing: DropdownButton<String>(
           value: selection,
           underline: const SizedBox.shrink(),
+          // Suppress the grey focus highlight that otherwise boxes the selected
+          // value after a choice is made, so it sits flush in the bar.
+          focusColor: Colors.transparent,
           onChanged: _starting
               ? null
               : (v) {

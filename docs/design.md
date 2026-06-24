@@ -1594,6 +1594,42 @@ The choice should be made as a dedicated spike task at the start of the marketpl
 
 ---
 
+## Future Direction — Platform Breadth & Interoperability
+
+> **Status: Exploratory.** Captured to inform current architectural choices; no implementation phases assigned. Tracked in #174 (deck domain) and #175 (QTI import).
+
+Two related directions would broaden Agora from a language-learning app into a general flashcard/assessment platform. They reinforce each other and both feed the [Marketplace vision](#marketplace--lessons--long-term-vision).
+
+### Subject-agnostic content — deck "domain" (#174)
+
+The card model is already structurally domain-neutral: a primary prompt that reveals an answer, plus typed interactive questions (reveal / text input / multiple choice / word order). A chemistry card ("Na → Sodium") or a general Q&A card fits with no structural change. The coupling to language learning is shallow and lives in three places:
+
+1. **Field naming** — `primaryWord` / `translation` are language-flavoured but internally are just "front"/"back"; cosmetic, relabelable without data migration.
+2. **`nativeLanguage` / `targetLanguage`** — already **nullable**, so non-language decks leave them null today. Non-language content is *possible* now, just not *first-class*.
+3. **The organizing axis** (the real issue) — the app assumes **target language is the primary organizing/discovery dimension** (the study language-filter in #171; marketplace discovery). For other subjects the organizing axis is subject/topic, not language.
+
+**Direction:** generalize the *metadata/discovery dimension*, not the card body. Introduce a deck **"domain"** where `language` is one domain (schema `{nativeLanguage, targetLanguage}`) and `science`/`general` are others with different or no metadata — dovetailing with the **Templates** feature, which could define field semantics *and* domain metadata. The #171 filter seam (`StudyFilter` predicates) should be framed as "filter by the deck's organizing metadata" so "filter by subject/topic" slots in later with no rework. Short term, non-language decks already work via nullable language fields + the global **tag system** carrying subject.
+
+This is a **positioning decision** as much as a technical one — *a language app that uses flashcards, or a flashcard platform strong at language?* The current architecture (nullable language fields + global tags) keeps both options open.
+
+### QTI 3 import (#175)
+
+QTI (1EdTech Question & Test Interoperability) is the edtech/LMS standard for assessment items. A scoped importer — not full-spec — would open a large content ecosystem (publishers, LMS exports, item banks), most of it non-language, reinforcing the subject-agnostic direction above. A useful subset of QTI interactions maps cleanly onto existing and planned question types:
+
+| QTI 3 interaction | Agora question type |
+|---|---|
+| `choiceInteraction` | multiple_choice |
+| `textEntryInteraction` | text_input |
+| `orderInteraction` | word_order |
+| `gapMatchInteraction` | fill-in-the-blanks (#170) |
+| `matchInteraction` | complete-the-grid (#167) |
+
+It fits the existing import pipeline: QTI items ship as IMS Content Packages (zip + manifest + item XML + media), and the importer already handles ZIP, media round-trip, and detailed import reports. Main friction: QTI `itemBody` is XHTML vs. Agora's deliberately plain cards (needs flatten/sanitize to plain text/markdown), real-world banks are often QTI 2.x not 3.0, and import is one-directional (export *to* QTI is lossy-upward).
+
+**Design dependency to honour now (cheap insurance):** spec the [complete-the-grid (#167)] and [fill-in-the-blanks (#170)] question models with one eye on `matchInteraction` / `gapMatchInteraction` so QTI mapping is near-mechanical later.
+
+---
+
 ## Post-MVP Considerations
 
 ### Web Dashboard — Bulk Card Creation & Desktop Experience

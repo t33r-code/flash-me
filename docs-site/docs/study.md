@@ -25,6 +25,10 @@ Tap either mode to go straight to the setup screen, then **Start Session** as us
 
 If you haven't marked any cards for review yet (or haven't made any recent mistakes), the setup screen explains that there's nothing to study in that mode yet.
 
+### Filtering by language { #filtered-modes-language }
+
+If the gathered cards span more than one target language, the setup screen shows a **Language** selector so you don't end up mixing, say, Spanish and German in one session. It starts on your most-relevant language (the one you last worked in, or the one with the most cards) and the card count updates as you change it. You can also pick **All languages**, or **Unspecified** for cards that don't have a language set. When all the cards are in a single language, the selector is hidden.
+
 ---
 
 ## Session Setup { #session-setup }

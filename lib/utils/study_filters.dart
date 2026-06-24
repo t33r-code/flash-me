@@ -48,3 +48,65 @@ List<StudyCandidate> buildStudyCandidates({
           nativeLanguage: c.nativeLanguage,
         ),
     ];
+
+// ---------------------------------------------------------------------------
+// Study filters — an extensible predicate seam over candidates. The language
+// filter below is the first concrete filter; future filters (subject/topic,
+// field type, mark age, …) are just more predicates, applied the same way.
+// ---------------------------------------------------------------------------
+
+typedef StudyFilter = bool Function(StudyCandidate);
+
+// Keeps only candidates that satisfy every active filter (empty list = keep all).
+List<StudyCandidate> applyStudyFilters(
+        List<StudyCandidate> candidates, List<StudyFilter> filters) =>
+    candidates.where((c) => filters.every((f) => f(c))).toList();
+
+// Sentinel selection keys for the language filter (distinct from any ISO code).
+const String langFilterAll = '*all*';
+const String langFilterUnspecified = '*unspecified*';
+
+// Count of candidates per target language; a null key is the "unspecified"
+// bucket (cards with no target language set).
+Map<String?, int> targetLanguageCounts(List<StudyCandidate> candidates) {
+  final counts = <String?, int>{};
+  for (final c in candidates) {
+    counts[c.targetLanguage] = (counts[c.targetLanguage] ?? 0) + 1;
+  }
+  return counts;
+}
+
+// Show the language selector only when the pool spans more than one bucket
+// (distinct target languages, counting "unspecified" as a bucket). A
+// monolingual or all-unspecified pool has nothing to filter.
+bool shouldShowLanguageFilter(List<StudyCandidate> candidates) =>
+    targetLanguageCounts(candidates).length > 1;
+
+// Whether a candidate matches the current language selection.
+bool candidateMatchesLanguage(StudyCandidate c, String selection) {
+  if (selection == langFilterAll) return true;
+  if (selection == langFilterUnspecified) return c.targetLanguage == null;
+  return c.targetLanguage == selection;
+}
+
+// Default selection: the last-used target language if it's a present non-null
+// bucket, otherwise the non-null language with the most candidates (alphabetical
+// tie-break). Never defaults to "all" or "unspecified" — those are explicit
+// opt-ins. Falls back to "all" only if the pool has no non-null languages.
+String defaultLanguageSelection(
+    List<StudyCandidate> candidates, String? lastUsedTarget) {
+  final nonNull = <String, int>{
+    for (final e in targetLanguageCounts(candidates).entries)
+      if (e.key != null) e.key!: e.value,
+  };
+  if (nonNull.isEmpty) return langFilterAll;
+  if (lastUsedTarget != null && nonNull.containsKey(lastUsedTarget)) {
+    return lastUsedTarget;
+  }
+  final sorted = nonNull.entries.toList()
+    ..sort((a, b) {
+      final byCount = b.value.compareTo(a.value);
+      return byCount != 0 ? byCount : a.key.compareTo(b.key);
+    });
+  return sorted.first.key;
+}

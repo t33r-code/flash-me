@@ -2338,6 +2338,24 @@ abstract class AppLocalizations {
   /// **'No recent mistakes to review. Answer questions incorrectly while studying and they\'ll appear here.'**
   String get messageNoMistakeCards;
 
+  /// No description provided for @labelStudyLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get labelStudyLanguage;
+
+  /// No description provided for @labelAllLanguages.
+  ///
+  /// In en, this message translates to:
+  /// **'All languages'**
+  String get labelAllLanguages;
+
+  /// No description provided for @labelLanguageUnspecified.
+  ///
+  /// In en, this message translates to:
+  /// **'Unspecified'**
+  String get labelLanguageUnspecified;
+
   /// No description provided for @labelSessionInProgress.
   ///
   /// In en, this message translates to:

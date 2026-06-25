@@ -483,9 +483,8 @@ class _SetDiffTileState extends State<_SetDiffTile> {
     final l10n = context.l10n;
     final diff = widget.diff;
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final successColor = isDark ? Colors.green[300]! : Colors.green[700]!;
-    final warningColor = isDark ? Colors.orange[300]! : Colors.orange[700]!;
+    final successColor = context.appColors.statusSuccess;
+    final warningColor = context.appColors.statusWarning;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -613,8 +612,7 @@ class _TemplateDiffSectionState extends State<_TemplateDiffSection> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final successColor = isDark ? Colors.green[300]! : Colors.green[700]!;
+    final successColor = context.appColors.statusSuccess;
     final cts = widget.analysis.newCardTemplates;
     final qts = widget.analysis.newQuestionTemplates;
 
@@ -869,9 +867,8 @@ class _ImportSummaryDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final successColor = isDark ? Colors.green[300]! : Colors.green[700]!;
-    final warningColor = isDark ? Colors.orange[300]! : Colors.orange[700]!;
+    final successColor = context.appColors.statusSuccess;
+    final warningColor = context.appColors.statusWarning;
     final s = summary;
     final hasChanges = s.cardsAdded > 0 || s.cardsLinked > 0 ||
         s.cardsUpdated > 0 || s.cardsRemoved > 0 ||

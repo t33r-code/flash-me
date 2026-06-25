@@ -590,7 +590,6 @@ class _WordCardState extends State<_WordCard> {
   Widget build(BuildContext context) {
     final card = widget.card;
     final scheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Center(
       child: SingleChildScrollView(
@@ -704,9 +703,7 @@ class _WordCardState extends State<_WordCard> {
                                 child: _SelfEvalButton(
                                   label: context.l10n.labelKnewIt,
                                   icon: Icons.check,
-                                  color: isDark
-                                      ? Colors.green[400]!
-                                      : Colors.green[700]!,
+                                  color: context.appColors.correct,
                                   selected: widget.selectedResult ==
                                       AppConstants.primaryResultKnown,
                                   onTap: () => widget.onSelfEval(
@@ -902,12 +899,12 @@ class _OptionButton extends StatelessWidget {
     final Color border;
     final Color fg;
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final appColors = context.appColors;
     switch (state) {
       case _OptionState.correct:
-        bg = Colors.green.withValues(alpha: isDark ? 0.22 : 0.12);
-        border = isDark ? Colors.green[400]! : Colors.green[700]!;
-        fg = isDark ? Colors.green[300]! : Colors.green[800]!;
+        bg = appColors.correctSurface;
+        border = appColors.correct;
+        fg = appColors.onCorrectSurface;
       case _OptionState.incorrect:
         bg = scheme.errorContainer.withValues(alpha: 0.5);
         border = scheme.error;
@@ -981,7 +978,6 @@ class _NavigationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLast = currentIndex == total - 1;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 4, 8, 24),
@@ -1003,7 +999,7 @@ class _NavigationBar extends StatelessWidget {
                 icon: Icons.flag_outlined,
                 activeIcon: Icons.flag,
                 isActive: isMarkedReview,
-                activeColor: isDark ? Colors.green[300]! : Colors.green[700]!,
+                activeColor: context.appColors.markReview,
                 onTap: onReview,
               ),
               const SizedBox(width: 32),
@@ -1012,7 +1008,7 @@ class _NavigationBar extends StatelessWidget {
                 icon: Icons.check_circle_outline,
                 activeIcon: Icons.check_circle,
                 isActive: isMarkedSkip,
-                activeColor: isDark ? Colors.amber[300]! : Colors.amber[700]!,
+                activeColor: context.appColors.markSkip,
                 onTap: onSkip,
               ),
             ],
@@ -1280,13 +1276,12 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final appColors = context.appColors;
     final answered = _result != null;
     final isCorrect = _result == true;
-    final correctGreen = isDark ? Colors.green[300]! : Colors.green[700]!;
     final cardColor = answered
         ? (isCorrect
-            ? Colors.green.withValues(alpha: isDark ? 0.2 : 0.08)
+            ? appColors.correctSurface
             : scheme.errorContainer.withValues(alpha: 0.4))
         : null;
     final prompt = widget.question.prompt;
@@ -1341,11 +1336,11 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
               if (isCorrect)
                 Row(children: [
                   Icon(Icons.check_circle_outline,
-                      color: correctGreen, size: 20),
+                      color: appColors.onCorrectSurface, size: 20),
                   const SizedBox(width: 6),
                   Text(context.l10n.labelCorrect,
                       style: TextStyle(
-                          color: correctGreen,
+                          color: appColors.onCorrectSurface,
                           fontWeight: FontWeight.bold)),
                 ])
               else ...[
@@ -1555,15 +1550,14 @@ class _WordOrderCardState extends State<_WordOrderCard> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final appColors = context.appColors;
     final answered = _result != null;
     final isCorrect = _result == true;
-    final correctGreen = isDark ? Colors.green[300]! : Colors.green[700]!;
     final prompt = widget.question.prompt;
 
     final cardColor = answered
         ? (isCorrect
-            ? Colors.green.withValues(alpha: isDark ? 0.2 : 0.08)
+            ? appColors.correctSurface
             : scheme.errorContainer.withValues(alpha: 0.4))
         : null;
 
@@ -1648,11 +1642,11 @@ class _WordOrderCardState extends State<_WordOrderCard> {
             else if (isCorrect)
               Row(children: [
                 Icon(Icons.check_circle_outline,
-                    color: correctGreen, size: 20),
+                    color: appColors.onCorrectSurface, size: 20),
                 const SizedBox(width: 6),
                 Text(context.l10n.labelCorrect,
                     style: TextStyle(
-                        color: correctGreen,
+                        color: appColors.onCorrectSurface,
                         fontWeight: FontWeight.bold)),
               ])
             else ...[

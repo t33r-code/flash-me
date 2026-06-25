@@ -122,6 +122,10 @@ class MyApp extends ConsumerWidget {
       supportedLocales: AppLocalizations.supportedLocales,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
+      // Picked up automatically when the OS high-contrast setting is on
+      // (iOS Increase Contrast / Android High contrast text).
+      highContrastTheme: AppTheme.highContrastLightTheme,
+      highContrastDarkTheme: AppTheme.highContrastDarkTheme,
       themeMode: ref.watch(themeModeProvider),
       debugShowCheckedModeBanner: false,
       // Global offline banner — sits above all routes so it appears at a

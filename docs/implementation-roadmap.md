@@ -665,7 +665,7 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 - [ ] Add screen reader support (`Semantics` labels on custom widgets; smoke-test with TalkBack/VoiceOver)
 - [ ] Test with accessibility tools
 - [ ] Add text size adjustment controls
-- [ ] Implement high contrast mode
+- [x] Implement high contrast mode (#94) — `AppColors` ThemeExtension with semantic colour slots; high-contrast light/dark themes using `contrastLevel: 1.0`; OS-driven via `MaterialApp.highContrastTheme`; all hardcoded feedback colours migrated
 - [ ] Prepare for localization (structure for multiple languages)
 
 ### Documentation

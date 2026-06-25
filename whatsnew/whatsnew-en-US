@@ -1,5 +1,5 @@
-Alpha 0.3
+Alpha 0.4
 
-New: shuffle multiple choice options in study mode. Richer session summary with per-question results and time per card. Cards now load offline with local caching. Link Google and email accounts together. Delete your account from within the app. Card edit screen shows creation and update timestamps. Question type indicators on card previews.
+New: Study Review and Study Mistakes modes let you drill flagged cards or recent errors from across your whole library. A language filter keeps sessions focused when your pool spans multiple languages. High contrast theme activates automatically from your device accessibility settings. Haptic feedback gives a tactile pulse for correct and incorrect answers in study mode.
 
-Bug fix: Firestore listener leak fixed for better performance.
+Bug fix: import no longer falsely flags unchanged multiple-choice cards as modified.

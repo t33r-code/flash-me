@@ -2,6 +2,23 @@
 
 ---
 
+## v0.4a — Alpha 0.4 — 2026-06-25
+
+### New features
+- Study Review mode: study all cards you've flagged for extra practice, pulled from across your entire library (#179)
+- Study Mistakes mode: study cards where you've recently answered incorrectly (#179)
+- Language filter for Study Review and Study Mistakes — when your pool spans multiple languages, choose which one to focus on (#180)
+- High contrast theme — automatically applied when your device's high contrast accessibility setting is on (#94)
+- Haptic feedback in study mode — a light pulse for correct answers, a stronger pulse for incorrect ones, and a subtle click when self-evaluating or toggling card marks (#86)
+
+### Bug fixes
+- Fixed import incorrectly flagging unchanged multiple-choice cards as modified (#177)
+
+### Known issues
+- None identified
+
+---
+
 ## v0.3a — Alpha 0.3 — 2026-06-23
 
 ### New features

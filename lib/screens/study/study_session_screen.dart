@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/flash_card.dart';
@@ -187,6 +188,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   // The mark is also persisted to users/{uid}/cardMarks/{cardId} for use
   // by future filtered study modes.
   void _updateCardMark({required bool markSkip}) {
+    HapticFeedback.selectionClick();
     final data = _currentCardData;
     final wasActive = markSkip ? data.markedKnown : data.markedUnknown;
 
@@ -222,6 +224,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   // tallies. Does not auto-advance — the user proceeds via the nav arrow, and
   // may still tap More to answer the card's questions afterwards.
   void _setPrimaryResult(String result) {
+    HapticFeedback.selectionClick();
     final updated = Map<String, CardSessionData>.from(_session.cardProgress);
     updated[_currentCardId] = _currentCardData.copyWith(
       primaryResult: result,
@@ -1262,6 +1265,7 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
         ? answers.any((a) => a == input)
         : answers.any((a) => a.toLowerCase() == input.toLowerCase());
     setState(() => _result = correct);
+    correct ? HapticFeedback.lightImpact() : HapticFeedback.mediumImpact();
     widget.onResult?.call(correct);
   }
 
@@ -1447,8 +1451,12 @@ class _WorkbookMultipleChoiceCardState
                       onTap: answered
                           ? null
                           : () {
+                              final correct = i == correctIndex;
                               setState(() => _selectedIndex = i);
-                              widget.onResult?.call(i == correctIndex);
+                              correct
+                                  ? HapticFeedback.lightImpact()
+                                  : HapticFeedback.mediumImpact();
+                              widget.onResult?.call(correct);
                             },
                     ),
                 ],
@@ -1528,6 +1536,7 @@ class _WordOrderCardState extends State<_WordOrderCard> {
   void _check() {
     final correct = _ordersEqual(_placed, widget.question.correctOrder ?? []);
     setState(() => _result = correct);
+    correct ? HapticFeedback.lightImpact() : HapticFeedback.mediumImpact();
     widget.onResult?.call(correct);
   }
 

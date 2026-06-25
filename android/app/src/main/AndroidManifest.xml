@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for HapticFeedback.lightImpact / mediumImpact / heavyImpact,
+         which use VibrationEffect on Android O+. selectionClick uses
+         performHapticFeedback() and does not require this permission. -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
     <application
         android:label="Agora"
         android:name="${applicationName}"

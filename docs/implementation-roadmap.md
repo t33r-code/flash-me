@@ -639,7 +639,7 @@ Items deferred from Alpha 0.1, grouped by theme. All are prerequisites for a pub
 
 ### Advanced Study Features
 - [ ] Offline support with local caching
-- [ ] Haptic feedback for answer results
+- [x] Haptic feedback for answer results (#86) — lightImpact on correct, mediumImpact on incorrect (MC, text input, word order); selectionClick on self-eval and Review/Skip mark toggle; silent no-op on desktop/web
 - [ ] Keyboard shortcuts (arrow keys, Enter) for desktop
 - [ ] Card preloading for smooth performance
 

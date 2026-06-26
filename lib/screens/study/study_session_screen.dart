@@ -1497,8 +1497,10 @@ class _WorkbookMultipleChoiceCardState
                   onTap: answered
                       ? null
                       : () {
+                          final correct = i == correctIndex;
                           setState(() => _selectedIndex = i);
-                          widget.onResult?.call(i == correctIndex);
+                          correct ? _hapticCorrect() : _hapticIncorrect();
+                          widget.onResult?.call(correct);
                         },
                 ),
 

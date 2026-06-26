@@ -397,6 +397,7 @@
   "labelQuestionTypeTextInput": "Text input",
   "labelQuestionTypeMultipleChoice": "Multiple choice",
   "labelQuestionTypeWordOrder": "Word order",
+  "labelQuestionTypeFillInBlanks": "Fill in the blanks",
   "actionAddQuestion": "Add Question",
   "messageSelectCorrectOptionLabeled": "Question \"{label}\": select the correct option.",
   "@messageSelectCorrectOptionLabeled": {

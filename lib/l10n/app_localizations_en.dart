@@ -952,6 +952,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get labelQuestionTypeWordOrder => 'Word order';
 
   @override
+  String get labelQuestionTypeFillInBlanks => 'Fill in the blanks';
+
+  @override
   String get actionAddQuestion => 'Add Question';
 
   @override

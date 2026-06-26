@@ -14,6 +14,22 @@ enum MultipleChoiceDisplayMode {
 }
 
 // ---------------------------------------------------------------------------
+// CompletionMode — how the user fills the gaps in a fill-in-the-blanks (#170)
+// or complete-the-grid (#167) question. Shared by both types.
+//   pill      → drag word pills from a pool into the empty slots
+//   textInput → type the missing words into editable fields
+// ---------------------------------------------------------------------------
+enum CompletionMode {
+  pill,
+  textInput;
+
+  static CompletionMode fromString(String? s) =>
+      s == 'textInput' ? textInput : pill;
+
+  String get asJson => name; // 'pill' | 'textInput'
+}
+
+// ---------------------------------------------------------------------------
 // CardQuestion — unified sealed hierarchy shared by FlashCards and WorkbookCards.
 //
 // Each subtype stores all data for one interactive question on a card.
@@ -24,6 +40,7 @@ enum MultipleChoiceDisplayMode {
 //   text_input      → TextInputQuestion
 //   multiple_choice → MultipleChoiceQuestion
 //   word_order      → WordOrderQuestion
+//   fill_in_blanks  → FillInTheBlanksQuestion
 // ---------------------------------------------------------------------------
 sealed class CardQuestion {
   final String questionId; // unique ID within the card; used as result tracking key
@@ -52,6 +69,9 @@ sealed class CardQuestion {
             questionId: questionId, prompt: prompt, content: content);
       case AppConstants.questionTypeWordOrder:
         return WordOrderQuestion.fromJson(
+            questionId: questionId, prompt: prompt, content: content);
+      case AppConstants.questionTypeFillInBlanks:
+        return FillInTheBlanksQuestion.fromJson(
             questionId: questionId, prompt: prompt, content: content);
       default:
         // Unknown types (e.g. legacy 'reveal') are silently skipped by the
@@ -298,5 +318,125 @@ class WordOrderQuestion extends CardQuestion {
         prompt: prompt ?? this.prompt,
         wordBank: wordBank ?? this.wordBank,
         correctOrder: correctOrder ?? this.correctOrder,
+      );
+}
+
+// --- Fill-in-the-blanks question -------------------------------------------
+// A sentence is tokenized into words; the author marks which words are
+// eligible to be blanked. At display time `blankCount` eligible words are
+// randomly hidden and the user fills them back in (pill drag-drop or text).
+//
+// QTI note: maps onto gapMatchInteraction — the blanked positions are "gaps"
+// and the pill pool (blanked words + extraWords) are the "gapText" choices.
+
+// One token of the tokenized sentence; preserves original word order.
+class FillBlankToken {
+  final String word;
+  final bool eligible; // true = author allows this word to be blanked
+
+  const FillBlankToken({required this.word, required this.eligible});
+
+  factory FillBlankToken.fromJson(Map<String, dynamic> json) => FillBlankToken(
+        word: json['word'] as String? ?? '',
+        eligible: json['eligible'] as bool? ?? false,
+      );
+
+  Map<String, dynamic> toJson() => {'word': word, 'eligible': eligible};
+}
+
+class FillInTheBlanksQuestion extends CardQuestion {
+  final String? sentence;            // complete original sentence; null in templates
+  final List<FillBlankToken>? tokens; // tokenized sentence; null in templates
+  final int blankCount;              // eligible words to hide per display
+  final List<String> extraWords;     // author-added distractor words for the pool
+  final CompletionMode completionMode;
+
+  const FillInTheBlanksQuestion({
+    required super.questionId,
+    super.prompt,
+    this.sentence,
+    this.tokens,
+    this.blankCount = 1,
+    this.extraWords = const [],
+    this.completionMode = CompletionMode.pill,
+  });
+
+  factory FillInTheBlanksQuestion.fromJson({
+    required String questionId,
+    String? prompt,
+    required Map<String, dynamic> content,
+  }) =>
+      FillInTheBlanksQuestion(
+        questionId: questionId,
+        prompt: prompt,
+        sentence: content['sentence'] as String?,
+        tokens: content['tokens'] != null
+            ? (content['tokens'] as List)
+                .map((t) => FillBlankToken.fromJson(t as Map<String, dynamic>))
+                .toList()
+            : null,
+        blankCount: content['blankCount'] as int? ?? 1,
+        extraWords: content['extraWords'] != null
+            ? List<String>.from(content['extraWords'] as List)
+            : const [],
+        completionMode:
+            CompletionMode.fromString(content['completionMode'] as String?),
+      );
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'questionId': questionId,
+        'type': AppConstants.questionTypeFillInBlanks,
+        'prompt': prompt,
+        'content': {
+          'sentence': sentence,
+          'tokens': tokens?.map((t) => t.toJson()).toList(),
+          'blankCount': blankCount,
+          'extraWords': extraWords,
+          'completionMode': completionMode.asJson,
+        },
+      };
+
+  @override
+  List<String> validate({bool isTemplate = false}) {
+    if (isTemplate) return [];
+    final errors = <String>[];
+    if (sentence == null || sentence!.trim().isEmpty) {
+      errors.add('fill-in-the-blanks question must have a sentence');
+    }
+    if (tokens == null || tokens!.isEmpty) {
+      errors.add('fill-in-the-blanks question must be tokenized');
+      return errors; // remaining checks need tokens
+    }
+    final eligibleCount = tokens!.where((t) => t.eligible).length;
+    if (eligibleCount == 0) {
+      errors.add('at least one word must be marked eligible to blank');
+    }
+    if (blankCount < 1) {
+      errors.add('blank count must be at least 1');
+    }
+    if (blankCount > eligibleCount) {
+      errors.add('blank count cannot exceed the number of eligible words');
+    }
+    return errors;
+  }
+
+  FillInTheBlanksQuestion copyWith({
+    String? questionId,
+    String? prompt,
+    String? sentence,
+    List<FillBlankToken>? tokens,
+    int? blankCount,
+    List<String>? extraWords,
+    CompletionMode? completionMode,
+  }) =>
+      FillInTheBlanksQuestion(
+        questionId: questionId ?? this.questionId,
+        prompt: prompt ?? this.prompt,
+        sentence: sentence ?? this.sentence,
+        tokens: tokens ?? this.tokens,
+        blankCount: blankCount ?? this.blankCount,
+        extraWords: extraWords ?? this.extraWords,
+        completionMode: completionMode ?? this.completionMode,
       );
 }

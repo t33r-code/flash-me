@@ -95,6 +95,99 @@ void main() {
     });
   });
 
+  // ── FillInTheBlanksQuestion ───────────────────────────────────────────────
+
+  group('FillInTheBlanksQuestion', () {
+    test('round-trips sentence, tokens, blankCount, extraWords, mode', () {
+      final q = FillInTheBlanksQuestion(
+        questionId: 'q4',
+        prompt: 'Complete the sentence',
+        sentence: 'el gato es negro',
+        tokens: const [
+          FillBlankToken(word: 'el', eligible: false),
+          FillBlankToken(word: 'gato', eligible: true),
+          FillBlankToken(word: 'es', eligible: false),
+          FillBlankToken(word: 'negro', eligible: true),
+        ],
+        blankCount: 2,
+        extraWords: const ['perro', 'blanco'],
+        completionMode: CompletionMode.textInput,
+      );
+      final restored =
+          CardQuestion.fromJson(q.toJson()) as FillInTheBlanksQuestion;
+      expect(restored.questionId, equals('q4'));
+      expect(restored.prompt, equals('Complete the sentence'));
+      expect(restored.sentence, equals('el gato es negro'));
+      expect(restored.tokens!.length, equals(4));
+      expect(restored.tokens![1].word, equals('gato'));
+      expect(restored.tokens![1].eligible, isTrue);
+      expect(restored.tokens![0].eligible, isFalse);
+      expect(restored.blankCount, equals(2));
+      expect(restored.extraWords, equals(['perro', 'blanco']));
+      expect(restored.completionMode, equals(CompletionMode.textInput));
+    });
+
+    test('defaults: blankCount 1, empty extraWords, pill mode', () {
+      final q = FillInTheBlanksQuestion(questionId: 'q4');
+      final restored =
+          CardQuestion.fromJson(q.toJson()) as FillInTheBlanksQuestion;
+      expect(restored.blankCount, equals(1));
+      expect(restored.extraWords, isEmpty);
+      expect(restored.completionMode, equals(CompletionMode.pill));
+    });
+
+    test('null sentence and tokens round-trip (template mode)', () {
+      final q = FillInTheBlanksQuestion(questionId: 'q4');
+      final restored =
+          CardQuestion.fromJson(q.toJson()) as FillInTheBlanksQuestion;
+      expect(restored.sentence, isNull);
+      expect(restored.tokens, isNull);
+    });
+
+    test('validate flags missing sentence and no eligible tokens', () {
+      final q = FillInTheBlanksQuestion(
+        questionId: 'q4',
+        sentence: 'el gato',
+        tokens: const [
+          FillBlankToken(word: 'el', eligible: false),
+          FillBlankToken(word: 'gato', eligible: false),
+        ],
+      );
+      final errors = q.validate();
+      expect(errors, contains('at least one word must be marked eligible to blank'));
+    });
+
+    test('validate flags blankCount exceeding eligible count', () {
+      final q = FillInTheBlanksQuestion(
+        questionId: 'q4',
+        sentence: 'el gato',
+        tokens: const [FillBlankToken(word: 'gato', eligible: true)],
+        blankCount: 2,
+      );
+      expect(
+        q.validate(),
+        contains('blank count cannot exceed the number of eligible words'),
+      );
+    });
+
+    test('validate passes in template mode regardless of content', () {
+      final q = FillInTheBlanksQuestion(questionId: 'q4');
+      expect(q.validate(isTemplate: true), isEmpty);
+    });
+  });
+
+  // ── CompletionMode ────────────────────────────────────────────────────────
+
+  group('CompletionMode', () {
+    test('fromString maps textInput and defaults to pill', () {
+      expect(CompletionMode.fromString('textInput'),
+          equals(CompletionMode.textInput));
+      expect(CompletionMode.fromString('pill'), equals(CompletionMode.pill));
+      expect(CompletionMode.fromString(null), equals(CompletionMode.pill));
+      expect(CompletionMode.fromString('garbage'), equals(CompletionMode.pill));
+    });
+  });
+
   // ── CardQuestion.fromJson dispatch ────────────────────────────────────────
 
   group('CardQuestion.fromJson dispatch', () {
@@ -116,6 +209,14 @@ void main() {
       expect(
         CardQuestion.fromJson(WordOrderQuestion(questionId: 'q3').toJson()),
         isA<WordOrderQuestion>(),
+      );
+    });
+
+    test('dispatches fill_in_blanks to FillInTheBlanksQuestion', () {
+      expect(
+        CardQuestion.fromJson(
+            FillInTheBlanksQuestion(questionId: 'q4').toJson()),
+        isA<FillInTheBlanksQuestion>(),
       );
     });
 

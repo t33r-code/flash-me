@@ -525,6 +525,7 @@ class ImportService {
           }(),
         WordOrderQuestion q =>
             q.correctOrder?.join(' → ') ?? '(no order)',
+        FillInTheBlanksQuestion q => q.sentence ?? '(no sentence)',
       };
     }
     if (question is Map<String, dynamic>) {
@@ -545,6 +546,9 @@ class ImportService {
       if (type == AppConstants.questionTypeWordOrder) {
         final order = (content['correctOrder'] as List?)?.cast<String>();
         return order?.join(' → ') ?? '(no order)';
+      }
+      if (type == AppConstants.questionTypeFillInBlanks) {
+        return content['sentence'] as String? ?? '(no sentence)';
       }
     }
     return '';

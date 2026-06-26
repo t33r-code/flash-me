@@ -81,11 +81,20 @@ Stage and commit `docs/release-notes.md`, `whatsnew/whatsnew-en-US`, and `pubspe
 chore: release notes and version bump for <VERSION>
 ```
 
-## Step 8 — Report back
+## Step 8 — Prompt for the smoke test
+
+Remind the user to run the manual smoke test in `docs/smoke-test.md` before tagging — CI does not cover most runtime behaviour (haptics, share sheets, media round-trip, question rendering), and model-only changes can regress existing flows silently.
+
+Build the **per-release checks** table for them: for each merged PR/issue in this milestone, give a concrete step + expected result. For model-only or dependency-only changes with no new UI surface, add a **regression** line instead — name the existing flow most likely to break and confirm it still works. Present this list so they can paste it into the smoke test's per-release section.
+
+Tagging is gated on the smoke test passing (or the user explicitly waiving it).
+
+## Step 9 — Report back
 
 Tell the user:
 - Which milestone was detected
 - How many issues were categorised (features / fixes / omitted)
 - The old → new version string
 - The character count of the whatsnew file
+- That the smoke test (`docs/smoke-test.md`) should be run before tagging
 - Ask them to confirm the version, then push the `v*` tag when ready

@@ -91,7 +91,6 @@ class ExportService {
 
     // ── 4. Encode ZIP and deliver ───────────────────────────────────────
     final zipBytes = ZipEncoder().encode(archive);
-    if (zipBytes == null) throw Exception('Failed to encode ZIP archive.');
 
     final safeName = _safeName(cardSet.name);
     final date = _dateStamp();
@@ -176,7 +175,6 @@ class ExportService {
     }
 
     final zipBytes = ZipEncoder().encode(archive);
-    if (zipBytes == null) throw Exception('Failed to encode ZIP archive.');
 
     return _deliver(
       Uint8List.fromList(zipBytes),
@@ -290,7 +288,7 @@ class ExportService {
       }
       final zipFile = File('${dir.path}/$fileName');
       await zipFile.writeAsBytes(zipBytes);
-      Share.shareXFiles([XFile(zipFile.path)], subject: shareSubject);
+      SharePlus.instance.share(ShareParams(files: [XFile(zipFile.path)], subject: shareSubject));
       return zipFile.path;
     } else {
       final downloadsDir =

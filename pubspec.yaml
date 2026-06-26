@@ -40,8 +40,8 @@ dependencies:
   path_provider: ^2.1.0
 
   # Import / export
-  archive: ^3.6.0       # ZIP creation and extraction
-  share_plus: ^10.0.0   # Mobile share sheet for exported files
+  archive: ^4.0.9       # ZIP creation and extraction
+  share_plus: ^12.0.2   # Mobile share sheet for exported files
 
   # Internationalization & Formatting
   intl: ^0.20.2

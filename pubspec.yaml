@@ -33,7 +33,7 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   # Markdown rendering (used for card set descriptions)
-  flutter_markdown: ^0.7.6
+  flutter_markdown_plus: ^1.0.7
 
   # File handling
   file_picker: ^11.0.2

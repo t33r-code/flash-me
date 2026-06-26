@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vibration/vibration.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/models/study_session.dart';
@@ -16,6 +18,31 @@ import 'package:flash_me/screens/study/study_session_summary_screen.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/transitions.dart';
+
+// ---------------------------------------------------------------------------
+// Haptic helpers — correct/incorrect feedback for answer results.
+//
+// On Android, HapticFeedback.lightImpact/mediumImpact use VibrationEffect
+// predefined constants that some devices don't support. The vibration package
+// calls Vibrator.vibrate(duration) directly, which is universally compatible.
+// On iOS, the built-in HapticFeedback methods use UIImpactFeedbackGenerator
+// and work correctly, so we keep them there.
+// ---------------------------------------------------------------------------
+void _hapticCorrect() {
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    Vibration.vibrate(duration: 40);
+  } else {
+    HapticFeedback.lightImpact();
+  }
+}
+
+void _hapticIncorrect() {
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    Vibration.vibrate(duration: 80);
+  } else {
+    HapticFeedback.mediumImpact();
+  }
+}
 
 // ---------------------------------------------------------------------------
 // StudySessionScreen — displays one card at a time from a StudySession.
@@ -1265,7 +1292,7 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
         ? answers.any((a) => a == input)
         : answers.any((a) => a.toLowerCase() == input.toLowerCase());
     setState(() => _result = correct);
-    correct ? HapticFeedback.lightImpact() : HapticFeedback.mediumImpact();
+    correct ? _hapticCorrect() : _hapticIncorrect();
     widget.onResult?.call(correct);
   }
 
@@ -1454,8 +1481,8 @@ class _WorkbookMultipleChoiceCardState
                               final correct = i == correctIndex;
                               setState(() => _selectedIndex = i);
                               correct
-                                  ? HapticFeedback.lightImpact()
-                                  : HapticFeedback.mediumImpact();
+                                  ? _hapticCorrect()
+                                  : _hapticIncorrect();
                               widget.onResult?.call(correct);
                             },
                     ),
@@ -1536,7 +1563,7 @@ class _WordOrderCardState extends State<_WordOrderCard> {
   void _check() {
     final correct = _ordersEqual(_placed, widget.question.correctOrder ?? []);
     setState(() => _result = correct);
-    correct ? HapticFeedback.lightImpact() : HapticFeedback.mediumImpact();
+    correct ? _hapticCorrect() : _hapticIncorrect();
     widget.onResult?.call(correct);
   }
 

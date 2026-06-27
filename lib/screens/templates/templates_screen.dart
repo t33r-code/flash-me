@@ -215,6 +215,7 @@ class _QuestionTemplateTile extends StatelessWidget {
       TextInputQuestion _ => l10n.labelQuestionTypeTextInput,
       MultipleChoiceQuestion _ => l10n.labelQuestionTypeMultipleChoice,
       WordOrderQuestion _ => l10n.labelQuestionTypeWordOrder,
+      FillInTheBlanksQuestion _ => l10n.labelQuestionTypeFillInBlanks,
     };
   }
 }

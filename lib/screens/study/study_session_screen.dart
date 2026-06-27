@@ -509,6 +509,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
         TextInputQuestion _ => AppConstants.fieldTypeTextInput,
         MultipleChoiceQuestion _ => AppConstants.fieldTypeMultipleChoice,
         WordOrderQuestion _ => AppConstants.questionTypeWordOrder,
+        FillInTheBlanksQuestion _ => AppConstants.questionTypeFillInBlanks,
       },
       outcome: correct ? AppConstants.resultSuccess : AppConstants.resultFail,
     ).ignore();
@@ -565,6 +566,14 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
         WordOrderQuestion q => _WordOrderCard(
             question: q,
             onResult: (correct) => _recordQuestionResult(q, correct),
+          ),
+        // Placeholder until the pill renderer lands (#170, subsection 2).
+        // Unreachable in practice — no authoring UI creates this type yet.
+        FillInTheBlanksQuestion _ => const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('This question type is not yet available.'),
+            ),
           ),
       };
 }

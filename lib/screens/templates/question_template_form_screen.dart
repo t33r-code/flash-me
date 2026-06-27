@@ -51,6 +51,8 @@ class _QuestionState {
         }
       case WordOrderQuestion _:
         break;
+      case FillInTheBlanksQuestion _:
+        break; // fill_in_blanks not yet supported in question template form (#170)
     }
 
     while (options.length < 2) {
@@ -62,6 +64,7 @@ class _QuestionState {
         TextInputQuestion _ => AppConstants.fieldTypeTextInput,
         MultipleChoiceQuestion _ => AppConstants.fieldTypeMultipleChoice,
         WordOrderQuestion _ => AppConstants.questionTypeWordOrder,
+        FillInTheBlanksQuestion _ => AppConstants.questionTypeFillInBlanks,
       },
       promptController: TextEditingController(text: q.prompt ?? ''),
       textHintController: TextEditingController(text: hint),

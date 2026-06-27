@@ -1786,6 +1786,12 @@ abstract class AppLocalizations {
   /// **'Word order'**
   String get labelQuestionTypeWordOrder;
 
+  /// No description provided for @labelQuestionTypeFillInBlanks.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill in the blanks'**
+  String get labelQuestionTypeFillInBlanks;
+
   /// No description provided for @actionAddQuestion.
   ///
   /// In en, this message translates to:

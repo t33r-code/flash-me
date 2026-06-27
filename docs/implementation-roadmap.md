@@ -180,6 +180,25 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 
 ---
 
+##### Phase 3f — New Question Types (Alpha 0.5)
+
+**Goal**: Add two new question types — fill-in-the-blanks (#170) and complete-the-grid (#167) — plus a system-wide normalised text-matching pass (#168). Build order: #170 → #167 (pill mode first), then #168 as a horizontal pass across all text-input types. See `docs/design.md § Question Types` for specs.
+
+**Fill in the Blanks (#170)**
+- [x] Data model: `FillInTheBlanksQuestion` subclass + `FillBlankToken` + shared `CompletionMode` enum; `fromJson`/`toJson`/`validate`/`copyWith`; `fill_in_blanks` constant; wired into all `CardQuestion` switch dispatch points and l10n label; unit tests
+- [ ] Study renderer: pill drag-drop card — blank slots in flowing sentence, pill pool (blanked words + distractors), Check gating, per-slot green/red grading with inline correct answer
+- [ ] Authoring UI: sentence → tokenize → tap-to-mark-eligible → blank count + distractor words + mode selector
+- [ ] Import/export round-trip + templates support
+- [ ] Help site: document the new question type
+
+**Complete the Grid (#167)**
+- [ ] Reuse #170 shared core (CompletionMode, pill/slot/grade); add 2D grid editor + renderer
+
+**Normalised text matching (#168)**
+- [ ] Horizontal pass: apply diacritic-forgiving / typo-tolerant matching across all text-input question types (existing + new)
+
+---
+
 ### Phase 4: Card Sets Management (Weeks 5-6)
 
 **Goal**: Enable users to organize cards into sets and manage membership.

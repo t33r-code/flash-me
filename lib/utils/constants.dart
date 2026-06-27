@@ -39,6 +39,8 @@ class AppConstants {
   static const String fieldTypeMultipleChoice = 'multiple_choice';
   // word_order is not available on flash card questions yet (planned for Step 3 UI).
   static const String questionTypeWordOrder = 'word_order';
+  // fill_in_blanks — sentence with one or more pill/text blanks (#170).
+  static const String questionTypeFillInBlanks = 'fill_in_blanks';
 
   // Card type discriminator stored on setCards join documents.
   static const String cardTypeFlashcard = 'flashcard';

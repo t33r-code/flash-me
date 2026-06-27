@@ -9,6 +9,9 @@ export 'package:flash_me/models/card_question.dart'
         TextInputQuestion,
         MultipleChoiceQuestion,
         WordOrderQuestion,
+        FillInTheBlanksQuestion,
+        FillBlankToken,
+        CompletionMode,
         MultipleChoiceDisplayMode;
 
 // ---------------------------------------------------------------------------

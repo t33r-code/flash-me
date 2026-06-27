@@ -60,6 +60,8 @@ class _TplQuestionState {
         }
       case WordOrderQuestion _:
         break; // word_order not yet supported in template form
+      case FillInTheBlanksQuestion _:
+        break; // fill_in_blanks not yet supported in template form (#170)
     }
 
     while (optionControllers.length < 2) {
@@ -72,6 +74,7 @@ class _TplQuestionState {
         TextInputQuestion _ => AppConstants.fieldTypeTextInput,
         MultipleChoiceQuestion _ => AppConstants.fieldTypeMultipleChoice,
         WordOrderQuestion _ => AppConstants.fieldTypeTextInput, // fallback
+        FillInTheBlanksQuestion _ => AppConstants.fieldTypeTextInput, // fallback (#170)
       },
       promptController: TextEditingController(text: q.prompt ?? ''),
       textHintController: TextEditingController(text: textHint),
@@ -158,6 +161,7 @@ class _QuestionTemplatePickerSheet extends StatelessWidget {
                   TextInputQuestion _ => l10n.labelQuestionTypeTextInput,
                   MultipleChoiceQuestion _ => l10n.labelQuestionTypeMultipleChoice,
                   WordOrderQuestion _ => l10n.labelQuestionTypeWordOrder,
+                  FillInTheBlanksQuestion _ => l10n.labelQuestionTypeFillInBlanks,
                 };
                 return ListTile(
                   leading: const Icon(Icons.quiz_outlined),
@@ -257,6 +261,8 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
       MultipleChoiceQuestion q =>
         q.copyWith(questionId: CardQuestion.generateId()),
       WordOrderQuestion q =>
+        q.copyWith(questionId: CardQuestion.generateId()),
+      FillInTheBlanksQuestion q =>
         q.copyWith(questionId: CardQuestion.generateId()),
     };
     setState(() => _questions.add(_TplQuestionState.fromQuestion(freshQuestion)));

@@ -278,7 +278,7 @@ A Workbook Card has two visible sections during study:
 
 1. **Prompt** — a plain-text block describing the task (e.g. *"Read the sentence and answer the questions below"*). Shown alone on first view. The user taps **Next** to skip the card entirely, or **More** to expand the questions.
 
-2. **Questions** — all revealed at once when **More** is tapped. Users can work through them in any order and revisit earlier ones. Three question types are supported.
+2. **Questions** — all revealed at once when **More** is tapped. Users can work through them in any order and revisit earlier ones. Four question types are supported.
 
 ---
 
@@ -321,6 +321,29 @@ Content fields: `wordBank: List<String>`, `correctOrder: List<String>` (non-empt
 
 ---
 
+#### 4. Fill in the Blanks *(new — #170)*
+
+User completes a sentence with one or more blanks. The author types a complete sentence, **tokenizes** it into word pills, and taps individual pills to mark them **eligible to be blanked**. At display time the system randomly hides `blankCount` of the eligible words; the rest of the sentence is shown with the hidden words replaced by blank slots.
+
+**Completion modes** (author's choice, per question — shared with complete-the-grid #167):
+
+| Mode | Behaviour |
+|---|---|
+| `pill` | Hidden words + author-added distractors become draggable pills; the user drags each into the correct blank slot |
+| `textInput` | Blank slots are editable text fields; the user types the missing words |
+
+**Check** is disabled until all blanks are filled. On checking, correct slots are highlighted green; incorrect slots red with the correct word shown inline. Text-input answers use the system-wide normalised matching (#168, applied as a later horizontal pass across all text-input types).
+
+**Distractors:** `extraWords` are author-added words that join the pill pool beyond those drawn from the sentence, raising difficulty in pill mode.
+
+Content fields: `sentence: String`, `tokens: List<{word, eligible}>`, `blankCount: int`, `extraWords: List<String>`, `completionMode: 'pill' | 'textInput'`.
+
+**QTI mapping:** designed to map onto QTI 3 `gapMatchInteraction` — the blanked positions are *gaps* and the pill pool (blanked words + `extraWords`) are the *gapText* choices (see [QTI 3 import](#qti-3-import-175)).
+
+**Build status:** data model + serialisation complete; pill-mode study renderer and authoring UI in progress (see roadmap). Text-input mode lands with the #168 normalisation pass.
+
+---
+
 ### Study Flow
 
 1. The study session screen detects card type from `cardTypeMap` (see Session Integration below).
@@ -338,7 +361,7 @@ workbookCards/{cardId}
   prompt: string                  ← task description shown before questions expand
   questions: array                ← ordered list of WorkbookQuestion maps
     questionId: string            ← client-generated unique ID (same pattern as fieldId)
-    type: string                  ← 'text_input' | 'multiple_choice' | 'word_order'
+    type: string                  ← 'text_input' | 'multiple_choice' | 'word_order' | 'fill_in_blanks'
     prompt: string?               ← optional per-question label / instruction
     content: map                  ← shape varies by type (see below)
   tags: string[]
@@ -366,6 +389,14 @@ multiple_choice:
 word_order:
   wordBank: string[]              ← all available tiles (correct + optional distractors)
   correctOrder: string[]          ← expected answer; ordered subset of wordBank
+
+fill_in_blanks:                   ← #170; maps onto QTI gapMatchInteraction
+  sentence: string                ← complete original sentence (null in templates)
+  tokens: {word, eligible}[]      ← tokenized sentence, original order (null in templates)
+                                    eligible = author allows this word to be blanked
+  blankCount: int                 ← eligible words randomly hidden per display (default 1)
+  extraWords: string[]            ← author-added distractor words for the pill pool
+  completionMode: string          ← 'pill' | 'textInput' (shared with complete-the-grid #167)
 ```
 
 ---

@@ -186,7 +186,7 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 
 **Fill in the Blanks (#170)**
 - [x] Data model: `FillInTheBlanksQuestion` subclass + `FillBlankToken` + shared `CompletionMode` enum; `fromJson`/`toJson`/`validate`/`copyWith`; `fill_in_blanks` constant; wired into all `CardQuestion` switch dispatch points and l10n label; unit tests
-- [ ] Study renderer: pill drag-drop card — blank slots in flowing sentence, pill pool (blanked words + distractors), Check gating, per-slot green/red grading with inline correct answer
+- [x] Study renderer: pill **tap-to-fill** card — blank slots in flowing sentence, pill pool (blanked words + distractors), Check gating, per-slot green/red grading with inline correct answer *(tap-to-fill chosen over drag-and-drop: consistent with word-order, touch-reliable, accessible)*
 - [ ] Authoring UI: sentence → tokenize → tap-to-mark-eligible → blank count + distractor words + mode selector
 - [ ] Import/export round-trip + templates support
 - [ ] Help site: document the new question type

@@ -361,6 +361,14 @@ class FillBlankToken {
         if (trailing.isNotEmpty) 'trailing': trailing,
       };
 
+  FillBlankToken copyWith({String? word, bool? eligible, String? leading, String? trailing}) =>
+      FillBlankToken(
+        word: word ?? this.word,
+        eligible: eligible ?? this.eligible,
+        leading: leading ?? this.leading,
+        trailing: trailing ?? this.trailing,
+      );
+
   // Split a sentence into tokens on whitespace, stripping *formatting*
   // punctuation from each word's edges into leading/trailing while keeping
   // word-internal apostrophes (don't, l'eau) and hyphens (well-known).

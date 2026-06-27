@@ -387,8 +387,8 @@ class _WorkbookCardFormScreenState
     final q = _questions[qIdx];
     final t = q.fibTokens[tokenIdx];
     setState(() {
-      q.fibTokens[tokenIdx] =
-          FillBlankToken(word: t.word, eligible: !t.eligible);
+      // copyWith preserves leading/trailing punctuation affixes.
+      q.fibTokens[tokenIdx] = t.copyWith(eligible: !t.eligible);
       final eligible = _fibEligibleCount(q);
       if (q.fibBlankCount > eligible) q.fibBlankCount = eligible.clamp(1, eligible);
       if (q.fibBlankCount < 1) q.fibBlankCount = 1;

@@ -1870,11 +1870,12 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
               children: [
                 for (var i = 0; i < _tokens.length; i++)
                   if (_blankSet.contains(i))
-                    _buildSlot(i, scheme, appColors)
+                    _affixed(_tokens[i], _buildSlot(i, scheme, appColors))
                   else
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Text(_tokens[i].word,
+                      child: Text(
+                          '${_tokens[i].leading}${_tokens[i].word}${_tokens[i].trailing}',
                           style: Theme.of(context).textTheme.bodyLarge),
                     ),
               ],
@@ -1949,6 +1950,21 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
           ],
         ),
       ),
+    );
+  }
+
+  // Wrap a blank slot with its leading/trailing punctuation so the marks hug
+  // the slot (e.g. ¿___? ) rather than floating with the Wrap's word spacing.
+  Widget _affixed(FillBlankToken token, Widget slot) {
+    if (token.leading.isEmpty && token.trailing.isEmpty) return slot;
+    final style = Theme.of(context).textTheme.bodyLarge;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (token.leading.isNotEmpty) Text(token.leading, style: style),
+        slot,
+        if (token.trailing.isNotEmpty) Text(token.trailing, style: style),
+      ],
     );
   }
 

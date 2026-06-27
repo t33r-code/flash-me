@@ -1792,6 +1792,84 @@ abstract class AppLocalizations {
   /// **'Fill in the blanks'**
   String get labelQuestionTypeFillInBlanks;
 
+  /// No description provided for @actionTokenize.
+  ///
+  /// In en, this message translates to:
+  /// **'Tokenize'**
+  String get actionTokenize;
+
+  /// No description provided for @labelFibSentenceRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Sentence *'**
+  String get labelFibSentenceRequired;
+
+  /// No description provided for @messageFibSentenceHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Type the full sentence, then tap Tokenize to split it into words.'**
+  String get messageFibSentenceHelp;
+
+  /// No description provided for @hintFibSentenceExample.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. The cat sat on the mat'**
+  String get hintFibSentenceExample;
+
+  /// No description provided for @messageFibTokenizeFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Tokenize a sentence to choose which words can be blanked.'**
+  String get messageFibTokenizeFirst;
+
+  /// No description provided for @messageFibMarkEligible.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the words that may be blanked out.'**
+  String get messageFibMarkEligible;
+
+  /// No description provided for @labelFibBlankCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of blanks'**
+  String get labelFibBlankCount;
+
+  /// No description provided for @messageFibBlankCountHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Mark at least one word as eligible first.} =1{1 word is eligible to blank.} other{{count} words are eligible to blank.}}'**
+  String messageFibBlankCountHelp(int count);
+
+  /// No description provided for @labelFibDistractorsOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Distractor words (optional)'**
+  String get labelFibDistractorsOptional;
+
+  /// No description provided for @messageFibDistractorsHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra words added to the pool to make it harder.'**
+  String get messageFibDistractorsHelp;
+
+  /// No description provided for @hintFibDistractorWord.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a distractor word'**
+  String get hintFibDistractorWord;
+
+  /// No description provided for @tooltipDecrease.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrease'**
+  String get tooltipDecrease;
+
+  /// No description provided for @tooltipIncrease.
+  ///
+  /// In en, this message translates to:
+  /// **'Increase'**
+  String get tooltipIncrease;
+
   /// No description provided for @actionAddQuestion.
   ///
   /// In en, this message translates to:
@@ -2001,6 +2079,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Question {number}: \"{word}\" in correct order is not in the word bank.'**
   String messageWordOrderWordNotInBank(int number, String word);
+
+  /// No description provided for @messageFibNeedSentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Question {number}: enter a sentence and tap Tokenize.'**
+  String messageFibNeedSentence(int number);
+
+  /// No description provided for @messageFibNeedEligible.
+  ///
+  /// In en, this message translates to:
+  /// **'Question {number}: mark at least one word as eligible to blank.'**
+  String messageFibNeedEligible(int number);
 
   /// No description provided for @titleTemplates.
   ///

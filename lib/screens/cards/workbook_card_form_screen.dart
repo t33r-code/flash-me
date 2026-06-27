@@ -45,6 +45,9 @@ class _QuestionState {
   final List<String> fibExtraWords = []; // author-added distractor words
   final TextEditingController fibExtraWordInputController =
       TextEditingController();
+  // Keeps the distractor field focused after each add (Enter or the Add button)
+  // so multiple words can be entered in a row, especially on desktop.
+  final FocusNode fibExtraWordFocus = FocusNode();
 
   _QuestionState({
     required this.questionId,
@@ -231,6 +234,7 @@ class _QuestionState {
     correctOrderInputController.dispose();
     fibSentenceController.dispose();
     fibExtraWordInputController.dispose();
+    fibExtraWordFocus.dispose();
   }
 }
 
@@ -406,6 +410,8 @@ class _WorkbookCardFormScreenState
     if (w.isEmpty) return;
     setState(() => _questions[qIdx].fibExtraWords.add(w));
     _questions[qIdx].fibExtraWordInputController.clear();
+    // Return focus to the field so the next word can be typed immediately.
+    _questions[qIdx].fibExtraWordFocus.requestFocus();
   }
 
   void _removeFibExtraWord(int qIdx, int idx) =>
@@ -947,6 +953,7 @@ class _WorkbookCardFormScreenState
               Expanded(
                 child: TextField(
                   controller: q.fibExtraWordInputController,
+                  focusNode: q.fibExtraWordFocus,
                   decoration: InputDecoration(
                     hintText: l10n.hintFibDistractorWord,
                     border: const OutlineInputBorder(),

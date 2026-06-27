@@ -239,6 +239,16 @@ void main() {
       expect(json.containsKey('leading'), isFalse);
       expect(json.containsKey('trailing'), isFalse);
     });
+
+    test('copyWith preserves affixes when toggling eligibility', () {
+      const tok = FillBlankToken(
+          word: 'mat', eligible: false, trailing: '.', leading: '"');
+      final toggled = tok.copyWith(eligible: true);
+      expect(toggled.eligible, isTrue);
+      expect(toggled.word, equals('mat'));
+      expect(toggled.leading, equals('"'));
+      expect(toggled.trailing, equals('.'));
+    });
   });
 
   // ── CompletionMode ────────────────────────────────────────────────────────

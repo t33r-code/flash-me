@@ -340,7 +340,7 @@ Content fields: `sentence: String`, `tokens: List<{word, eligible}>`, `blankCoun
 
 **QTI mapping:** designed to map onto QTI 3 `gapMatchInteraction` — the blanked positions are *gaps* and the pill pool (blanked words + `extraWords`) are the *gapText* choices (see [QTI 3 import](#qti-3-import-175)).
 
-**Build status:** data model + serialisation and the pill-mode study renderer (tap-to-fill) complete; authoring UI in progress (see roadmap). Text-input mode lands with the #168 normalisation pass.
+**Build status:** data model + serialisation, the pill-mode study renderer (tap-to-fill), and authoring in the workbook card form are complete. Authoring is workbook-only for now (the flash-card form and question templates don't offer it yet, matching word-order). Text-input mode + the mode selector land with the #168 normalisation pass.
 
 ---
 
@@ -418,6 +418,7 @@ The `setCards` join document gains a `cardType` field (`'flashcard'` | `'workboo
 - `WorkbookQuestion` uses the same sealed-class pattern as `CardFieldContent`: adding a new question type means adding one subclass and updating `fromJson`/`toJson`; no other code changes required.
 - The word order interaction (tile bank + answer row) is a self-contained stateful widget; the check/feedback cycle follows the same pattern as `_OptionButton` in the existing study screen.
 - Multiple choice chips mode reuses the existing options data; `displayMode` is a rendering hint only — no change to validation logic.
+- **Question-type authoring is currently workbook-only for the richer types (word order, fill in the blanks).** This is an authoring-surface coverage decision, not a data-model restriction — all question types are `CardQuestion`s shared by Flash Cards and Workbook Cards. The reasons: (1) the full per-type question editor (word bank, options, tokenize/eligibility, etc.) lives only in the Workbook Card form; the Flash Card form's question editor covers just text input and multiple choice. (2) Conceptually these are sentence/structure exercises that fit the Workbook *prompt + questions* model better than the Flash Card *front-word → back-translation* reveal. Extending the Flash Card form's editor to cover word order + fill in the blanks together is a tracked future enhancement; until then both remain workbook-only.
 - Workbook Cards do not have `primaryWord` / `translation` fields. They cannot be created from a card template (templates are Flash Card structures). A future "workbook template" concept is possible but not planned for MVP.
 - Media attachments (images, audio) on a Workbook Card are not supported in the initial implementation. The prompt and question prompts are plain text.
 

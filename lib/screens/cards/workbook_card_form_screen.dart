@@ -373,14 +373,11 @@ class _WorkbookCardFormScreenState
   // not-eligible. Replaces any existing tokens and resets blank count.
   void _tokenizeFib(int qIdx) {
     final q = _questions[qIdx];
-    final words = q.fibSentenceController.text
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((w) => w.isNotEmpty)
-        .toList();
+    // Strips edge punctuation into leading/trailing; keeps contractions and
+    // hyphenated words intact (see FillBlankToken.tokenize).
+    final tokens = FillBlankToken.tokenize(q.fibSentenceController.text);
     setState(() {
-      q.fibTokens =
-          words.map((w) => FillBlankToken(word: w, eligible: false)).toList();
+      q.fibTokens = tokens;
       q.fibBlankCount = 1;
     });
   }

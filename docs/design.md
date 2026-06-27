@@ -329,7 +329,7 @@ User completes a sentence with one or more blanks. The author types a complete s
 
 | Mode | Behaviour |
 |---|---|
-| `pill` | Hidden words + author-added distractors become draggable pills; the user drags each into the correct blank slot |
+| `pill` | Hidden words + author-added distractors become tappable pills; the user taps a blank to select it, then taps a pill to drop it in (tap a filled blank to return its pill). Tap-to-fill rather than drag-and-drop — consistent with the word-order interaction, more reliable on touch, and accessible |
 | `textInput` | Blank slots are editable text fields; the user types the missing words |
 
 **Check** is disabled until all blanks are filled. On checking, correct slots are highlighted green; incorrect slots red with the correct word shown inline. Text-input answers use the system-wide normalised matching (#168, applied as a later horizontal pass across all text-input types).
@@ -340,7 +340,7 @@ Content fields: `sentence: String`, `tokens: List<{word, eligible}>`, `blankCoun
 
 **QTI mapping:** designed to map onto QTI 3 `gapMatchInteraction` — the blanked positions are *gaps* and the pill pool (blanked words + `extraWords`) are the *gapText* choices (see [QTI 3 import](#qti-3-import-175)).
 
-**Build status:** data model + serialisation complete; pill-mode study renderer and authoring UI in progress (see roadmap). Text-input mode lands with the #168 normalisation pass.
+**Build status:** data model + serialisation and the pill-mode study renderer (tap-to-fill) complete; authoring UI in progress (see roadmap). Text-input mode lands with the #168 normalisation pass.
 
 ---
 

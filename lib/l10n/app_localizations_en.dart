@@ -955,6 +955,57 @@ class AppLocalizationsEn extends AppLocalizations {
   String get labelQuestionTypeFillInBlanks => 'Fill in the blanks';
 
   @override
+  String get actionTokenize => 'Tokenize';
+
+  @override
+  String get labelFibSentenceRequired => 'Sentence *';
+
+  @override
+  String get messageFibSentenceHelp =>
+      'Type the full sentence, then tap Tokenize to split it into words.';
+
+  @override
+  String get hintFibSentenceExample => 'e.g. The cat sat on the mat';
+
+  @override
+  String get messageFibTokenizeFirst =>
+      'Tokenize a sentence to choose which words can be blanked.';
+
+  @override
+  String get messageFibMarkEligible => 'Tap the words that may be blanked out.';
+
+  @override
+  String get labelFibBlankCount => 'Number of blanks';
+
+  @override
+  String messageFibBlankCountHelp(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count words are eligible to blank.',
+      one: '1 word is eligible to blank.',
+      zero: 'Mark at least one word as eligible first.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get labelFibDistractorsOptional => 'Distractor words (optional)';
+
+  @override
+  String get messageFibDistractorsHelp =>
+      'Extra words added to the pool to make it harder.';
+
+  @override
+  String get hintFibDistractorWord => 'Add a distractor word';
+
+  @override
+  String get tooltipDecrease => 'Decrease';
+
+  @override
+  String get tooltipIncrease => 'Increase';
+
+  @override
   String get actionAddQuestion => 'Add Question';
 
   @override
@@ -1075,6 +1126,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String messageWordOrderWordNotInBank(int number, String word) {
     return 'Question $number: \"$word\" in correct order is not in the word bank.';
+  }
+
+  @override
+  String messageFibNeedSentence(int number) {
+    return 'Question $number: enter a sentence and tap Tokenize.';
+  }
+
+  @override
+  String messageFibNeedEligible(int number) {
+    return 'Question $number: mark at least one word as eligible to blank.';
   }
 
   @override

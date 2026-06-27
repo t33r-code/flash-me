@@ -398,6 +398,24 @@
   "labelQuestionTypeMultipleChoice": "Multiple choice",
   "labelQuestionTypeWordOrder": "Word order",
   "labelQuestionTypeFillInBlanks": "Fill in the blanks",
+  "actionTokenize": "Tokenize",
+  "labelFibSentenceRequired": "Sentence *",
+  "messageFibSentenceHelp": "Type the full sentence, then tap Tokenize to split it into words.",
+  "hintFibSentenceExample": "e.g. The cat sat on the mat",
+  "messageFibTokenizeFirst": "Tokenize a sentence to choose which words can be blanked.",
+  "messageFibMarkEligible": "Tap the words that may be blanked out.",
+  "labelFibBlankCount": "Number of blanks",
+  "messageFibBlankCountHelp": "{count, plural, =0{Mark at least one word as eligible first.} =1{1 word is eligible to blank.} other{{count} words are eligible to blank.}}",
+  "@messageFibBlankCountHelp": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "labelFibDistractorsOptional": "Distractor words (optional)",
+  "messageFibDistractorsHelp": "Extra words added to the pool to make it harder.",
+  "hintFibDistractorWord": "Add a distractor word",
+  "tooltipDecrease": "Decrease",
+  "tooltipIncrease": "Increase",
   "actionAddQuestion": "Add Question",
   "messageSelectCorrectOptionLabeled": "Question \"{label}\": select the correct option.",
   "@messageSelectCorrectOptionLabeled": {
@@ -463,6 +481,18 @@
     "placeholders": {
       "number": {"type": "int"},
       "word": {"type": "String"}
+    }
+  },
+  "messageFibNeedSentence": "Question {number}: enter a sentence and tap Tokenize.",
+  "@messageFibNeedSentence": {
+    "placeholders": {
+      "number": {"type": "int"}
+    }
+  },
+  "messageFibNeedEligible": "Question {number}: mark at least one word as eligible to blank.",
+  "@messageFibNeedEligible": {
+    "placeholders": {
+      "number": {"type": "int"}
     }
   },
 

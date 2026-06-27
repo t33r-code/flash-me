@@ -330,18 +330,104 @@ class WordOrderQuestion extends CardQuestion {
 // and the pill pool (blanked words + extraWords) are the "gapText" choices.
 
 // One token of the tokenized sentence; preserves original word order.
+// [word] is the clean, blankable/matchable word (no edge punctuation).
+// [leading]/[trailing] hold formatting punctuation that hugs the word for
+// display (e.g. '¿', '?', ','); they are never blanked and never matched.
 class FillBlankToken {
   final String word;
   final bool eligible; // true = author allows this word to be blanked
+  final String leading;  // formatting punctuation before the word, attached
+  final String trailing; // formatting punctuation after the word, attached
 
-  const FillBlankToken({required this.word, required this.eligible});
+  const FillBlankToken({
+    required this.word,
+    required this.eligible,
+    this.leading = '',
+    this.trailing = '',
+  });
 
   factory FillBlankToken.fromJson(Map<String, dynamic> json) => FillBlankToken(
         word: json['word'] as String? ?? '',
         eligible: json['eligible'] as bool? ?? false,
+        leading: json['leading'] as String? ?? '',
+        trailing: json['trailing'] as String? ?? '',
       );
 
-  Map<String, dynamic> toJson() => {'word': word, 'eligible': eligible};
+  Map<String, dynamic> toJson() => {
+        'word': word,
+        'eligible': eligible,
+        // Omit empty affixes to keep stored docs lean and backward-compatible.
+        if (leading.isNotEmpty) 'leading': leading,
+        if (trailing.isNotEmpty) 'trailing': trailing,
+      };
+
+  FillBlankToken copyWith({String? word, bool? eligible, String? leading, String? trailing}) =>
+      FillBlankToken(
+        word: word ?? this.word,
+        eligible: eligible ?? this.eligible,
+        leading: leading ?? this.leading,
+        trailing: trailing ?? this.trailing,
+      );
+
+  // Split a sentence into tokens on whitespace, stripping *formatting*
+  // punctuation from each word's edges into leading/trailing while keeping
+  // word-internal apostrophes (don't, l'eau) and hyphens (well-known).
+  // Edge characters that are not letters/digits/apostrophes/hyphens are
+  // treated as formatting punctuation. All tokens start not-eligible.
+  static List<FillBlankToken> tokenize(String sentence) {
+    final chunks = sentence
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((c) => c.isNotEmpty);
+    // Keep apostrophes (straight ' and curly ’) and hyphen-minus as part of
+    // the word; strip everything else from the edges.
+    final lead = RegExp(r"^[^\p{L}\p{N}'’-]+", unicode: true);
+    final trail = RegExp(r"[^\p{L}\p{N}'’-]+$", unicode: true);
+    final hasAlnum = RegExp(r'[\p{L}\p{N}]', unicode: true);
+
+    final tokens = <FillBlankToken>[];
+    var pendingLeading = ''; // punctuation from a pure-punctuation chunk
+    for (final chunk in chunks) {
+      final leadMatch = lead.firstMatch(chunk)?.group(0) ?? '';
+      var rest = chunk.substring(leadMatch.length);
+      final trailMatch = trail.firstMatch(rest)?.group(0) ?? '';
+      var word = rest.substring(0, rest.length - trailMatch.length);
+
+      // A "word" with no letters or digits (e.g. a "--" dash) is really
+      // punctuation — fold the whole chunk into the affix stream.
+      if (word.isNotEmpty && !hasAlnum.hasMatch(word)) {
+        word = '';
+      }
+
+      if (word.isEmpty) {
+        // Whole chunk was punctuation: attach to the previous token's trailing,
+        // or buffer it as leading for the next word. Use the full chunk so a
+        // reclassified all-punctuation "word" (e.g. "--") isn't dropped.
+        final punct = chunk;
+        if (tokens.isNotEmpty) {
+          final prev = tokens.removeLast();
+          tokens.add(FillBlankToken(
+            word: prev.word,
+            eligible: prev.eligible,
+            leading: prev.leading,
+            trailing: prev.trailing + punct,
+          ));
+        } else {
+          pendingLeading += punct;
+        }
+        continue;
+      }
+
+      tokens.add(FillBlankToken(
+        word: word,
+        eligible: false,
+        leading: pendingLeading + leadMatch,
+        trailing: trailMatch,
+      ));
+      pendingLeading = '';
+    }
+    return tokens;
+  }
 }
 
 class FillInTheBlanksQuestion extends CardQuestion {

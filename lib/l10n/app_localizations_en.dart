@@ -959,7 +959,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get messageGridHelp =>
-      'Fill in the complete table. At study time, the chosen number of cells are hidden for the learner to fill in.';
+      'Fill in the complete table. At study time, the chosen number of cells are hidden for the learner to fill in. Use row/column headers for static labels (e.g. pronouns or tenses) — headers are never hidden.';
 
   @override
   String get labelGridRows => 'Rows';
@@ -975,6 +975,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hintGridHeader => 'label';
+
+  @override
+  String get hintGridCornerLabel => 'label col.';
 
   @override
   String get hintGridCell => 'cell';

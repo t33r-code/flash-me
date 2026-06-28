@@ -545,6 +545,8 @@ class FillInTheBlanksQuestion extends CardQuestion {
 class GridQuestion extends CardQuestion {
   final List<String> rowHeaders;    // optional left-column labels (ticket: "rows")
   final List<String> columnHeaders; // optional top-row labels (ticket: "columns")
+  final String cornerLabel;         // optional title for the row-header column,
+                                    // shown in the top-left corner (e.g. "Pronoun")
   final List<List<String>>? cells;  // complete grid, row-major; null in templates
   final int emptyCount;             // cells to hide per display
   final CompletionMode completionMode;
@@ -554,6 +556,7 @@ class GridQuestion extends CardQuestion {
     super.prompt,
     this.rowHeaders = const [],
     this.columnHeaders = const [],
+    this.cornerLabel = '',
     this.cells,
     this.emptyCount = 1,
     this.completionMode = CompletionMode.pill,
@@ -590,6 +593,7 @@ class GridQuestion extends CardQuestion {
       columnHeaders: content['columnHeaders'] != null
           ? List<String>.from(content['columnHeaders'] as List)
           : const [],
+      cornerLabel: content['cornerLabel'] as String? ?? '',
       cells: cells,
       emptyCount: content['emptyCount'] as int? ?? 1,
       completionMode:
@@ -605,6 +609,8 @@ class GridQuestion extends CardQuestion {
         'content': {
           'rowHeaders': rowHeaders,
           'columnHeaders': columnHeaders,
+          // Omit the corner label when empty to keep stored docs lean.
+          if (cornerLabel.isNotEmpty) 'cornerLabel': cornerLabel,
           // Flatten row-major; Firestore disallows arrays of arrays.
           'cells': cells?.expand((row) => row).toList(),
           'columnCount': columnCount,
@@ -647,6 +653,7 @@ class GridQuestion extends CardQuestion {
     String? prompt,
     List<String>? rowHeaders,
     List<String>? columnHeaders,
+    String? cornerLabel,
     List<List<String>>? cells,
     int? emptyCount,
     CompletionMode? completionMode,
@@ -656,6 +663,7 @@ class GridQuestion extends CardQuestion {
         prompt: prompt ?? this.prompt,
         rowHeaders: rowHeaders ?? this.rowHeaders,
         columnHeaders: columnHeaders ?? this.columnHeaders,
+        cornerLabel: cornerLabel ?? this.cornerLabel,
         cells: cells ?? this.cells,
         emptyCount: emptyCount ?? this.emptyCount,
         completionMode: completionMode ?? this.completionMode,

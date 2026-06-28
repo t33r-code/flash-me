@@ -55,6 +55,9 @@ class _QuestionState {
   final List<List<TextEditingController>> gridCells = [];
   final List<TextEditingController> gridRowHeaderCtls = [];
   final List<TextEditingController> gridColHeaderCtls = [];
+  // Title for the row-header column, shown in the top-left corner (e.g.
+  // "Pronoun"); only meaningful when both row and column headers are on.
+  final TextEditingController gridCornerCtl = TextEditingController();
   bool gridHasRowHeaders = false;
   bool gridHasColHeaders = false;
   int gridEmptyCount = 1;
@@ -205,6 +208,7 @@ class _QuestionState {
             q.rowHeaders.map((h) => TextEditingController(text: h)));
         state.gridColHeaderCtls.addAll(
             q.columnHeaders.map((h) => TextEditingController(text: h)));
+        state.gridCornerCtl.text = q.cornerLabel;
         state.gridEmptyCount = q.emptyCount;
         return state;
     }
@@ -273,6 +277,10 @@ class _QuestionState {
         columnHeaders: gridHasColHeaders
             ? gridColHeaderCtls.map((c) => c.text.trim()).toList()
             : const [],
+        // Corner label only applies when both header axes are present.
+        cornerLabel: (gridHasRowHeaders && gridHasColHeaders)
+            ? gridCornerCtl.text.trim()
+            : '',
         cells: cells.isEmpty ? null : cells,
         emptyCount: gridEmptyCount,
         completionMode: CompletionMode.pill,
@@ -305,6 +313,7 @@ class _QuestionState {
     for (final c in gridColHeaderCtls) {
       c.dispose();
     }
+    gridCornerCtl.dispose();
   }
 }
 
@@ -1269,7 +1278,14 @@ class _WorkbookCardFormScreenState
               if (q.gridHasColHeaders)
                 Row(
                   children: [
-                    if (q.gridHasRowHeaders) const SizedBox(width: 96),
+                    // Top-left corner: an optional title for the row-label
+                    // column (e.g. "Pronoun"), editable when both headers are on.
+                    if (q.gridHasRowHeaders)
+                      _gridFieldBox(
+                        controller: q.gridCornerCtl,
+                        hint: l10n.hintGridCornerLabel,
+                        header: true,
+                      ),
                     for (var c = 0; c < cols; c++)
                       _gridFieldBox(
                         controller: c < q.gridColHeaderCtls.length

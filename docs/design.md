@@ -357,7 +357,9 @@ User completes a partially-filled table — a conjugation table, pronoun grid, d
 
 **Check** is disabled until all empty cells are filled. On checking, correct cells turn green; incorrect cells red with the correct value shown inline. Text-input answers use the system-wide normalised matching (#168).
 
-Content fields: `rowHeaders: List<String>`, `columnHeaders: List<String>` (both optional), `cells: List<List<String>>` (complete grid), `emptyCount: int`, `completionMode`.
+**Headers vs. cells:** only `cells` are eligible to be hidden — `rowHeaders`, `columnHeaders`, and `cornerLabel` are static labels that are never blanked. This is the mechanism for "label" rows/columns (e.g. the pronoun column of a conjugation table): put the labels in the headers, not in cells. The optional **`cornerLabel`** fills the previously-blank top-left corner so the row-header column can be titled (e.g. *Pronoun*) — without it, authors are tempted to make the label column a regular data column, whose values then become fillable. *Limitation:* labels must live on the grid's edges. A label row/column **in the middle** of the grid is not yet expressible — tracked as a follow-up to add per-cell "static" marking (#200).
+
+Content fields: `rowHeaders: List<String>`, `columnHeaders: List<String>`, `cornerLabel: String` (all optional), `cells: List<List<String>>` (complete grid), `emptyCount: int`, `completionMode`.
 
 **Firestore note:** nested arrays are not allowed, so `cells` is stored as a **flat row-major list + `columnCount`** and reshaped on read; in memory it is a 2D `List<List<String>>`.
 
@@ -424,6 +426,8 @@ fill_in_blanks:                   ← #170; maps onto QTI gapMatchInteraction
 grid:                             ← #167; maps onto QTI matchInteraction
   rowHeaders: string[]            ← optional left-column labels (may be empty)
   columnHeaders: string[]         ← optional top-row labels (may be empty)
+  cornerLabel: string?            ← optional title for the row-header column,
+                                    shown top-left; only when both headers present
   cells: string[]                 ← complete grid, FLAT row-major (null in templates)
                                     Firestore disallows nested arrays, so the 2D
                                     grid is flattened and reshaped via columnCount

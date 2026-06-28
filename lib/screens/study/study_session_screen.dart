@@ -2180,7 +2180,8 @@ class _GridCardState extends State<_GridCard> {
     final tableRows = <TableRow>[];
     if (hasColHeaders) {
       tableRows.add(TableRow(children: [
-        if (hasRowHeaders) _headerCell('', scheme), // top-left corner
+        if (hasRowHeaders)
+          _headerCell(q.cornerLabel, scheme), // top-left corner label
         for (final h in q.columnHeaders) _headerCell(h, scheme),
       ]));
     }

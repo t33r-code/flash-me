@@ -1801,7 +1801,7 @@ abstract class AppLocalizations {
   /// No description provided for @messageGridHelp.
   ///
   /// In en, this message translates to:
-  /// **'Fill in the complete table. At study time, the chosen number of cells are hidden for the learner to fill in.'**
+  /// **'Fill in the complete table. At study time, the chosen number of cells are hidden for the learner to fill in. Use row/column headers for static labels (e.g. pronouns or tenses) — headers are never hidden.'**
   String get messageGridHelp;
 
   /// No description provided for @labelGridRows.
@@ -1833,6 +1833,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'label'**
   String get hintGridHeader;
+
+  /// No description provided for @hintGridCornerLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'label col.'**
+  String get hintGridCornerLabel;
 
   /// No description provided for @hintGridCell.
   ///

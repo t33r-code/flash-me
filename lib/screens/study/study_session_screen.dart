@@ -18,6 +18,7 @@ import 'package:flash_me/theme/app_colors.dart';
 import 'package:flash_me/screens/study/study_session_summary_screen.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
+import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/utils/transitions.dart';
 
 // ---------------------------------------------------------------------------
@@ -1298,10 +1299,11 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
   void _check() {
     final input = _controller.text.trim();
     if (input.isEmpty) return;
-    final answers = widget.question.correctAnswers ?? [];
-    final correct = widget.question.exactMatch
-        ? answers.any((a) => a == input)
-        : answers.any((a) => a.toLowerCase() == input.toLowerCase());
+    final correct = AppHelpers.isAnswerCorrect(
+      input,
+      widget.question.correctAnswers ?? [],
+      exact: widget.question.exactMatch,
+    );
     setState(() => _result = correct);
     correct ? _hapticCorrect() : _hapticIncorrect();
     widget.onResult?.call(correct);

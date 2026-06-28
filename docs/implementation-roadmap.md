@@ -194,7 +194,7 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 **Complete the Grid (#167)**
 - [x] Data model: `GridQuestion` subclass; `grid` constant; 2D `cells` serialised as flat row-major + `columnCount` (Firestore disallows nested arrays); `fromJson`/`toJson`/`validate`/`copyWith`; wired into all `CardQuestion` switch dispatch points + l10n label; unit tests
 - [x] Study renderer: pill tap-to-fill grid card — Table layout with optional row/column headers, hidden cells as tappable slots, pill pool, Check gating, per-cell green/red grading with correct value inline (reuses #170 shared core)
-- [ ] Authoring UI: grid editor (dimensions, headers, fill cells, empty-count) in the workbook card form
+- [x] Authoring UI (workbook card form): grid editor — live row/column steppers that resize in place preserving content, optional row/column header toggles, editable cell grid (horizontally scrollable), empty-count stepper; save validation requires every cell filled. Pill mode only; workbook-only, matching the other rich types
 - [ ] Help site: document the new question type
 
 **Normalised text matching (#168)**

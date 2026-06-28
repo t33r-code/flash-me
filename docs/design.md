@@ -363,7 +363,7 @@ Content fields: `rowHeaders: List<String>`, `columnHeaders: List<String>` (both 
 
 **QTI mapping:** designed to map onto QTI 3 `matchInteraction` — hidden cells are the targets and the pill pool (hidden cell values) are the source choices (see [QTI 3 import](#qti-3-import-175)).
 
-**Build status:** data model + serialisation and the pill-mode study renderer (tap-to-fill table) complete; authoring UI in progress (see roadmap). Reuses the shared `CompletionMode` + tap-to-fill machinery from #170. Text-input mode lands with the #168 pass.
+**Build status:** data model + serialisation, the pill-mode study renderer (tap-to-fill table), and authoring in the workbook card form (live row/column steppers, optional header toggles, editable cell grid, empty-count) are complete. Authoring is workbook-only for now, matching the other rich types. Reuses the shared `CompletionMode` + tap-to-fill machinery from #170. Text-input mode + the mode selector land with the #168 pass.
 
 ---
 

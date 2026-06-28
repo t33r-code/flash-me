@@ -958,6 +958,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get labelQuestionTypeGrid => 'Complete the grid';
 
   @override
+  String get messageGridHelp =>
+      'Fill in the complete table. At study time, the chosen number of cells are hidden for the learner to fill in.';
+
+  @override
+  String get labelGridRows => 'Rows';
+
+  @override
+  String get labelGridColumns => 'Columns';
+
+  @override
+  String get labelGridColumnHeaders => 'Column headers';
+
+  @override
+  String get labelGridRowHeaders => 'Row headers';
+
+  @override
+  String get hintGridHeader => 'label';
+
+  @override
+  String get hintGridCell => 'cell';
+
+  @override
+  String get labelGridEmptyCells => 'Cells to leave empty';
+
+  @override
+  String messageGridEmptyCountHelp(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cells in the grid.',
+      one: '1 cell in the grid.',
+      zero: 'Add cells to the grid first.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get actionTokenize => 'Tokenize';
 
   @override
@@ -1139,6 +1176,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String messageFibNeedEligible(int number) {
     return 'Question $number: mark at least one word as eligible to blank.';
+  }
+
+  @override
+  String messageGridFillAllCells(int number) {
+    return 'Question $number: fill in every cell of the grid.';
   }
 
   @override

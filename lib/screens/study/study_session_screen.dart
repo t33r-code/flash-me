@@ -14,6 +14,7 @@ import 'package:flash_me/providers/card_provider.dart';
 import 'package:flash_me/providers/question_result_provider.dart';
 import 'package:flash_me/providers/study_session_provider.dart';
 import 'package:flash_me/providers/workbook_card_provider.dart';
+import 'package:flash_me/theme/app_colors.dart';
 import 'package:flash_me/screens/study/study_session_summary_screen.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
@@ -567,13 +568,9 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
             question: q,
             onResult: (correct) => _recordQuestionResult(q, correct),
           ),
-        // Placeholder until the pill renderer lands (#170, subsection 2).
-        // Unreachable in practice — no authoring UI creates this type yet.
-        FillInTheBlanksQuestion _ => const Card(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('This question type is not yet available.'),
-            ),
+        FillInTheBlanksQuestion q => _FillInTheBlanksCard(
+            question: q,
+            onResult: (correct) => _recordQuestionResult(q, correct),
           ),
       };
 }
@@ -1723,6 +1720,315 @@ class _WordOrderCardState extends State<_WordOrderCard> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _FillInTheBlanksCard — fill-in-the-blanks question (#170), pill tap-to-fill.
+//
+// The sentence is rendered inline with `blankCount` randomly-chosen eligible
+// words replaced by tappable slots.  A word pool below holds the blanked words
+// plus author distractors.  Tap a blank to select it, then tap a pool word to
+// drop it in (tap a filled blank to return its word).  Check grades each slot
+// by exact word match — pool words are the exact answers, so identity match is
+// correct.  Text-input completion mode is deferred to the #168 normalisation
+// pass; until then authoring only offers pill mode, so this widget always
+// renders pill mode.
+// ---------------------------------------------------------------------------
+class _FillInTheBlanksCard extends StatefulWidget {
+  final FillInTheBlanksQuestion question;
+  final void Function(bool correct)? onResult;
+  const _FillInTheBlanksCard({required this.question, this.onResult});
+
+  @override
+  State<_FillInTheBlanksCard> createState() => _FillInTheBlanksCardState();
+}
+
+class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
+  late List<FillBlankToken> _tokens;
+  late List<int> _blankIndices; // token indices that are blanks (reading order)
+  late Set<int> _blankSet;      // same, for fast lookup during render
+  late List<String> _pool;      // pool words (blanked words + distractors)
+  final Map<int, int> _placement = {}; // blankTokenIndex -> pool index
+  int? _selectedBlank;          // blank currently selected to fill
+  bool? _result;
+
+  @override
+  void initState() {
+    super.initState();
+    _tokens = widget.question.tokens ?? [];
+    _setupRound();
+  }
+
+  // Randomly pick which eligible words to blank, then build the shuffled pool.
+  void _setupRound() {
+    final eligible = <int>[];
+    for (var i = 0; i < _tokens.length; i++) {
+      if (_tokens[i].eligible) eligible.add(i);
+    }
+    eligible.shuffle();
+    final count = widget.question.blankCount.clamp(0, eligible.length);
+    _blankIndices = eligible.take(count).toList()..sort();
+    _blankSet = _blankIndices.toSet();
+    _pool = [
+      ..._blankIndices.map((i) => _tokens[i].word),
+      ...widget.question.extraWords,
+    ]..shuffle();
+    _placement.clear();
+    _selectedBlank = _blankIndices.isNotEmpty ? _blankIndices.first : null;
+    _result = null;
+  }
+
+  Set<int> get _usedPoolIds => _placement.values.toSet();
+  bool get _allFilled => _placement.length == _blankIndices.length;
+
+  int? _firstEmptyBlank() {
+    for (final b in _blankIndices) {
+      if (!_placement.containsKey(b)) return b;
+    }
+    return null;
+  }
+
+  // Place a pool word into the selected (or next empty) blank.
+  void _onPoolTap(int poolId) {
+    if (_result != null || _usedPoolIds.contains(poolId)) return;
+    final sel = _selectedBlank;
+    final target =
+        (sel != null && !_placement.containsKey(sel)) ? sel : _firstEmptyBlank();
+    if (target == null) return;
+    setState(() {
+      _placement[target] = poolId;
+      _selectedBlank = _firstEmptyBlank();
+    });
+  }
+
+  // Tap a blank: return its word to the pool if filled, then select it.
+  void _onBlankTap(int tokenIndex) {
+    if (_result != null) return;
+    setState(() {
+      _placement.remove(tokenIndex);
+      _selectedBlank = tokenIndex;
+    });
+  }
+
+  void _check() {
+    var allCorrect = true;
+    for (final b in _blankIndices) {
+      final poolId = _placement[b];
+      final placedWord = poolId != null ? _pool[poolId] : null;
+      if (placedWord != _tokens[b].word) {
+        allCorrect = false;
+        break;
+      }
+    }
+    setState(() => _result = allCorrect);
+    allCorrect ? _hapticCorrect() : _hapticIncorrect();
+    widget.onResult?.call(allCorrect);
+  }
+
+  void _tryAgain() {
+    setState(() {
+      _placement.clear();
+      _selectedBlank = _blankIndices.isNotEmpty ? _blankIndices.first : null;
+      _result = null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final appColors = context.appColors;
+    final answered = _result != null;
+    final isCorrect = _result == true;
+    final prompt = widget.question.prompt;
+
+    final cardColor = answered
+        ? (isCorrect
+            ? appColors.correctSurface
+            : scheme.errorContainer.withValues(alpha: 0.4))
+        : null;
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      color: cardColor,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (prompt != null) ...[
+              _FieldLabel(name: prompt),
+              const SizedBox(height: 12),
+            ],
+
+            // Sentence with inline blank slots.
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 6,
+              runSpacing: 8,
+              children: [
+                for (var i = 0; i < _tokens.length; i++)
+                  if (_blankSet.contains(i))
+                    _buildSlot(i, scheme, appColors)
+                  else
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Text(_tokens[i].word,
+                          style: Theme.of(context).textTheme.bodyLarge),
+                    ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Word pool — available pills (hidden once answered).
+            if (!answered) ...[
+              Text(context.l10n.labelWordBank,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: scheme.onSurfaceVariant)),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  for (var p = 0; p < _pool.length; p++)
+                    if (!_usedPoolIds.contains(p))
+                      ActionChip(
+                        label: Text(_pool[p]),
+                        onPressed: () => _onPoolTap(p),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // Check / feedback row.
+            if (!answered)
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton(
+                  onPressed: _allFilled ? _check : null,
+                  child: Text(context.l10n.actionCheck),
+                ),
+              )
+            else if (isCorrect)
+              Row(children: [
+                Icon(Icons.check_circle_outline,
+                    color: appColors.onCorrectSurface, size: 20),
+                const SizedBox(width: 6),
+                Text(context.l10n.labelCorrect,
+                    style: TextStyle(
+                        color: appColors.onCorrectSurface,
+                        fontWeight: FontWeight.bold)),
+              ])
+            else ...[
+              Row(children: [
+                Icon(Icons.cancel_outlined, color: scheme.error, size: 20),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(context.l10n.labelIncorrect,
+                      style: TextStyle(
+                          color: scheme.error, fontWeight: FontWeight.bold)),
+                ),
+                TextButton(
+                    onPressed: _tryAgain,
+                    child: Text(context.l10n.actionTryAgain)),
+              ]),
+              const SizedBox(height: 4),
+              Text(
+                context.l10n.messageAnswerReveal(widget.question.sentence ?? ''),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // One inline blank slot: empty/selected/filled before checking; green/red
+  // (with the correct word) after.
+  Widget _buildSlot(int tokenIndex, ColorScheme scheme, AppColors appColors) {
+    final poolId = _placement[tokenIndex];
+    final placedWord = poolId != null ? _pool[poolId] : null;
+    final answered = _result != null;
+
+    if (answered) {
+      final correctWord = _tokens[tokenIndex].word;
+      if (placedWord == correctWord) {
+        return _slotChip(
+            text: correctWord,
+            bg: appColors.correctSurface,
+            fg: appColors.onCorrectSurface);
+      }
+      // Wrong: user's word struck through, followed by the correct word.
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Wrap(
+          spacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            _slotChip(
+                text: placedWord ?? '—',
+                bg: scheme.errorContainer,
+                fg: scheme.onErrorContainer,
+                strike: true),
+            _slotChip(
+                text: correctWord,
+                bg: appColors.correctSurface,
+                fg: appColors.onCorrectSurface),
+          ],
+        ),
+      );
+    }
+
+    final selected = _selectedBlank == tokenIndex;
+    return GestureDetector(
+      onTap: () => _onBlankTap(tokenIndex),
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 56),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: placedWord != null ? scheme.secondaryContainer : null,
+          border: Border.all(
+            color: selected ? scheme.primary : scheme.outline,
+            width: selected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          placedWord ?? '   ',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: placedWord != null
+                    ? scheme.onSecondaryContainer
+                    : scheme.onSurfaceVariant,
+              ),
+        ),
+      ),
+    );
+  }
+
+  Widget _slotChip(
+      {required String text,
+      required Color bg,
+      required Color fg,
+      bool strike = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration:
+          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+      child: Text(text,
+          style: TextStyle(
+              color: fg,
+              fontWeight: FontWeight.w600,
+              decoration: strike ? TextDecoration.lineThrough : null)),
     );
   }
 }

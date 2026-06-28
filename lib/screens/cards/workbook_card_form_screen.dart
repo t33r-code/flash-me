@@ -65,6 +65,9 @@ class _QuestionState {
   final TextEditingController gridExtraWordInputController =
       TextEditingController();
   final FocusNode gridExtraWordFocus = FocusNode();
+  // Completion mode shared across FIB and Grid — stored per-question so each
+  // question on a card can independently be pill or text-input.
+  CompletionMode completionMode = CompletionMode.pill;
 
   _QuestionState({
     required this.questionId,
@@ -183,6 +186,7 @@ class _QuestionState {
         state.fibTokens = List.from(q.tokens ?? const []);
         state.fibBlankCount = q.blankCount;
         state.fibExtraWords.addAll(q.extraWords);
+        state.completionMode = q.completionMode;
         return state;
       case GridQuestion q:
         final state = _QuestionState(
@@ -215,6 +219,7 @@ class _QuestionState {
         state.gridCornerCtl.text = q.cornerLabel;
         state.gridEmptyCount = q.emptyCount;
         state.gridExtraWords.addAll(q.extraWords);
+        state.completionMode = q.completionMode;
         return state;
     }
   }
@@ -257,7 +262,6 @@ class _QuestionState {
         correctOrder: List.from(correctOrder),
       );
     } else if (type == AppConstants.questionTypeFillInBlanks) {
-      // pill mode only for now (text-input mode lands with #168)
       final sentence = fibSentenceController.text.trim();
       return FillInTheBlanksQuestion(
         questionId: questionId,
@@ -266,10 +270,9 @@ class _QuestionState {
         tokens: fibTokens.isEmpty ? null : List.from(fibTokens),
         blankCount: fibBlankCount,
         extraWords: List.from(fibExtraWords),
-        completionMode: CompletionMode.pill,
+        completionMode: completionMode,
       );
     } else {
-      // grid — pill mode only for now (text-input mode lands with #168)
       final cells = gridCells
           .map((row) => row.map((c) => c.text.trim()).toList())
           .toList();
@@ -289,7 +292,7 @@ class _QuestionState {
         cells: cells.isEmpty ? null : cells,
         emptyCount: gridEmptyCount,
         extraWords: List.from(gridExtraWords),
-        completionMode: CompletionMode.pill,
+        completionMode: completionMode,
       );
     }
   }
@@ -1066,8 +1069,7 @@ class _WorkbookCardFormScreenState
   }
 
   // Fill-in-the-blanks editor (#170): sentence → Tokenize → tap words to mark
-  // eligible → set blank count → optional distractor words. Pill mode only for
-  // now (text-input mode arrives with the #168 normalisation pass).
+  // eligible → set blank count → optional distractor words.
   Widget _buildFillInBlanksContent(_QuestionState q, int qIdx) {
     final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
@@ -1080,6 +1082,10 @@ class _WorkbookCardFormScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // -- Completion mode selector ---------------------------------------
+        _buildCompletionModeSelector(q, qIdx),
+        const SizedBox(height: 12),
+
         // -- Sentence + Tokenize --------------------------------------------
         Text(l10n.labelFibSentenceRequired,
             style: Theme.of(context).textTheme.bodySmall),
@@ -1227,6 +1233,10 @@ class _WorkbookCardFormScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // -- Completion mode selector ---------------------------------------
+        _buildCompletionModeSelector(q, qIdx),
+        const SizedBox(height: 12),
+
         Text(l10n.messageGridHelp, style: muted),
         const SizedBox(height: 12),
 
@@ -1413,6 +1423,40 @@ class _WorkbookCardFormScreenState
                 .toList(),
           ),
         ],
+      ],
+    );
+  }
+
+  // SegmentedButton that toggles between pill and text-input completion modes.
+  // Shared by FIB and Grid question editors.
+  Widget _buildCompletionModeSelector(_QuestionState q, int qIdx) {
+    final l10n = context.l10n;
+    return Row(
+      children: [
+        Text(l10n.labelCompletionMode,
+            style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(width: 12),
+        SegmentedButton<CompletionMode>(
+          segments: [
+            ButtonSegment(
+              value: CompletionMode.pill,
+              label: Text(l10n.labelCompletionModePill),
+              icon: const Icon(Icons.view_module_outlined),
+            ),
+            ButtonSegment(
+              value: CompletionMode.textInput,
+              label: Text(l10n.labelCompletionModeText),
+              icon: const Icon(Icons.keyboard_outlined),
+            ),
+          ],
+          selected: {q.completionMode},
+          onSelectionChanged: (s) =>
+              setState(() => _questions[qIdx].completionMode = s.first),
+          style: const ButtonStyle(
+            visualDensity: VisualDensity.compact,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
       ],
     );
   }

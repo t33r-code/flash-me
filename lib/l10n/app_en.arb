@@ -414,6 +414,9 @@
       "count": {"type": "int"}
     }
   },
+  "labelCompletionMode": "Input mode",
+  "labelCompletionModePill": "Word pills",
+  "labelCompletionModeText": "Type answer",
   "actionTokenize": "Tokenize",
   "labelFibSentenceRequired": "Sentence *",
   "messageFibSentenceHelp": "Type the full sentence, then tap Tokenize to split it into words.",
@@ -667,6 +670,12 @@
   "actionTryAgain": "Try Again",
   "messageAnswerReveal": "Answer: {answer}",
   "@messageAnswerReveal": {
+    "placeholders": {
+      "answer": {"type": "String"}
+    }
+  },
+  "messageCorrectForm": "Correct form: {answer}",
+  "@messageCorrectForm": {
     "placeholders": {
       "answer": {"type": "String"}
     }

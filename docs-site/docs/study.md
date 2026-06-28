@@ -100,6 +100,10 @@ A row of word tiles appears. Tap tiles to place them in your answer; tap a place
 
 A sentence appears with one or more blanks, and a pool of word pills below it. Tap a blank to select it, then tap a pill to drop it in (tap a filled blank to send its word back to the pool). Tap **Check** once every blank is filled — correct blanks turn green, and any wrong ones show the right word.
 
+### Complete the Grid { #study-grid }
+
+A table appears with some cells blanked out, and a pool of word pills below it. Tap an empty cell to select it, then tap a pill to drop it in (tap a filled cell to send its word back to the pool). Tap **Check** once every cell is filled — correct cells turn green, and any wrong ones show the right value.
+
 ---
 
 ## Skip & Review { #skip-review }

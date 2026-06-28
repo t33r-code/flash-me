@@ -1798,6 +1798,66 @@ abstract class AppLocalizations {
   /// **'Complete the grid'**
   String get labelQuestionTypeGrid;
 
+  /// No description provided for @messageGridHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill in the complete table. At study time, the chosen number of cells are hidden for the learner to fill in. Use row/column headers for static labels (e.g. pronouns or tenses) — headers are never hidden.'**
+  String get messageGridHelp;
+
+  /// No description provided for @labelGridRows.
+  ///
+  /// In en, this message translates to:
+  /// **'Rows'**
+  String get labelGridRows;
+
+  /// No description provided for @labelGridColumns.
+  ///
+  /// In en, this message translates to:
+  /// **'Columns'**
+  String get labelGridColumns;
+
+  /// No description provided for @labelGridColumnHeaders.
+  ///
+  /// In en, this message translates to:
+  /// **'Column headers'**
+  String get labelGridColumnHeaders;
+
+  /// No description provided for @labelGridRowHeaders.
+  ///
+  /// In en, this message translates to:
+  /// **'Row headers'**
+  String get labelGridRowHeaders;
+
+  /// No description provided for @hintGridHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'label'**
+  String get hintGridHeader;
+
+  /// No description provided for @hintGridCornerLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'label col.'**
+  String get hintGridCornerLabel;
+
+  /// No description provided for @hintGridCell.
+  ///
+  /// In en, this message translates to:
+  /// **'cell'**
+  String get hintGridCell;
+
+  /// No description provided for @labelGridEmptyCells.
+  ///
+  /// In en, this message translates to:
+  /// **'Cells to leave empty'**
+  String get labelGridEmptyCells;
+
+  /// No description provided for @messageGridEmptyCountHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Add cells to the grid first.} =1{1 cell in the grid.} other{{count} cells in the grid.}}'**
+  String messageGridEmptyCountHelp(int count);
+
   /// No description provided for @actionTokenize.
   ///
   /// In en, this message translates to:
@@ -2097,6 +2157,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Question {number}: mark at least one word as eligible to blank.'**
   String messageFibNeedEligible(int number);
+
+  /// No description provided for @messageGridFillAllCells.
+  ///
+  /// In en, this message translates to:
+  /// **'Question {number}: fill in every cell of the grid.'**
+  String messageGridFillAllCells(int number);
 
   /// No description provided for @titleTemplates.
   ///

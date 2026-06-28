@@ -399,6 +399,21 @@
   "labelQuestionTypeWordOrder": "Word order",
   "labelQuestionTypeFillInBlanks": "Fill in the blanks",
   "labelQuestionTypeGrid": "Complete the grid",
+  "messageGridHelp": "Fill in the complete table. At study time, the chosen number of cells are hidden for the learner to fill in. Use row/column headers for static labels (e.g. pronouns or tenses) — headers are never hidden.",
+  "labelGridRows": "Rows",
+  "labelGridColumns": "Columns",
+  "labelGridColumnHeaders": "Column headers",
+  "labelGridRowHeaders": "Row headers",
+  "hintGridHeader": "label",
+  "hintGridCornerLabel": "label col.",
+  "hintGridCell": "cell",
+  "labelGridEmptyCells": "Cells to leave empty",
+  "messageGridEmptyCountHelp": "{count, plural, =0{Add cells to the grid first.} =1{1 cell in the grid.} other{{count} cells in the grid.}}",
+  "@messageGridEmptyCountHelp": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "actionTokenize": "Tokenize",
   "labelFibSentenceRequired": "Sentence *",
   "messageFibSentenceHelp": "Type the full sentence, then tap Tokenize to split it into words.",
@@ -492,6 +507,12 @@
   },
   "messageFibNeedEligible": "Question {number}: mark at least one word as eligible to blank.",
   "@messageFibNeedEligible": {
+    "placeholders": {
+      "number": {"type": "int"}
+    }
+  },
+  "messageGridFillAllCells": "Question {number}: fill in every cell of the grid.",
+  "@messageGridFillAllCells": {
     "placeholders": {
       "number": {"type": "int"}
     }

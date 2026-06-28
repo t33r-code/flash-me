@@ -50,6 +50,17 @@ class _QuestionState {
   // Keeps the distractor field focused after each add (Enter or the Add button)
   // so multiple words can be entered in a row, especially on desktop.
   final FocusNode fibExtraWordFocus = FocusNode();
+  // grid (#167) — a 2D list of controllers; steppers resize it in place,
+  // preserving already-typed values. Header controllers are separate lists.
+  final List<List<TextEditingController>> gridCells = [];
+  final List<TextEditingController> gridRowHeaderCtls = [];
+  final List<TextEditingController> gridColHeaderCtls = [];
+  // Title for the row-header column, shown in the top-left corner (e.g.
+  // "Pronoun"); only meaningful when both row and column headers are on.
+  final TextEditingController gridCornerCtl = TextEditingController();
+  bool gridHasRowHeaders = false;
+  bool gridHasColHeaders = false;
+  int gridEmptyCount = 1;
 
   _QuestionState({
     required this.questionId,
@@ -170,11 +181,9 @@ class _QuestionState {
         state.fibExtraWords.addAll(q.extraWords);
         return state;
       case GridQuestion q:
-        // grid editing not yet implemented (#167, subsection 3); fall back to a
-        // text-input-typed state so existing data round-trips without crashing.
-        return _QuestionState(
+        final state = _QuestionState(
           questionId: q.questionId,
-          type: AppConstants.fieldTypeTextInput,
+          type: AppConstants.questionTypeGrid,
           promptController: TextEditingController(text: q.prompt ?? ''),
           answersController: TextEditingController(),
           hintController: TextEditingController(),
@@ -188,6 +197,20 @@ class _QuestionState {
           wordBankInputController: TextEditingController(),
           correctOrderInputController: TextEditingController(),
         );
+        // Prefill the grid editor state from the stored cells/headers.
+        for (final row in q.cells ?? const <List<String>>[]) {
+          state.gridCells.add(
+              row.map((v) => TextEditingController(text: v)).toList());
+        }
+        state.gridHasRowHeaders = q.rowHeaders.isNotEmpty;
+        state.gridHasColHeaders = q.columnHeaders.isNotEmpty;
+        state.gridRowHeaderCtls.addAll(
+            q.rowHeaders.map((h) => TextEditingController(text: h)));
+        state.gridColHeaderCtls.addAll(
+            q.columnHeaders.map((h) => TextEditingController(text: h)));
+        state.gridCornerCtl.text = q.cornerLabel;
+        state.gridEmptyCount = q.emptyCount;
+        return state;
     }
   }
 
@@ -228,8 +251,8 @@ class _QuestionState {
         wordBank: List.from(wordBank),
         correctOrder: List.from(correctOrder),
       );
-    } else {
-      // fill_in_blanks — pill mode only for now (text-input mode lands with #168)
+    } else if (type == AppConstants.questionTypeFillInBlanks) {
+      // pill mode only for now (text-input mode lands with #168)
       final sentence = fibSentenceController.text.trim();
       return FillInTheBlanksQuestion(
         questionId: questionId,
@@ -238,6 +261,28 @@ class _QuestionState {
         tokens: fibTokens.isEmpty ? null : List.from(fibTokens),
         blankCount: fibBlankCount,
         extraWords: List.from(fibExtraWords),
+        completionMode: CompletionMode.pill,
+      );
+    } else {
+      // grid — pill mode only for now (text-input mode lands with #168)
+      final cells = gridCells
+          .map((row) => row.map((c) => c.text.trim()).toList())
+          .toList();
+      return GridQuestion(
+        questionId: questionId,
+        prompt: prompt,
+        rowHeaders: gridHasRowHeaders
+            ? gridRowHeaderCtls.map((c) => c.text.trim()).toList()
+            : const [],
+        columnHeaders: gridHasColHeaders
+            ? gridColHeaderCtls.map((c) => c.text.trim()).toList()
+            : const [],
+        // Corner label only applies when both header axes are present.
+        cornerLabel: (gridHasRowHeaders && gridHasColHeaders)
+            ? gridCornerCtl.text.trim()
+            : '',
+        cells: cells.isEmpty ? null : cells,
+        emptyCount: gridEmptyCount,
         completionMode: CompletionMode.pill,
       );
     }
@@ -257,6 +302,18 @@ class _QuestionState {
     fibSentenceController.dispose();
     fibExtraWordInputController.dispose();
     fibExtraWordFocus.dispose();
+    for (final row in gridCells) {
+      for (final c in row) {
+        c.dispose();
+      }
+    }
+    for (final c in gridRowHeaderCtls) {
+      c.dispose();
+    }
+    for (final c in gridColHeaderCtls) {
+      c.dispose();
+    }
+    gridCornerCtl.dispose();
   }
 }
 
@@ -441,6 +498,106 @@ class _WorkbookCardFormScreenState
   void _removeFibExtraWord(int qIdx, int idx) =>
       setState(() => _questions[qIdx].fibExtraWords.removeAt(idx));
 
+  // --- grid (#167) helpers --------------------------------------------------
+
+  int _gridRowCount(_QuestionState q) => q.gridCells.length;
+  int _gridColCount(_QuestionState q) =>
+      q.gridCells.isEmpty ? 0 : q.gridCells.first.length;
+  int _gridTotalCells(_QuestionState q) =>
+      _gridRowCount(q) * _gridColCount(q);
+
+  // Create a default 2×2 grid the first time the grid type is selected.
+  void _gridEnsureInit(_QuestionState q) {
+    if (q.gridCells.isNotEmpty) return;
+    for (var r = 0; r < 2; r++) {
+      q.gridCells.add([TextEditingController(), TextEditingController()]);
+    }
+  }
+
+  // Grow/shrink the number of rows, preserving existing cell content.
+  void _gridSetRows(int qIdx, int rows) {
+    final q = _questions[qIdx];
+    final cols = _gridColCount(q).clamp(1, 99);
+    setState(() {
+      while (q.gridCells.length < rows) {
+        q.gridCells
+            .add(List.generate(cols, (_) => TextEditingController()));
+        if (q.gridHasRowHeaders) q.gridRowHeaderCtls.add(TextEditingController());
+      }
+      while (q.gridCells.length > rows && q.gridCells.length > 1) {
+        for (final c in q.gridCells.removeLast()) {
+          c.dispose();
+        }
+        if (q.gridHasRowHeaders && q.gridRowHeaderCtls.isNotEmpty) {
+          q.gridRowHeaderCtls.removeLast().dispose();
+        }
+      }
+      _gridClampEmptyCount(q);
+    });
+  }
+
+  // Grow/shrink the number of columns, preserving existing cell content.
+  void _gridSetCols(int qIdx, int cols) {
+    final q = _questions[qIdx];
+    setState(() {
+      for (final row in q.gridCells) {
+        while (row.length < cols) {
+          row.add(TextEditingController());
+        }
+        while (row.length > cols && row.length > 1) {
+          row.removeLast().dispose();
+        }
+      }
+      if (q.gridHasColHeaders) {
+        while (q.gridColHeaderCtls.length < cols) {
+          q.gridColHeaderCtls.add(TextEditingController());
+        }
+        while (q.gridColHeaderCtls.length > cols &&
+            q.gridColHeaderCtls.isNotEmpty) {
+          q.gridColHeaderCtls.removeLast().dispose();
+        }
+      }
+      _gridClampEmptyCount(q);
+    });
+  }
+
+  void _gridToggleRowHeaders(int qIdx, bool on) {
+    final q = _questions[qIdx];
+    setState(() {
+      q.gridHasRowHeaders = on;
+      if (on) {
+        while (q.gridRowHeaderCtls.length < _gridRowCount(q)) {
+          q.gridRowHeaderCtls.add(TextEditingController());
+        }
+      }
+    });
+  }
+
+  void _gridToggleColHeaders(int qIdx, bool on) {
+    final q = _questions[qIdx];
+    setState(() {
+      q.gridHasColHeaders = on;
+      if (on) {
+        while (q.gridColHeaderCtls.length < _gridColCount(q)) {
+          q.gridColHeaderCtls.add(TextEditingController());
+        }
+      }
+    });
+  }
+
+  void _gridSetEmptyCount(int qIdx, int count) {
+    final q = _questions[qIdx];
+    final total = _gridTotalCells(q);
+    setState(() =>
+        q.gridEmptyCount = count.clamp(1, total < 1 ? 1 : total));
+  }
+
+  void _gridClampEmptyCount(_QuestionState q) {
+    final total = _gridTotalCells(q);
+    if (q.gridEmptyCount > total) q.gridEmptyCount = total < 1 ? 1 : total;
+    if (q.gridEmptyCount < 1) q.gridEmptyCount = 1;
+  }
+
   // --- Save / Delete --------------------------------------------------------
 
   Future<void> _save() async {
@@ -500,6 +657,22 @@ class _WorkbookCardFormScreenState
         if (_fibEligibleCount(q) == 0) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(l10n.messageFibNeedEligible(i + 1)),
+          ));
+          return;
+        }
+      }
+    }
+
+    // Validate grid questions — every cell must be filled (a blank cell has no
+    // valid answer when hidden).
+    for (int i = 0; i < _questions.length; i++) {
+      final q = _questions[i];
+      if (q.type == AppConstants.questionTypeGrid) {
+        final anyEmpty =
+            q.gridCells.any((row) => row.any((c) => c.text.trim().isEmpty));
+        if (q.gridCells.isEmpty || anyEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(l10n.messageGridFillAllCells(i + 1)),
           ));
           return;
         }
@@ -1017,6 +1190,228 @@ class _WorkbookCardFormScreenState
     );
   }
 
+  // Complete-the-grid editor (#167): row/column steppers (resize in place,
+  // preserving content), optional header toggles, an editable cell grid, and
+  // an empty-count stepper. Pill mode only for now (text-input mode with #168).
+  Widget _buildGridContent(_QuestionState q, int qIdx) {
+    final l10n = context.l10n;
+    final scheme = Theme.of(context).colorScheme;
+    final muted = Theme.of(context)
+        .textTheme
+        .bodySmall
+        ?.copyWith(color: scheme.onSurfaceVariant);
+    final rows = _gridRowCount(q);
+    final cols = _gridColCount(q);
+    final total = _gridTotalCells(q);
+    const maxDim = 8; // keep grids manageable on phone screens
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.messageGridHelp, style: muted),
+        const SizedBox(height: 12),
+
+        // -- Dimension steppers ---------------------------------------------
+        Row(
+          children: [
+            Expanded(
+              child: _gridStepper(
+                label: l10n.labelGridRows,
+                value: rows,
+                onDecrease:
+                    rows > 1 ? () => _gridSetRows(qIdx, rows - 1) : null,
+                onIncrease:
+                    rows < maxDim ? () => _gridSetRows(qIdx, rows + 1) : null,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _gridStepper(
+                label: l10n.labelGridColumns,
+                value: cols,
+                onDecrease:
+                    cols > 1 ? () => _gridSetCols(qIdx, cols - 1) : null,
+                onIncrease:
+                    cols < maxDim ? () => _gridSetCols(qIdx, cols + 1) : null,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+
+        // -- Header toggles -------------------------------------------------
+        Row(
+          children: [
+            Expanded(
+              child: CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: Text(l10n.labelGridColumnHeaders,
+                    style: Theme.of(context).textTheme.bodySmall),
+                value: q.gridHasColHeaders,
+                onChanged: (v) => _gridToggleColHeaders(qIdx, v ?? false),
+              ),
+            ),
+            Expanded(
+              child: CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: Text(l10n.labelGridRowHeaders,
+                    style: Theme.of(context).textTheme.bodySmall),
+                value: q.gridHasRowHeaders,
+                onChanged: (v) => _gridToggleRowHeaders(qIdx, v ?? false),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // -- Editable cell grid (horizontally scrollable) -------------------
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Column-header row.
+              if (q.gridHasColHeaders)
+                Row(
+                  children: [
+                    // Top-left corner: an optional title for the row-label
+                    // column (e.g. "Pronoun"), editable when both headers are on.
+                    if (q.gridHasRowHeaders)
+                      _gridFieldBox(
+                        controller: q.gridCornerCtl,
+                        hint: l10n.hintGridCornerLabel,
+                        header: true,
+                      ),
+                    for (var c = 0; c < cols; c++)
+                      _gridFieldBox(
+                        controller: c < q.gridColHeaderCtls.length
+                            ? q.gridColHeaderCtls[c]
+                            : TextEditingController(),
+                        hint: l10n.hintGridHeader,
+                        header: true,
+                      ),
+                  ],
+                ),
+              // Data rows.
+              for (var r = 0; r < rows; r++)
+                Row(
+                  children: [
+                    if (q.gridHasRowHeaders)
+                      _gridFieldBox(
+                        controller: r < q.gridRowHeaderCtls.length
+                            ? q.gridRowHeaderCtls[r]
+                            : TextEditingController(),
+                        hint: l10n.hintGridHeader,
+                        header: true,
+                      ),
+                    for (var c = 0; c < cols; c++)
+                      _gridFieldBox(
+                        controller: q.gridCells[r][c],
+                        hint: l10n.hintGridCell,
+                      ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // -- Empty-cell count -----------------------------------------------
+        Row(
+          children: [
+            Text(l10n.labelGridEmptyCells,
+                style: Theme.of(context).textTheme.bodySmall),
+            const Spacer(),
+            IconButton(
+              icon: const Icon(Icons.remove_circle_outline),
+              iconSize: 22,
+              tooltip: l10n.tooltipDecrease,
+              onPressed: q.gridEmptyCount > 1
+                  ? () => _gridSetEmptyCount(qIdx, q.gridEmptyCount - 1)
+                  : null,
+            ),
+            Text('${q.gridEmptyCount}',
+                style: Theme.of(context).textTheme.titleMedium),
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              iconSize: 22,
+              tooltip: l10n.tooltipIncrease,
+              onPressed: q.gridEmptyCount < total
+                  ? () => _gridSetEmptyCount(qIdx, q.gridEmptyCount + 1)
+                  : null,
+            ),
+          ],
+        ),
+        Text(l10n.messageGridEmptyCountHelp(total), style: muted),
+      ],
+    );
+  }
+
+  // A compact +/- stepper with a centred value, used for grid dimensions.
+  Widget _gridStepper({
+    required String label,
+    required int value,
+    required VoidCallback? onDecrease,
+    required VoidCallback? onIncrease,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.remove_circle_outline),
+              iconSize: 22,
+              tooltip: context.l10n.tooltipDecrease,
+              onPressed: onDecrease,
+            ),
+            Text('$value', style: Theme.of(context).textTheme.titleMedium),
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              iconSize: 22,
+              tooltip: context.l10n.tooltipIncrease,
+              onPressed: onIncrease,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // One fixed-width cell/header text field in the grid editor.
+  Widget _gridFieldBox(
+      {required TextEditingController controller,
+      required String hint,
+      bool header = false}) {
+    return Padding(
+      padding: const EdgeInsets.all(2),
+      child: SizedBox(
+        width: 92,
+        child: TextField(
+          controller: controller,
+          textAlign: TextAlign.center,
+          style: header
+              ? const TextStyle(fontWeight: FontWeight.bold)
+              : null,
+          decoration: InputDecoration(
+            hintText: hint,
+            isDense: true,
+            filled: header,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+            border: const OutlineInputBorder(),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildQuestionCard(int index) {
     final l10n = context.l10n;
     final q = _questions[index];
@@ -1095,9 +1490,19 @@ class _WorkbookCardFormScreenState
                   value: AppConstants.questionTypeFillInBlanks,
                   child: Text(l10n.labelQuestionTypeFillInBlanks),
                 ),
+                DropdownMenuItem(
+                  value: AppConstants.questionTypeGrid,
+                  child: Text(l10n.labelQuestionTypeGrid),
+                ),
               ],
               onChanged: (v) {
-                if (v != null) setState(() => q.type = v);
+                if (v != null) {
+                  setState(() {
+                    q.type = v;
+                    // Lazily seed a default grid the first time it's chosen.
+                    if (v == AppConstants.questionTypeGrid) _gridEnsureInit(q);
+                  });
+                }
               },
             ),
             const SizedBox(height: 12),
@@ -1111,6 +1516,8 @@ class _WorkbookCardFormScreenState
               _buildWordOrderContent(q, index),
             if (q.type == AppConstants.questionTypeFillInBlanks)
               _buildFillInBlanksContent(q, index),
+            if (q.type == AppConstants.questionTypeGrid)
+              _buildGridContent(q, index),
           ],
         ),
       ),

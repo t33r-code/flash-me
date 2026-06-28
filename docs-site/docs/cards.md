@@ -3,7 +3,7 @@
 Agora has two card types:
 
 - **Flash Cards** — a primary word, its translation, and optional extra fields. The classic flashcard format.
-- **Workbook Cards** — a prompt followed by one or more structured questions (text input, multiple choice, word order, or fill in the blanks). Good for grammar exercises, reading comprehension, and drills.
+- **Workbook Cards** — a prompt followed by one or more structured questions (text input, multiple choice, word order, fill in the blanks, or complete the grid). Good for grammar exercises, reading comprehension, and drills.
 
 Both types can be added to sets and studied in the same session.
 
@@ -193,3 +193,18 @@ The learner completes a sentence with one or more missing words, chosen from a p
 - **Question label** *(optional)* — shown above the sentence.
 
 When studying, the learner taps a blank to select it, then taps a word pill to fill it in. Each card shuffles which eligible words are hidden, so the same question stays fresh on repeat.
+
+#### Complete the Grid { #question-grid }
+
+The learner fills in missing cells of a table — handy for conjugation tables, pronoun grids, or declension charts.
+
+1. Set the number of **Rows** and **Columns** with the steppers. You can increase or decrease these at any time — growing the grid keeps everything you've already typed, so a miscount is a one-tap fix, not a restart.
+2. Optionally turn on **Column headers** and/or **Row headers** to add a labelled top row or left column. When both are on, the top-left **corner** field lets you title the row-label column (e.g. *Pronoun*).
+3. Fill in every cell of the table (the grid scrolls sideways if it's wide).
+4. Set **Cells to leave empty** — each time the question is shown, that many cells are hidden at random for the learner to complete.
+- **Question label** *(optional)* — shown above the grid.
+
+!!! tip "Labels go in headers, not cells"
+    Only **cells** are ever hidden — header labels (and the corner label) are always shown. For a conjugation table, put the pronouns in **Row headers** and the tenses in **Column headers** (with *Pronoun* in the corner), and only the conjugated forms in the cells. If you type labels into regular cells instead, they can be hidden as answers.
+
+All cells must be filled before you can save. When studying, the learner taps an empty cell, then taps a word pill to fill it in.

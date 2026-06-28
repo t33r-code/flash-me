@@ -277,6 +277,25 @@ void main() {
       expect(restored.emptyCount, equals(1));
     });
 
+    test('round-trips the corner label; omitted from json when empty', () {
+      final withCorner = GridQuestion(
+        questionId: 'q5',
+        rowHeaders: const ['yo'],
+        columnHeaders: const ['present'],
+        cornerLabel: 'Pronoun',
+        cells: const [['hablo']],
+      );
+      final restored =
+          CardQuestion.fromJson(withCorner.toJson()) as GridQuestion;
+      expect(restored.cornerLabel, equals('Pronoun'));
+
+      final noCorner = GridQuestion(questionId: 'q5', cells: const [['a']]);
+      final content = noCorner.toJson()['content'] as Map<String, dynamic>;
+      expect(content.containsKey('cornerLabel'), isFalse);
+      expect((CardQuestion.fromJson(noCorner.toJson()) as GridQuestion).cornerLabel,
+          equals(''));
+    });
+
     test('serialised cells are flat (no nested arrays for Firestore)', () {
       final q = GridQuestion(
         questionId: 'q5',

@@ -2099,8 +2099,10 @@ class _GridCardState extends State<_GridCard> {
     final count = widget.question.emptyCount.clamp(0, total);
     _hiddenOrder = all.take(count).toList()..sort();
     _hiddenSet = _hiddenOrder.toSet();
-    _pool = _hiddenOrder.map((idx) => _cells[idx ~/ _cols][idx % _cols]).toList()
-      ..shuffle();
+    _pool = [
+      ..._hiddenOrder.map((idx) => _cells[idx ~/ _cols][idx % _cols]),
+      ...widget.question.extraWords,
+    ]..shuffle();
     _placement.clear();
     _selectedCell = _hiddenOrder.isNotEmpty ? _hiddenOrder.first : null;
     _result = null;

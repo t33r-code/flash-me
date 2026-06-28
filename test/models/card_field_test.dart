@@ -364,6 +364,21 @@ void main() {
           contains('row header count must match the number of grid rows'));
     });
 
+    test('round-trips extraWords; omitted from json when empty', () {
+      final withExtras = GridQuestion(
+        questionId: 'q5',
+        cells: const [['a']],
+        extraWords: const ['fake1', 'fake2'],
+      );
+      final restored = CardQuestion.fromJson(withExtras.toJson()) as GridQuestion;
+      expect(restored.extraWords, equals(['fake1', 'fake2']));
+
+      // Empty list serialises but defaults to empty on read.
+      final noExtras = GridQuestion(questionId: 'q5', cells: const [['a']]);
+      final restoredEmpty = CardQuestion.fromJson(noExtras.toJson()) as GridQuestion;
+      expect(restoredEmpty.extraWords, isEmpty);
+    });
+
     test('validate passes in template mode regardless of content', () {
       final q = GridQuestion(questionId: 'q5');
       expect(q.validate(isTemplate: true), isEmpty);

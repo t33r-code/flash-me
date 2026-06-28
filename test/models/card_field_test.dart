@@ -176,6 +176,81 @@ void main() {
     });
   });
 
+  // ── FillBlankToken.tokenize ───────────────────────────────────────────────
+
+  group('FillBlankToken.tokenize', () {
+    test('strips trailing sentence punctuation off the last word', () {
+      final t = FillBlankToken.tokenize('The cat sat on the mat.');
+      expect(t.map((e) => e.word).toList(),
+          equals(['The', 'cat', 'sat', 'on', 'the', 'mat']));
+      expect(t.last.trailing, equals('.'));
+    });
+
+    test('strips commas and other clause punctuation into trailing', () {
+      final t = FillBlankToken.tokenize('Hello, world!');
+      expect(t.map((e) => e.word).toList(), equals(['Hello', 'world']));
+      expect(t[0].trailing, equals(','));
+      expect(t[1].trailing, equals('!'));
+    });
+
+    test('keeps apostrophes in contractions', () {
+      final t = FillBlankToken.tokenize("I don't know");
+      expect(t.map((e) => e.word).toList(), equals(['I', "don't", 'know']));
+      expect(t[1].trailing, isEmpty);
+    });
+
+    test('keeps hyphens in hyphenated words', () {
+      final t = FillBlankToken.tokenize('a well-known fact');
+      expect(t.map((e) => e.word).toList(), equals(['a', 'well-known', 'fact']));
+    });
+
+    test('captures leading punctuation (Spanish ¿) and trailing ?', () {
+      final t = FillBlankToken.tokenize('¿Cómo estás?');
+      expect(t.map((e) => e.word).toList(), equals(['Cómo', 'estás']));
+      expect(t[0].leading, equals('¿'));
+      expect(t[1].trailing, equals('?'));
+    });
+
+    test('all tokens start not-eligible', () {
+      final t = FillBlankToken.tokenize('one two three');
+      expect(t.every((e) => !e.eligible), isTrue);
+    });
+
+    test('a standalone all-punctuation dash is not a word token', () {
+      final t = FillBlankToken.tokenize('He said -- stop');
+      expect(t.map((e) => e.word).toList(), equals(['He', 'said', 'stop']));
+      // The "--" folds into the preceding token rather than becoming a word.
+      expect(t[1].trailing, contains('-'));
+    });
+
+    test('leading/trailing round-trip through json', () {
+      const tok = FillBlankToken(
+          word: 'estás', eligible: true, leading: '¿', trailing: '?');
+      final restored = FillBlankToken.fromJson(tok.toJson());
+      expect(restored.word, equals('estás'));
+      expect(restored.eligible, isTrue);
+      expect(restored.leading, equals('¿'));
+      expect(restored.trailing, equals('?'));
+    });
+
+    test('empty affixes are omitted from json', () {
+      const tok = FillBlankToken(word: 'cat', eligible: false);
+      final json = tok.toJson();
+      expect(json.containsKey('leading'), isFalse);
+      expect(json.containsKey('trailing'), isFalse);
+    });
+
+    test('copyWith preserves affixes when toggling eligibility', () {
+      const tok = FillBlankToken(
+          word: 'mat', eligible: false, trailing: '.', leading: '"');
+      final toggled = tok.copyWith(eligible: true);
+      expect(toggled.eligible, isTrue);
+      expect(toggled.word, equals('mat'));
+      expect(toggled.leading, equals('"'));
+      expect(toggled.trailing, equals('.'));
+    });
+  });
+
   // ── CompletionMode ────────────────────────────────────────────────────────
 
   group('CompletionMode', () {

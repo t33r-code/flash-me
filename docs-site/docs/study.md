@@ -96,6 +96,10 @@ Tap an option to select it. Correct and incorrect options are highlighted immedi
 
 A row of word tiles appears. Tap tiles to place them in your answer; tap a placed tile to return it to the bank. Tap **Check** when your order is set.
 
+### Fill in the Blanks { #study-fill-in-blanks }
+
+A sentence appears with one or more blanks, and a pool of word pills below it. Tap a blank to select it, then tap a pill to drop it in (tap a filled blank to send its word back to the pool). Tap **Check** once every blank is filled — correct blanks turn green, and any wrong ones show the right word.
+
 ---
 
 ## Skip & Review { #skip-review }

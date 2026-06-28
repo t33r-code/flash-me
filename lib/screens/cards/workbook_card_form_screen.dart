@@ -37,6 +37,19 @@ class _QuestionState {
   final List<String> correctOrder;
   final TextEditingController wordBankInputController;
   final TextEditingController correctOrderInputController;
+  // Keeps the word-bank field focused after each add, like the distractor field.
+  final FocusNode wordBankFocus = FocusNode();
+  // fill_in_blanks (#170) — field-initialised so the existing constructor call
+  // sites don't all need new params; only the fill-in-blanks paths touch these.
+  final TextEditingController fibSentenceController = TextEditingController();
+  List<FillBlankToken> fibTokens = []; // empty until the author taps Tokenize
+  int fibBlankCount = 1;
+  final List<String> fibExtraWords = []; // author-added distractor words
+  final TextEditingController fibExtraWordInputController =
+      TextEditingController();
+  // Keeps the distractor field focused after each add (Enter or the Add button)
+  // so multiple words can be entered in a row, especially on desktop.
+  final FocusNode fibExtraWordFocus = FocusNode();
 
   _QuestionState({
     required this.questionId,
@@ -134,11 +147,9 @@ class _QuestionState {
           correctOrderInputController: TextEditingController(),
         );
       case FillInTheBlanksQuestion q:
-        // fill_in_blanks editing not yet implemented (#170); fall back to a
-        // text-input-typed state so existing data round-trips without crashing.
-        return _QuestionState(
+        final state = _QuestionState(
           questionId: q.questionId,
-          type: AppConstants.fieldTypeTextInput,
+          type: AppConstants.questionTypeFillInBlanks,
           promptController: TextEditingController(text: q.prompt ?? ''),
           answersController: TextEditingController(),
           hintController: TextEditingController(),
@@ -152,6 +163,12 @@ class _QuestionState {
           wordBankInputController: TextEditingController(),
           correctOrderInputController: TextEditingController(),
         );
+        // Prefill the fill-in-blanks editor state (field-initialised members).
+        state.fibSentenceController.text = q.sentence ?? '';
+        state.fibTokens = List.from(q.tokens ?? const []);
+        state.fibBlankCount = q.blankCount;
+        state.fibExtraWords.addAll(q.extraWords);
+        return state;
     }
   }
 
@@ -185,13 +202,24 @@ class _QuestionState {
             ? null
             : explanationController.text.trim(),
       );
-    } else {
-      // word_order
+    } else if (type == AppConstants.questionTypeWordOrder) {
       return WordOrderQuestion(
         questionId: questionId,
         prompt: prompt,
         wordBank: List.from(wordBank),
         correctOrder: List.from(correctOrder),
+      );
+    } else {
+      // fill_in_blanks — pill mode only for now (text-input mode lands with #168)
+      final sentence = fibSentenceController.text.trim();
+      return FillInTheBlanksQuestion(
+        questionId: questionId,
+        prompt: prompt,
+        sentence: sentence.isEmpty ? null : sentence,
+        tokens: fibTokens.isEmpty ? null : List.from(fibTokens),
+        blankCount: fibBlankCount,
+        extraWords: List.from(fibExtraWords),
+        completionMode: CompletionMode.pill,
       );
     }
   }
@@ -206,6 +234,10 @@ class _QuestionState {
     explanationController.dispose();
     wordBankInputController.dispose();
     correctOrderInputController.dispose();
+    wordBankFocus.dispose();
+    fibSentenceController.dispose();
+    fibExtraWordInputController.dispose();
+    fibExtraWordFocus.dispose();
   }
 }
 
@@ -311,6 +343,8 @@ class _WorkbookCardFormScreenState
     if (w.isEmpty) return;
     setState(() => _questions[qIdx].wordBank.add(w));
     _questions[qIdx].wordBankInputController.clear();
+    // Return focus so the next tile can be typed immediately.
+    _questions[qIdx].wordBankFocus.requestFocus();
   }
 
   void _removeWordBankTile(int qIdx, int tileIdx) {
@@ -338,6 +372,55 @@ class _WorkbookCardFormScreenState
 
   void _placeCorrectOrderWord(int qIdx, String word) =>
       setState(() => _questions[qIdx].correctOrder.add(word));
+
+  // --- fill_in_blanks (#170) helpers ----------------------------------------
+
+  int _fibEligibleCount(_QuestionState q) =>
+      q.fibTokens.where((t) => t.eligible).length;
+
+  // Split the sentence into word tokens (whitespace-separated), all initially
+  // not-eligible. Replaces any existing tokens and resets blank count.
+  void _tokenizeFib(int qIdx) {
+    final q = _questions[qIdx];
+    // Strips edge punctuation into leading/trailing; keeps contractions and
+    // hyphenated words intact (see FillBlankToken.tokenize).
+    final tokens = FillBlankToken.tokenize(q.fibSentenceController.text);
+    setState(() {
+      q.fibTokens = tokens;
+      q.fibBlankCount = 1;
+    });
+  }
+
+  // Toggle whether a token may be blanked; clamp blank count to eligible count.
+  void _toggleFibEligible(int qIdx, int tokenIdx) {
+    final q = _questions[qIdx];
+    final t = q.fibTokens[tokenIdx];
+    setState(() {
+      // copyWith preserves leading/trailing punctuation affixes.
+      q.fibTokens[tokenIdx] = t.copyWith(eligible: !t.eligible);
+      final eligible = _fibEligibleCount(q);
+      if (q.fibBlankCount > eligible) q.fibBlankCount = eligible.clamp(1, eligible);
+      if (q.fibBlankCount < 1) q.fibBlankCount = 1;
+    });
+  }
+
+  void _setFibBlankCount(int qIdx, int count) {
+    final q = _questions[qIdx];
+    final eligible = _fibEligibleCount(q);
+    setState(() => q.fibBlankCount = count.clamp(1, eligible < 1 ? 1 : eligible));
+  }
+
+  void _addFibExtraWord(int qIdx, String word) {
+    final w = word.trim();
+    if (w.isEmpty) return;
+    setState(() => _questions[qIdx].fibExtraWords.add(w));
+    _questions[qIdx].fibExtraWordInputController.clear();
+    // Return focus to the field so the next word can be typed immediately.
+    _questions[qIdx].fibExtraWordFocus.requestFocus();
+  }
+
+  void _removeFibExtraWord(int qIdx, int idx) =>
+      setState(() => _questions[qIdx].fibExtraWords.removeAt(idx));
 
   // --- Save / Delete --------------------------------------------------------
 
@@ -381,6 +464,25 @@ class _WorkbookCardFormScreenState
             ));
             return;
           }
+        }
+      }
+    }
+
+    // Validate fill-in-the-blanks questions.
+    for (int i = 0; i < _questions.length; i++) {
+      final q = _questions[i];
+      if (q.type == AppConstants.questionTypeFillInBlanks) {
+        if (q.fibSentenceController.text.trim().isEmpty || q.fibTokens.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(l10n.messageFibNeedSentence(i + 1)),
+          ));
+          return;
+        }
+        if (_fibEligibleCount(q) == 0) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(l10n.messageFibNeedEligible(i + 1)),
+          ));
+          return;
         }
       }
     }
@@ -646,6 +748,7 @@ class _WorkbookCardFormScreenState
             Expanded(
               child: TextField(
                 controller: q.wordBankInputController,
+                focusNode: q.wordBankFocus,
                 decoration: InputDecoration(
                   hintText: l10n.hintAddWordTile,
                   border: const OutlineInputBorder(),
@@ -751,6 +854,150 @@ class _WorkbookCardFormScreenState
     );
   }
 
+  // Fill-in-the-blanks editor (#170): sentence → Tokenize → tap words to mark
+  // eligible → set blank count → optional distractor words. Pill mode only for
+  // now (text-input mode arrives with the #168 normalisation pass).
+  Widget _buildFillInBlanksContent(_QuestionState q, int qIdx) {
+    final l10n = context.l10n;
+    final scheme = Theme.of(context).colorScheme;
+    final muted = Theme.of(context)
+        .textTheme
+        .bodySmall
+        ?.copyWith(color: scheme.onSurfaceVariant);
+    final eligibleCount = _fibEligibleCount(q);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // -- Sentence + Tokenize --------------------------------------------
+        Text(l10n.labelFibSentenceRequired,
+            style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 2),
+        Text(l10n.messageFibSentenceHelp, style: muted),
+        const SizedBox(height: 8),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: TextField(
+                controller: q.fibSentenceController,
+                minLines: 1,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: l10n.hintFibSentenceExample,
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: () => _tokenizeFib(qIdx),
+              child: Text(l10n.actionTokenize),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // -- Tokens: tap to mark eligible -----------------------------------
+        if (q.fibTokens.isEmpty)
+          Text(l10n.messageFibTokenizeFirst, style: muted)
+        else ...[
+          Text(l10n.messageFibMarkEligible, style: muted),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: q.fibTokens.asMap().entries.map((e) {
+              return FilterChip(
+                label: Text(e.value.word),
+                selected: e.value.eligible,
+                onSelected: (_) => _toggleFibEligible(qIdx, e.key),
+                visualDensity: VisualDensity.compact,
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 16),
+
+          // -- Number of blanks ---------------------------------------------
+          Row(
+            children: [
+              Text(l10n.labelFibBlankCount,
+                  style: Theme.of(context).textTheme.bodySmall),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.remove_circle_outline),
+                iconSize: 22,
+                tooltip: l10n.tooltipDecrease,
+                onPressed: q.fibBlankCount > 1
+                    ? () => _setFibBlankCount(qIdx, q.fibBlankCount - 1)
+                    : null,
+              ),
+              Text('${q.fibBlankCount}',
+                  style: Theme.of(context).textTheme.titleMedium),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline),
+                iconSize: 22,
+                tooltip: l10n.tooltipIncrease,
+                onPressed: q.fibBlankCount < eligibleCount
+                    ? () => _setFibBlankCount(qIdx, q.fibBlankCount + 1)
+                    : null,
+              ),
+            ],
+          ),
+          Text(l10n.messageFibBlankCountHelp(eligibleCount), style: muted),
+          const SizedBox(height: 16),
+
+          // -- Distractor words (optional) ----------------------------------
+          Text(l10n.labelFibDistractorsOptional,
+              style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 2),
+          Text(l10n.messageFibDistractorsHelp, style: muted),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: q.fibExtraWordInputController,
+                  focusNode: q.fibExtraWordFocus,
+                  decoration: InputDecoration(
+                    hintText: l10n.hintFibDistractorWord,
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (v) => _addFibExtraWord(qIdx, v),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: () => _addFibExtraWord(
+                    qIdx, q.fibExtraWordInputController.text),
+                child: Text(l10n.actionAdd),
+              ),
+            ],
+          ),
+          if (q.fibExtraWords.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: q.fibExtraWords
+                  .asMap()
+                  .entries
+                  .map((e) => Chip(
+                        label: Text(e.value),
+                        onDeleted: () => _removeFibExtraWord(qIdx, e.key),
+                        visualDensity: VisualDensity.compact,
+                      ))
+                  .toList(),
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+
   Widget _buildQuestionCard(int index) {
     final l10n = context.l10n;
     final q = _questions[index];
@@ -825,6 +1072,10 @@ class _WorkbookCardFormScreenState
                   value: AppConstants.questionTypeWordOrder,
                   child: Text(l10n.labelQuestionTypeWordOrder),
                 ),
+                DropdownMenuItem(
+                  value: AppConstants.questionTypeFillInBlanks,
+                  child: Text(l10n.labelQuestionTypeFillInBlanks),
+                ),
               ],
               onChanged: (v) {
                 if (v != null) setState(() => q.type = v);
@@ -839,6 +1090,8 @@ class _WorkbookCardFormScreenState
               _buildMultipleChoiceContent(q, index),
             if (q.type == AppConstants.questionTypeWordOrder)
               _buildWordOrderContent(q, index),
+            if (q.type == AppConstants.questionTypeFillInBlanks)
+              _buildFillInBlanksContent(q, index),
           ],
         ),
       ),

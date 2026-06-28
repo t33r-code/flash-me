@@ -3,7 +3,7 @@
 Agora has two card types:
 
 - **Flash Cards** — a primary word, its translation, and optional extra fields. The classic flashcard format.
-- **Workbook Cards** — a prompt followed by one or more structured questions (text input, multiple choice, or word order). Good for grammar exercises, reading comprehension, and drills.
+- **Workbook Cards** — a prompt followed by one or more structured questions (text input, multiple choice, word order, or fill in the blanks). Good for grammar exercises, reading comprehension, and drills.
 
 Both types can be added to sets and studied in the same session.
 
@@ -181,3 +181,15 @@ The learner reconstructs a sentence by tapping words into the correct order.
 1. In the **Word bank** section, add each word or phrase as a separate tile (e.g. *el*, *perro*, *corre*).
 2. In the **Correct order** section, tap the tiles in the right sequence to set the expected answer.
 - **Question label** *(optional)* — shown above the word bank (e.g. *Put the sentence in order*).
+
+#### Fill in the Blanks { #question-fill-in-blanks }
+
+The learner completes a sentence with one or more missing words, chosen from a pool of word pills.
+
+1. Type the full **Sentence** (e.g. *The cat sat on the mat*) and tap **Tokenize** to split it into words.
+2. Tap the words that may be blanked out — these are highlighted as **eligible**.
+3. Set the **Number of blanks** — each time the question is shown, that many eligible words are hidden at random.
+4. Optionally add **distractor words** — extra pills added to the pool to make it harder.
+- **Question label** *(optional)* — shown above the sentence.
+
+When studying, the learner taps a blank to select it, then taps a word pill to fill it in. Each card shuffles which eligible words are hidden, so the same question stays fresh on repeat.

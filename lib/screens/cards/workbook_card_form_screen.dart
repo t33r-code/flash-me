@@ -61,6 +61,10 @@ class _QuestionState {
   bool gridHasRowHeaders = false;
   bool gridHasColHeaders = false;
   int gridEmptyCount = 1;
+  final List<String> gridExtraWords = []; // author-added distractor words
+  final TextEditingController gridExtraWordInputController =
+      TextEditingController();
+  final FocusNode gridExtraWordFocus = FocusNode();
 
   _QuestionState({
     required this.questionId,
@@ -210,6 +214,7 @@ class _QuestionState {
             q.columnHeaders.map((h) => TextEditingController(text: h)));
         state.gridCornerCtl.text = q.cornerLabel;
         state.gridEmptyCount = q.emptyCount;
+        state.gridExtraWords.addAll(q.extraWords);
         return state;
     }
   }
@@ -283,6 +288,7 @@ class _QuestionState {
             : '',
         cells: cells.isEmpty ? null : cells,
         emptyCount: gridEmptyCount,
+        extraWords: List.from(gridExtraWords),
         completionMode: CompletionMode.pill,
       );
     }
@@ -314,6 +320,8 @@ class _QuestionState {
       c.dispose();
     }
     gridCornerCtl.dispose();
+    gridExtraWordInputController.dispose();
+    gridExtraWordFocus.dispose();
   }
 }
 
@@ -497,6 +505,17 @@ class _WorkbookCardFormScreenState
 
   void _removeFibExtraWord(int qIdx, int idx) =>
       setState(() => _questions[qIdx].fibExtraWords.removeAt(idx));
+
+  void _addGridExtraWord(int qIdx, String word) {
+    final w = word.trim();
+    if (w.isEmpty) return;
+    setState(() => _questions[qIdx].gridExtraWords.add(w));
+    _questions[qIdx].gridExtraWordInputController.clear();
+    _questions[qIdx].gridExtraWordFocus.requestFocus();
+  }
+
+  void _removeGridExtraWord(int qIdx, int idx) =>
+      setState(() => _questions[qIdx].gridExtraWords.removeAt(idx));
 
   // --- grid (#167) helpers --------------------------------------------------
 
@@ -1347,6 +1366,53 @@ class _WorkbookCardFormScreenState
           ],
         ),
         Text(l10n.messageGridEmptyCountHelp(total), style: muted),
+        const SizedBox(height: 16),
+
+        // -- Distractor words (optional) ------------------------------------
+        Text(l10n.labelFibDistractorsOptional,
+            style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 2),
+        Text(l10n.messageFibDistractorsHelp, style: muted),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: q.gridExtraWordInputController,
+                focusNode: q.gridExtraWordFocus,
+                decoration: InputDecoration(
+                  hintText: l10n.hintFibDistractorWord,
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+                textInputAction: TextInputAction.done,
+                onSubmitted: (v) => _addGridExtraWord(qIdx, v),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: () =>
+                  _addGridExtraWord(qIdx, q.gridExtraWordInputController.text),
+              child: Text(l10n.actionAdd),
+            ),
+          ],
+        ),
+        if (q.gridExtraWords.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: q.gridExtraWords
+                .asMap()
+                .entries
+                .map((e) => Chip(
+                      label: Text(e.value),
+                      onDeleted: () => _removeGridExtraWord(qIdx, e.key),
+                      visualDensity: VisualDensity.compact,
+                    ))
+                .toList(),
+          ),
+        ],
       ],
     );
   }

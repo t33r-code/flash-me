@@ -549,6 +549,7 @@ class GridQuestion extends CardQuestion {
                                     // shown in the top-left corner (e.g. "Pronoun")
   final List<List<String>>? cells;  // complete grid, row-major; null in templates
   final int emptyCount;             // cells to hide per display
+  final List<String> extraWords;    // author-added distractor words for the pill pool
   final CompletionMode completionMode;
 
   const GridQuestion({
@@ -559,6 +560,7 @@ class GridQuestion extends CardQuestion {
     this.cornerLabel = '',
     this.cells,
     this.emptyCount = 1,
+    this.extraWords = const [],
     this.completionMode = CompletionMode.pill,
   });
 
@@ -596,6 +598,9 @@ class GridQuestion extends CardQuestion {
       cornerLabel: content['cornerLabel'] as String? ?? '',
       cells: cells,
       emptyCount: content['emptyCount'] as int? ?? 1,
+      extraWords: content['extraWords'] != null
+          ? List<String>.from(content['extraWords'] as List)
+          : const [],
       completionMode:
           CompletionMode.fromString(content['completionMode'] as String?),
     );
@@ -615,6 +620,7 @@ class GridQuestion extends CardQuestion {
           'cells': cells?.expand((row) => row).toList(),
           'columnCount': columnCount,
           'emptyCount': emptyCount,
+          'extraWords': extraWords,
           'completionMode': completionMode.asJson,
         },
       };
@@ -656,6 +662,7 @@ class GridQuestion extends CardQuestion {
     String? cornerLabel,
     List<List<String>>? cells,
     int? emptyCount,
+    List<String>? extraWords,
     CompletionMode? completionMode,
   }) =>
       GridQuestion(
@@ -666,6 +673,7 @@ class GridQuestion extends CardQuestion {
         cornerLabel: cornerLabel ?? this.cornerLabel,
         cells: cells ?? this.cells,
         emptyCount: emptyCount ?? this.emptyCount,
+        extraWords: extraWords ?? this.extraWords,
         completionMode: completionMode ?? this.completionMode,
       );
 }

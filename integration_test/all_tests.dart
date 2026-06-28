@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
 import 'repositories/card_repository_test.dart' as card_tests;
+import 'repositories/workbook_card_repository_test.dart' as workbook_card_tests;
 import 'repositories/card_set_repository_test.dart' as set_tests;
 import 'repositories/firestore_rules_test.dart' as rules_tests;
 import 'repositories/study_session_repository_test.dart' as session_tests;
@@ -30,6 +31,7 @@ void main() {
   // Wrapping each file's main() in a group scopes its setUpAll/tearDownAll
   // to that group, so each file gets its own user and clean auth state.
   group('card_repository', card_tests.main);
+  group('workbook_card_repository', workbook_card_tests.main);
   group('card_set_repository', set_tests.main);
   group('study_session_repository', session_tests.main);
   group('template_repository', template_tests.main);

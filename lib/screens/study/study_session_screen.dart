@@ -2283,15 +2283,24 @@ class _GridCardState extends State<_GridCard> {
     );
   }
 
-  Widget _headerCell(String text, ColorScheme scheme) => Container(
-        color: scheme.surfaceContainerHighest,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Text(text,
-            textAlign: TextAlign.center,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(fontWeight: FontWeight.bold)),
+  // Header cells fill the row height (TableCellVerticalAlignment.fill) so the
+  // grey background covers the whole cell — otherwise, when a sibling data cell
+  // grows tall (a wrong entry stacked above its correct value), the card's
+  // result tint would bleed through the gap. Data cells stay middle-aligned,
+  // which gives the row its intrinsic height.
+  Widget _headerCell(String text, ColorScheme scheme) => TableCell(
+        verticalAlignment: TableCellVerticalAlignment.fill,
+        child: Container(
+          color: scheme.surfaceContainerHighest,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Text(text,
+              textAlign: TextAlign.center,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.bold)),
+        ),
       );
 
   // A grid data cell: a fixed value, or a tappable slot when hidden.

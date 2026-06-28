@@ -37,6 +37,8 @@ class _QuestionState {
   final List<String> correctOrder;
   final TextEditingController wordBankInputController;
   final TextEditingController correctOrderInputController;
+  // Keeps the word-bank field focused after each add, like the distractor field.
+  final FocusNode wordBankFocus = FocusNode();
   // fill_in_blanks (#170) — field-initialised so the existing constructor call
   // sites don't all need new params; only the fill-in-blanks paths touch these.
   final TextEditingController fibSentenceController = TextEditingController();
@@ -232,6 +234,7 @@ class _QuestionState {
     explanationController.dispose();
     wordBankInputController.dispose();
     correctOrderInputController.dispose();
+    wordBankFocus.dispose();
     fibSentenceController.dispose();
     fibExtraWordInputController.dispose();
     fibExtraWordFocus.dispose();
@@ -340,6 +343,8 @@ class _WorkbookCardFormScreenState
     if (w.isEmpty) return;
     setState(() => _questions[qIdx].wordBank.add(w));
     _questions[qIdx].wordBankInputController.clear();
+    // Return focus so the next tile can be typed immediately.
+    _questions[qIdx].wordBankFocus.requestFocus();
   }
 
   void _removeWordBankTile(int qIdx, int tileIdx) {
@@ -743,6 +748,7 @@ class _WorkbookCardFormScreenState
             Expanded(
               child: TextField(
                 controller: q.wordBankInputController,
+                focusNode: q.wordBankFocus,
                 decoration: InputDecoration(
                   hintText: l10n.hintAddWordTile,
                   border: const OutlineInputBorder(),

@@ -2206,12 +2206,17 @@ class _GridCardState extends State<_GridCard> {
               const SizedBox(height: 12),
             ],
 
-            // The grid.
-            Table(
-              border: TableBorder.all(color: scheme.outlineVariant),
-              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-              defaultColumnWidth: const IntrinsicColumnWidth(),
-              children: tableRows,
+            // The grid — centred; IntrinsicWidth makes the Table shrink-wrap to
+            // its content so Center can position it rather than filling width.
+            Center(
+              child: IntrinsicWidth(
+                child: Table(
+                  border: TableBorder.all(color: scheme.outlineVariant),
+                  defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                  defaultColumnWidth: const IntrinsicColumnWidth(),
+                  children: tableRows,
+                ),
+              ),
             ),
             const SizedBox(height: 16),
 

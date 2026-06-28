@@ -526,6 +526,9 @@ class ImportService {
         WordOrderQuestion q =>
             q.correctOrder?.join(' → ') ?? '(no order)',
         FillInTheBlanksQuestion q => q.sentence ?? '(no sentence)',
+        GridQuestion q => q.cells == null
+            ? '(no grid)'
+            : '${q.rowCount}×${q.columnCount} grid',
       };
     }
     if (question is Map<String, dynamic>) {
@@ -549,6 +552,12 @@ class ImportService {
       }
       if (type == AppConstants.questionTypeFillInBlanks) {
         return content['sentence'] as String? ?? '(no sentence)';
+      }
+      if (type == AppConstants.questionTypeGrid) {
+        final cells = (content['cells'] as List?)?.length ?? 0;
+        final cols = content['columnCount'] as int? ?? 0;
+        if (cells == 0 || cols == 0) return '(no grid)';
+        return '${cells ~/ cols}×$cols grid';
       }
     }
     return '';

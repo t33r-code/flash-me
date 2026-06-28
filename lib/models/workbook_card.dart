@@ -11,6 +11,7 @@ export 'package:flash_me/models/card_question.dart'
         WordOrderQuestion,
         FillInTheBlanksQuestion,
         FillBlankToken,
+        GridQuestion,
         CompletionMode,
         MultipleChoiceDisplayMode;
 

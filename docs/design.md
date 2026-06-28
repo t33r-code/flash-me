@@ -278,7 +278,7 @@ A Workbook Card has two visible sections during study:
 
 1. **Prompt** — a plain-text block describing the task (e.g. *"Read the sentence and answer the questions below"*). Shown alone on first view. The user taps **Next** to skip the card entirely, or **More** to expand the questions.
 
-2. **Questions** — all revealed at once when **More** is tapped. Users can work through them in any order and revisit earlier ones. Four question types are supported.
+2. **Questions** — all revealed at once when **More** is tapped. Users can work through them in any order and revisit earlier ones. Five question types are supported.
 
 ---
 
@@ -344,6 +344,29 @@ Content fields: `sentence: String`, `tokens: List<{word, eligible}>`, `blankCoun
 
 ---
 
+#### 5. Complete the Grid *(new — #167)*
+
+User completes a partially-filled table — a conjugation table, pronoun grid, declension table, etc. The author fills out the **complete grid** (all cells, plus optional row and column headers) and sets how many cells to leave empty; the system randomly hides that many cells each time the question is shown.
+
+**Completion modes** (same `pill` | `textInput` choice as fill-in-the-blanks, shared via `CompletionMode`):
+
+| Mode | Behaviour |
+|---|---|
+| `pill` | The hidden cell values become tappable pills; tap an empty cell to select it, then tap a pill to drop it in (tap-to-fill, same as fill-in-the-blanks) |
+| `textInput` | Empty cells are editable text fields; the user types the missing values |
+
+**Check** is disabled until all empty cells are filled. On checking, correct cells turn green; incorrect cells red with the correct value shown inline. Text-input answers use the system-wide normalised matching (#168).
+
+Content fields: `rowHeaders: List<String>`, `columnHeaders: List<String>` (both optional), `cells: List<List<String>>` (complete grid), `emptyCount: int`, `completionMode`.
+
+**Firestore note:** nested arrays are not allowed, so `cells` is stored as a **flat row-major list + `columnCount`** and reshaped on read; in memory it is a 2D `List<List<String>>`.
+
+**QTI mapping:** designed to map onto QTI 3 `matchInteraction` — hidden cells are the targets and the pill pool (hidden cell values) are the source choices (see [QTI 3 import](#qti-3-import-175)).
+
+**Build status:** data model + serialisation complete; pill-mode study renderer and authoring UI in progress (see roadmap). Reuses the shared `CompletionMode` + tap-to-fill machinery from #170. Text-input mode lands with the #168 pass.
+
+---
+
 ### Study Flow
 
 1. The study session screen detects card type from `cardTypeMap` (see Session Integration below).
@@ -361,7 +384,7 @@ workbookCards/{cardId}
   prompt: string                  ← task description shown before questions expand
   questions: array                ← ordered list of WorkbookQuestion maps
     questionId: string            ← client-generated unique ID (same pattern as fieldId)
-    type: string                  ← 'text_input' | 'multiple_choice' | 'word_order' | 'fill_in_blanks'
+    type: string                  ← 'text_input' | 'multiple_choice' | 'word_order' | 'fill_in_blanks' | 'grid'
     prompt: string?               ← optional per-question label / instruction
     content: map                  ← shape varies by type (see below)
   tags: string[]
@@ -397,6 +420,16 @@ fill_in_blanks:                   ← #170; maps onto QTI gapMatchInteraction
   blankCount: int                 ← eligible words randomly hidden per display (default 1)
   extraWords: string[]            ← author-added distractor words for the pill pool
   completionMode: string          ← 'pill' | 'textInput' (shared with complete-the-grid #167)
+
+grid:                             ← #167; maps onto QTI matchInteraction
+  rowHeaders: string[]            ← optional left-column labels (may be empty)
+  columnHeaders: string[]         ← optional top-row labels (may be empty)
+  cells: string[]                 ← complete grid, FLAT row-major (null in templates)
+                                    Firestore disallows nested arrays, so the 2D
+                                    grid is flattened and reshaped via columnCount
+  columnCount: int                ← number of columns, used to reshape cells
+  emptyCount: int                 ← cells randomly hidden per display (default 1)
+  completionMode: string          ← 'pill' | 'textInput' (shared with #170)
 ```
 
 ---

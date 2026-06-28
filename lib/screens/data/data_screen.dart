@@ -666,6 +666,7 @@ class _TemplateDiffSectionState extends State<_TemplateDiffSection> {
                   'multiple_choice' => l10n.labelQuestionTypeMultipleChoice,
                   'word_order' => l10n.labelQuestionTypeWordOrder,
                   'fill_in_blanks' => l10n.labelQuestionTypeFillInBlanks,
+                  'grid' => l10n.labelQuestionTypeGrid,
                   _ => l10n.labelQuestion,
                 };
                 final secondary = importId != null

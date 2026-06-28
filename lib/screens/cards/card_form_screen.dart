@@ -165,6 +165,7 @@ class _TemplatePickerSheetState extends ConsumerState<_TemplatePickerSheet>
         MultipleChoiceQuestion _ => l10n.labelQuestionTypeMultipleChoice,
         WordOrderQuestion _ => l10n.labelQuestionTypeWordOrder,
         FillInTheBlanksQuestion _ => l10n.labelQuestionTypeFillInBlanks,
+        GridQuestion _ => l10n.labelQuestionTypeGrid,
       };
 }
 
@@ -233,6 +234,8 @@ class _QuestionState {
         break; // word_order editing not yet implemented in this form (Step 3)
       case FillInTheBlanksQuestion _:
         break; // fill_in_blanks editing not yet implemented in this form (#170)
+      case GridQuestion _:
+        break; // grid editing not yet implemented in this form (#167)
     }
 
     while (optionControllers.length < 2) {
@@ -247,6 +250,8 @@ class _QuestionState {
         WordOrderQuestion _ => AppConstants.fieldTypeTextInput, // fallback until Step 3
         FillInTheBlanksQuestion _ =>
           AppConstants.fieldTypeTextInput, // fallback until editor lands (#170)
+        GridQuestion _ =>
+          AppConstants.fieldTypeTextInput, // fallback until editor lands (#167)
       },
       promptController: TextEditingController(text: q.prompt ?? ''),
       textAnswersController: TextEditingController(text: textAnswers),
@@ -474,6 +479,8 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
       WordOrderQuestion q =>
         q.copyWith(questionId: CardQuestion.generateId()),
       FillInTheBlanksQuestion q =>
+        q.copyWith(questionId: CardQuestion.generateId()),
+      GridQuestion q =>
         q.copyWith(questionId: CardQuestion.generateId()),
     };
     setState(() => _questions.add(_QuestionState.fromQuestion(freshQuestion)));

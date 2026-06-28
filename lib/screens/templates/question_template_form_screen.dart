@@ -53,6 +53,8 @@ class _QuestionState {
         break;
       case FillInTheBlanksQuestion _:
         break; // fill_in_blanks not yet supported in question template form (#170)
+      case GridQuestion _:
+        break; // grid not yet supported in question template form (#167)
     }
 
     while (options.length < 2) {
@@ -65,6 +67,7 @@ class _QuestionState {
         MultipleChoiceQuestion _ => AppConstants.fieldTypeMultipleChoice,
         WordOrderQuestion _ => AppConstants.questionTypeWordOrder,
         FillInTheBlanksQuestion _ => AppConstants.questionTypeFillInBlanks,
+        GridQuestion _ => AppConstants.questionTypeGrid,
       },
       promptController: TextEditingController(text: q.prompt ?? ''),
       textHintController: TextEditingController(text: hint),

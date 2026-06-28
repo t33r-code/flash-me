@@ -41,6 +41,8 @@ class AppConstants {
   static const String questionTypeWordOrder = 'word_order';
   // fill_in_blanks — sentence with one or more pill/text blanks (#170).
   static const String questionTypeFillInBlanks = 'fill_in_blanks';
+  // grid — complete-the-grid: a table with some cells hidden to fill in (#167).
+  static const String questionTypeGrid = 'grid';
 
   // Card type discriminator stored on setCards join documents.
   static const String cardTypeFlashcard = 'flashcard';

@@ -192,7 +192,10 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 - [ ] Help site: document the new question type
 
 **Complete the Grid (#167)**
-- [ ] Reuse #170 shared core (CompletionMode, pill/slot/grade); add 2D grid editor + renderer
+- [x] Data model: `GridQuestion` subclass; `grid` constant; 2D `cells` serialised as flat row-major + `columnCount` (Firestore disallows nested arrays); `fromJson`/`toJson`/`validate`/`copyWith`; wired into all `CardQuestion` switch dispatch points + l10n label; unit tests
+- [ ] Study renderer: pill tap-to-fill grid card — table layout with hidden cells as slots, pill pool, Check gating, per-cell green/red grading (reuses #170 shared core)
+- [ ] Authoring UI: grid editor (dimensions, headers, fill cells, empty-count) in the workbook card form
+- [ ] Help site: document the new question type
 
 **Normalised text matching (#168)**
 - [ ] Horizontal pass: apply diacritic-forgiving / typo-tolerant matching across all text-input question types (existing + new)

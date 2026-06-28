@@ -398,6 +398,7 @@
   "labelQuestionTypeMultipleChoice": "Multiple choice",
   "labelQuestionTypeWordOrder": "Word order",
   "labelQuestionTypeFillInBlanks": "Fill in the blanks",
+  "labelQuestionTypeGrid": "Complete the grid",
   "actionTokenize": "Tokenize",
   "labelFibSentenceRequired": "Sentence *",
   "messageFibSentenceHelp": "Type the full sentence, then tap Tokenize to split it into words.",

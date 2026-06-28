@@ -955,6 +955,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get labelQuestionTypeFillInBlanks => 'Fill in the blanks';
 
   @override
+  String get labelQuestionTypeGrid => 'Complete the grid';
+
+  @override
   String get actionTokenize => 'Tokenize';
 
   @override

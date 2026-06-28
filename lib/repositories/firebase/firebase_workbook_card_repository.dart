@@ -100,11 +100,21 @@ class FirebaseWorkbookCardRepository implements WorkbookCardRepository {
   @override
   Future<void> deleteCard(String cardId) async {
     try {
+      // Fetch the card to determine its owner — the setCards list rule requires
+      // a userId constraint on the query (queries without it are rejected even
+      // when they would return zero results). Mirrors the flash-card repo.
+      final doc = await _firestore
+          .collection(AppConstants.workbookCardsCollection)
+          .doc(cardId)
+          .get();
+      if (!doc.exists) return;
+      final createdBy = (doc.data()?['createdBy'] as String?) ?? '';
+
       // Find all set-membership links for this card.
       final links = await _firestore
           .collection(AppConstants.setCardsCollection)
           .where('cardId', isEqualTo: cardId)
-          .where('cardType', isEqualTo: AppConstants.cardTypeWorkbook)
+          .where('userId', isEqualTo: createdBy)
           .get();
 
       final batch = _firestore.batch();

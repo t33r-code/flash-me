@@ -573,13 +573,9 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
             question: q,
             onResult: (correct) => _recordQuestionResult(q, correct),
           ),
-        // Placeholder until the grid renderer lands (#167, subsection 2).
-        // Unreachable in practice — no authoring UI creates this type yet.
-        GridQuestion _ => const Card(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('This question type is not yet available.'),
-            ),
+        GridQuestion q => _GridCard(
+            question: q,
+            onResult: (correct) => _recordQuestionResult(q, correct),
           ),
       };
 }
@@ -2054,6 +2050,310 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
               color: fg,
               fontWeight: FontWeight.w600,
               decoration: strike ? TextDecoration.lineThrough : null)),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _GridCard — complete-the-grid question (#167), pill tap-to-fill.
+//
+// The table is rendered with optional row/column headers; `emptyCount` cells
+// are randomly hidden as tappable slots.  A pool below holds the hidden cell
+// values.  Tap a slot to select it, then tap a pool word to drop it in (tap a
+// filled slot to return its word).  Check grades each slot by exact match —
+// pool words are the exact cell values, so identity match is correct.  Cells
+// are addressed by a linear index (row * columnCount + col).  Text-input mode
+// is deferred to the #168 pass; authoring only offers pill mode for now.
+// ---------------------------------------------------------------------------
+class _GridCard extends StatefulWidget {
+  final GridQuestion question;
+  final void Function(bool correct)? onResult;
+  const _GridCard({required this.question, this.onResult});
+
+  @override
+  State<_GridCard> createState() => _GridCardState();
+}
+
+class _GridCardState extends State<_GridCard> {
+  late List<List<String>> _cells;
+  late int _cols;
+  late List<int> _hiddenOrder; // hidden linear indices, reading order
+  late Set<int> _hiddenSet;
+  late List<String> _pool;
+  final Map<int, int> _placement = {}; // hidden linear index -> pool index
+  int? _selectedCell;
+  bool? _result;
+
+  @override
+  void initState() {
+    super.initState();
+    _cells = widget.question.cells ?? const [];
+    _cols = widget.question.columnCount;
+    _setupRound();
+  }
+
+  // Randomly choose which cells to hide, then build the shuffled pool.
+  void _setupRound() {
+    final total = _cells.length * _cols;
+    final all = List<int>.generate(total, (i) => i)..shuffle();
+    final count = widget.question.emptyCount.clamp(0, total);
+    _hiddenOrder = all.take(count).toList()..sort();
+    _hiddenSet = _hiddenOrder.toSet();
+    _pool = _hiddenOrder.map((idx) => _cells[idx ~/ _cols][idx % _cols]).toList()
+      ..shuffle();
+    _placement.clear();
+    _selectedCell = _hiddenOrder.isNotEmpty ? _hiddenOrder.first : null;
+    _result = null;
+  }
+
+  Set<int> get _usedPoolIds => _placement.values.toSet();
+  bool get _allFilled => _placement.length == _hiddenOrder.length;
+
+  int? _firstEmptyCell() {
+    for (final c in _hiddenOrder) {
+      if (!_placement.containsKey(c)) return c;
+    }
+    return null;
+  }
+
+  void _onPoolTap(int poolId) {
+    if (_result != null || _usedPoolIds.contains(poolId)) return;
+    final sel = _selectedCell;
+    final target =
+        (sel != null && !_placement.containsKey(sel)) ? sel : _firstEmptyCell();
+    if (target == null) return;
+    setState(() {
+      _placement[target] = poolId;
+      _selectedCell = _firstEmptyCell();
+    });
+  }
+
+  void _onCellTap(int linearIndex) {
+    if (_result != null) return;
+    setState(() {
+      _placement.remove(linearIndex);
+      _selectedCell = linearIndex;
+    });
+  }
+
+  void _check() {
+    var allCorrect = true;
+    for (final idx in _hiddenOrder) {
+      final poolId = _placement[idx];
+      final placed = poolId != null ? _pool[poolId] : null;
+      if (placed != _cells[idx ~/ _cols][idx % _cols]) {
+        allCorrect = false;
+        break;
+      }
+    }
+    setState(() => _result = allCorrect);
+    allCorrect ? _hapticCorrect() : _hapticIncorrect();
+    widget.onResult?.call(allCorrect);
+  }
+
+  void _tryAgain() {
+    setState(() {
+      _placement.clear();
+      _selectedCell = _hiddenOrder.isNotEmpty ? _hiddenOrder.first : null;
+      _result = null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final appColors = context.appColors;
+    final answered = _result != null;
+    final isCorrect = _result == true;
+    final prompt = widget.question.prompt;
+    final q = widget.question;
+    final hasRowHeaders = q.rowHeaders.isNotEmpty;
+    final hasColHeaders = q.columnHeaders.isNotEmpty;
+
+    final cardColor = answered
+        ? (isCorrect
+            ? appColors.correctSurface
+            : scheme.errorContainer.withValues(alpha: 0.4))
+        : null;
+
+    // Build the table rows.
+    final tableRows = <TableRow>[];
+    if (hasColHeaders) {
+      tableRows.add(TableRow(children: [
+        if (hasRowHeaders) _headerCell('', scheme), // top-left corner
+        for (final h in q.columnHeaders) _headerCell(h, scheme),
+      ]));
+    }
+    for (var r = 0; r < _cells.length; r++) {
+      tableRows.add(TableRow(children: [
+        if (hasRowHeaders)
+          _headerCell(r < q.rowHeaders.length ? q.rowHeaders[r] : '', scheme),
+        for (var c = 0; c < _cols; c++)
+          _dataCell(r * _cols + c, scheme, appColors),
+      ]));
+    }
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      color: cardColor,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (prompt != null) ...[
+              _FieldLabel(name: prompt),
+              const SizedBox(height: 12),
+            ],
+
+            // The grid.
+            Table(
+              border: TableBorder.all(color: scheme.outlineVariant),
+              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+              defaultColumnWidth: const IntrinsicColumnWidth(),
+              children: tableRows,
+            ),
+            const SizedBox(height: 16),
+
+            // Word pool — available pills (hidden once answered).
+            if (!answered) ...[
+              Text(context.l10n.labelWordBank,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: scheme.onSurfaceVariant)),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  for (var p = 0; p < _pool.length; p++)
+                    if (!_usedPoolIds.contains(p))
+                      ActionChip(
+                        label: Text(_pool[p]),
+                        onPressed: () => _onPoolTap(p),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // Check / feedback row.
+            if (!answered)
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton(
+                  onPressed: _allFilled ? _check : null,
+                  child: Text(context.l10n.actionCheck),
+                ),
+              )
+            else if (isCorrect)
+              Row(children: [
+                Icon(Icons.check_circle_outline,
+                    color: appColors.onCorrectSurface, size: 20),
+                const SizedBox(width: 6),
+                Text(context.l10n.labelCorrect,
+                    style: TextStyle(
+                        color: appColors.onCorrectSurface,
+                        fontWeight: FontWeight.bold)),
+              ])
+            else
+              Row(children: [
+                Icon(Icons.cancel_outlined, color: scheme.error, size: 20),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(context.l10n.labelIncorrect,
+                      style: TextStyle(
+                          color: scheme.error, fontWeight: FontWeight.bold)),
+                ),
+                TextButton(
+                    onPressed: _tryAgain,
+                    child: Text(context.l10n.actionTryAgain)),
+              ]),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _headerCell(String text, ColorScheme scheme) => Container(
+        color: scheme.surfaceContainerHighest,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Text(text,
+            textAlign: TextAlign.center,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(fontWeight: FontWeight.bold)),
+      );
+
+  // A grid data cell: a fixed value, or a tappable slot when hidden.
+  Widget _dataCell(int linearIndex, ColorScheme scheme, AppColors appColors) {
+    final value = _cells[linearIndex ~/ _cols][linearIndex % _cols];
+
+    if (!_hiddenSet.contains(linearIndex)) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Text(value,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium),
+      );
+    }
+
+    final poolId = _placement[linearIndex];
+    final placed = poolId != null ? _pool[poolId] : null;
+    final answered = _result != null;
+
+    if (answered) {
+      final correct = placed == value;
+      return Container(
+        color: correct
+            ? appColors.correctSurface
+            : scheme.errorContainer.withValues(alpha: 0.6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(placed ?? '—',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: correct ? appColors.onCorrectSurface : scheme.error,
+                  fontWeight: FontWeight.w600,
+                  decoration: correct ? null : TextDecoration.lineThrough,
+                )),
+            // Show the correct value beneath a wrong entry.
+            if (!correct)
+              Text(value,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: appColors.onCorrectSurface,
+                      fontWeight: FontWeight.w600)),
+          ],
+        ),
+      );
+    }
+
+    final selected = _selectedCell == linearIndex;
+    return GestureDetector(
+      onTap: () => _onCellTap(linearIndex),
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 56, minHeight: 36),
+        alignment: Alignment.center,
+        color: selected
+            ? scheme.primaryContainer
+            : (placed != null ? scheme.secondaryContainer : null),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Text(
+          placed ?? '____',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: placed != null
+                    ? scheme.onSecondaryContainer
+                    : scheme.onSurfaceVariant,
+              ),
+        ),
+      ),
     );
   }
 }

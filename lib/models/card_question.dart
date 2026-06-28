@@ -41,6 +41,7 @@ enum CompletionMode {
 //   multiple_choice → MultipleChoiceQuestion
 //   word_order      → WordOrderQuestion
 //   fill_in_blanks  → FillInTheBlanksQuestion
+//   grid            → GridQuestion
 // ---------------------------------------------------------------------------
 sealed class CardQuestion {
   final String questionId; // unique ID within the card; used as result tracking key
@@ -72,6 +73,9 @@ sealed class CardQuestion {
             questionId: questionId, prompt: prompt, content: content);
       case AppConstants.questionTypeFillInBlanks:
         return FillInTheBlanksQuestion.fromJson(
+            questionId: questionId, prompt: prompt, content: content);
+      case AppConstants.questionTypeGrid:
+        return GridQuestion.fromJson(
             questionId: questionId, prompt: prompt, content: content);
       default:
         // Unknown types (e.g. legacy 'reveal') are silently skipped by the
@@ -523,6 +527,137 @@ class FillInTheBlanksQuestion extends CardQuestion {
         tokens: tokens ?? this.tokens,
         blankCount: blankCount ?? this.blankCount,
         extraWords: extraWords ?? this.extraWords,
+        completionMode: completionMode ?? this.completionMode,
+      );
+}
+
+// --- Complete-the-grid question --------------------------------------------
+// A table of cells (e.g. a conjugation or declension grid) with optional row
+// and column headers. At display time `emptyCount` cells are randomly hidden
+// and the user fills them back in (pill tap-to-fill or text).
+//
+// Firestore note: nested arrays are not allowed, so `cells` is serialised as a
+// flat row-major list plus `columnCount`, and reshaped on read. In memory it
+// stays a 2D List<List<String>> for ergonomic (row, col) access.
+//
+// QTI note: maps onto matchInteraction — hidden cells are the targets, the
+// pill pool (hidden cell values) are the source choices.
+class GridQuestion extends CardQuestion {
+  final List<String> rowHeaders;    // optional left-column labels (ticket: "rows")
+  final List<String> columnHeaders; // optional top-row labels (ticket: "columns")
+  final List<List<String>>? cells;  // complete grid, row-major; null in templates
+  final int emptyCount;             // cells to hide per display
+  final CompletionMode completionMode;
+
+  const GridQuestion({
+    required super.questionId,
+    super.prompt,
+    this.rowHeaders = const [],
+    this.columnHeaders = const [],
+    this.cells,
+    this.emptyCount = 1,
+    this.completionMode = CompletionMode.pill,
+  });
+
+  // Number of columns in the grid (0 when there are no cells).
+  int get columnCount =>
+      (cells != null && cells!.isNotEmpty) ? cells!.first.length : 0;
+  int get rowCount => cells?.length ?? 0;
+
+  factory GridQuestion.fromJson({
+    required String questionId,
+    String? prompt,
+    required Map<String, dynamic> content,
+  }) {
+    // Reshape the flat row-major list back into a 2D grid using columnCount.
+    List<List<String>>? cells;
+    if (content['cells'] != null) {
+      final flat = List<String>.from(content['cells'] as List);
+      final cols = content['columnCount'] as int? ?? flat.length;
+      cells = <List<String>>[];
+      if (cols > 0) {
+        for (var i = 0; i < flat.length; i += cols) {
+          cells.add(flat.sublist(i, (i + cols).clamp(0, flat.length)));
+        }
+      }
+    }
+    return GridQuestion(
+      questionId: questionId,
+      prompt: prompt,
+      rowHeaders: content['rowHeaders'] != null
+          ? List<String>.from(content['rowHeaders'] as List)
+          : const [],
+      columnHeaders: content['columnHeaders'] != null
+          ? List<String>.from(content['columnHeaders'] as List)
+          : const [],
+      cells: cells,
+      emptyCount: content['emptyCount'] as int? ?? 1,
+      completionMode:
+          CompletionMode.fromString(content['completionMode'] as String?),
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'questionId': questionId,
+        'type': AppConstants.questionTypeGrid,
+        'prompt': prompt,
+        'content': {
+          'rowHeaders': rowHeaders,
+          'columnHeaders': columnHeaders,
+          // Flatten row-major; Firestore disallows arrays of arrays.
+          'cells': cells?.expand((row) => row).toList(),
+          'columnCount': columnCount,
+          'emptyCount': emptyCount,
+          'completionMode': completionMode.asJson,
+        },
+      };
+
+  @override
+  List<String> validate({bool isTemplate = false}) {
+    if (isTemplate) return [];
+    final errors = <String>[];
+    if (cells == null || cells!.isEmpty || cells!.first.isEmpty) {
+      errors.add('grid question must have at least one cell');
+      return errors;
+    }
+    // All rows must be the same width (rectangular grid).
+    final width = cells!.first.length;
+    if (cells!.any((row) => row.length != width)) {
+      errors.add('grid rows must all have the same number of cells');
+    }
+    final totalCells = rowCount * width;
+    if (emptyCount < 1) {
+      errors.add('empty count must be at least 1');
+    }
+    if (emptyCount > totalCells) {
+      errors.add('empty count cannot exceed the number of cells');
+    }
+    if (rowHeaders.isNotEmpty && rowHeaders.length != rowCount) {
+      errors.add('row header count must match the number of grid rows');
+    }
+    if (columnHeaders.isNotEmpty && columnHeaders.length != width) {
+      errors.add('column header count must match the number of grid columns');
+    }
+    return errors;
+  }
+
+  GridQuestion copyWith({
+    String? questionId,
+    String? prompt,
+    List<String>? rowHeaders,
+    List<String>? columnHeaders,
+    List<List<String>>? cells,
+    int? emptyCount,
+    CompletionMode? completionMode,
+  }) =>
+      GridQuestion(
+        questionId: questionId ?? this.questionId,
+        prompt: prompt ?? this.prompt,
+        rowHeaders: rowHeaders ?? this.rowHeaders,
+        columnHeaders: columnHeaders ?? this.columnHeaders,
+        cells: cells ?? this.cells,
+        emptyCount: emptyCount ?? this.emptyCount,
         completionMode: completionMode ?? this.completionMode,
       );
 }

@@ -169,6 +169,25 @@ class _QuestionState {
         state.fibBlankCount = q.blankCount;
         state.fibExtraWords.addAll(q.extraWords);
         return state;
+      case GridQuestion q:
+        // grid editing not yet implemented (#167, subsection 3); fall back to a
+        // text-input-typed state so existing data round-trips without crashing.
+        return _QuestionState(
+          questionId: q.questionId,
+          type: AppConstants.fieldTypeTextInput,
+          promptController: TextEditingController(text: q.prompt ?? ''),
+          answersController: TextEditingController(),
+          hintController: TextEditingController(),
+          optionControllers: [
+            TextEditingController(),
+            TextEditingController(),
+          ],
+          explanationController: TextEditingController(),
+          wordBank: [],
+          correctOrder: [],
+          wordBankInputController: TextEditingController(),
+          correctOrderInputController: TextEditingController(),
+        );
     }
   }
 

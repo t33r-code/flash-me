@@ -62,6 +62,8 @@ class _TplQuestionState {
         break; // word_order not yet supported in template form
       case FillInTheBlanksQuestion _:
         break; // fill_in_blanks not yet supported in template form (#170)
+      case GridQuestion _:
+        break; // grid not yet supported in template form (#167)
     }
 
     while (optionControllers.length < 2) {
@@ -75,6 +77,7 @@ class _TplQuestionState {
         MultipleChoiceQuestion _ => AppConstants.fieldTypeMultipleChoice,
         WordOrderQuestion _ => AppConstants.fieldTypeTextInput, // fallback
         FillInTheBlanksQuestion _ => AppConstants.fieldTypeTextInput, // fallback (#170)
+        GridQuestion _ => AppConstants.fieldTypeTextInput, // fallback (#167)
       },
       promptController: TextEditingController(text: q.prompt ?? ''),
       textHintController: TextEditingController(text: textHint),
@@ -162,6 +165,7 @@ class _QuestionTemplatePickerSheet extends StatelessWidget {
                   MultipleChoiceQuestion _ => l10n.labelQuestionTypeMultipleChoice,
                   WordOrderQuestion _ => l10n.labelQuestionTypeWordOrder,
                   FillInTheBlanksQuestion _ => l10n.labelQuestionTypeFillInBlanks,
+                  GridQuestion _ => l10n.labelQuestionTypeGrid,
                 };
                 return ListTile(
                   leading: const Icon(Icons.quiz_outlined),
@@ -263,6 +267,8 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
       WordOrderQuestion q =>
         q.copyWith(questionId: CardQuestion.generateId()),
       FillInTheBlanksQuestion q =>
+        q.copyWith(questionId: CardQuestion.generateId()),
+      GridQuestion q =>
         q.copyWith(questionId: CardQuestion.generateId()),
     };
     setState(() => _questions.add(_TplQuestionState.fromQuestion(freshQuestion)));

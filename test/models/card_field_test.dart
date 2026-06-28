@@ -251,6 +251,113 @@ void main() {
     });
   });
 
+  // ── GridQuestion ──────────────────────────────────────────────────────────
+
+  group('GridQuestion', () {
+    test('round-trips a 2D grid via flat row-major + columnCount', () {
+      final q = GridQuestion(
+        questionId: 'q5',
+        prompt: 'Conjugate',
+        rowHeaders: const ['yo', 'tú'],
+        columnHeaders: const ['present'],
+        cells: const [
+          ['hablo'],
+          ['hablas'],
+        ],
+        emptyCount: 1,
+        completionMode: CompletionMode.pill,
+      );
+      final restored = CardQuestion.fromJson(q.toJson()) as GridQuestion;
+      expect(restored.questionId, equals('q5'));
+      expect(restored.rowHeaders, equals(['yo', 'tú']));
+      expect(restored.columnHeaders, equals(['present']));
+      expect(restored.cells, equals([['hablo'], ['hablas']]));
+      expect(restored.rowCount, equals(2));
+      expect(restored.columnCount, equals(1));
+      expect(restored.emptyCount, equals(1));
+    });
+
+    test('serialised cells are flat (no nested arrays for Firestore)', () {
+      final q = GridQuestion(
+        questionId: 'q5',
+        cells: const [
+          ['a', 'b'],
+          ['c', 'd'],
+        ],
+      );
+      final content = q.toJson()['content'] as Map<String, dynamic>;
+      expect(content['cells'], equals(['a', 'b', 'c', 'd']));
+      expect(content['columnCount'], equals(2));
+    });
+
+    test('reshapes a wider grid correctly', () {
+      final q = GridQuestion(
+        questionId: 'q5',
+        cells: const [
+          ['a', 'b', 'c'],
+          ['d', 'e', 'f'],
+        ],
+      );
+      final restored = CardQuestion.fromJson(q.toJson()) as GridQuestion;
+      expect(restored.cells, equals([['a', 'b', 'c'], ['d', 'e', 'f']]));
+    });
+
+    test('null cells round-trip (template mode)', () {
+      final q = GridQuestion(questionId: 'q5');
+      final restored = CardQuestion.fromJson(q.toJson()) as GridQuestion;
+      expect(restored.cells, isNull);
+      expect(restored.rowCount, equals(0));
+      expect(restored.columnCount, equals(0));
+    });
+
+    test('validate flags non-rectangular grid', () {
+      final q = GridQuestion(
+        questionId: 'q5',
+        cells: const [
+          ['a', 'b'],
+          ['c'],
+        ],
+      );
+      expect(q.validate(),
+          contains('grid rows must all have the same number of cells'));
+    });
+
+    test('validate flags emptyCount exceeding total cells', () {
+      final q = GridQuestion(
+        questionId: 'q5',
+        cells: const [['a', 'b']],
+        emptyCount: 5,
+      );
+      expect(q.validate(),
+          contains('empty count cannot exceed the number of cells'));
+    });
+
+    test('validate flags header count mismatch', () {
+      final q = GridQuestion(
+        questionId: 'q5',
+        rowHeaders: const ['only-one'],
+        cells: const [
+          ['a'],
+          ['b'],
+        ],
+      );
+      expect(q.validate(),
+          contains('row header count must match the number of grid rows'));
+    });
+
+    test('validate passes in template mode regardless of content', () {
+      final q = GridQuestion(questionId: 'q5');
+      expect(q.validate(isTemplate: true), isEmpty);
+    });
+
+    test('dispatches grid to GridQuestion', () {
+      expect(
+        CardQuestion.fromJson(GridQuestion(questionId: 'q5').toJson()),
+        isA<GridQuestion>(),
+      );
+    });
+  });
+
   // ── CompletionMode ────────────────────────────────────────────────────────
 
   group('CompletionMode', () {

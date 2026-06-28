@@ -1792,6 +1792,12 @@ abstract class AppLocalizations {
   /// **'Fill in the blanks'**
   String get labelQuestionTypeFillInBlanks;
 
+  /// No description provided for @labelQuestionTypeGrid.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete the grid'**
+  String get labelQuestionTypeGrid;
+
   /// No description provided for @actionTokenize.
   ///
   /// In en, this message translates to:

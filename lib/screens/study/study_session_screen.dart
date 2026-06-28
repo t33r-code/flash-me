@@ -511,6 +511,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
         MultipleChoiceQuestion _ => AppConstants.fieldTypeMultipleChoice,
         WordOrderQuestion _ => AppConstants.questionTypeWordOrder,
         FillInTheBlanksQuestion _ => AppConstants.questionTypeFillInBlanks,
+        GridQuestion _ => AppConstants.questionTypeGrid,
       },
       outcome: correct ? AppConstants.resultSuccess : AppConstants.resultFail,
     ).ignore();
@@ -571,6 +572,14 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
         FillInTheBlanksQuestion q => _FillInTheBlanksCard(
             question: q,
             onResult: (correct) => _recordQuestionResult(q, correct),
+          ),
+        // Placeholder until the grid renderer lands (#167, subsection 2).
+        // Unreachable in practice — no authoring UI creates this type yet.
+        GridQuestion _ => const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('This question type is not yet available.'),
+            ),
           ),
       };
 }

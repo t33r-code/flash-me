@@ -486,8 +486,9 @@ class _WorkbookCardFormScreenState
       // copyWith preserves leading/trailing punctuation affixes.
       q.fibTokens[tokenIdx] = t.copyWith(eligible: !t.eligible);
       final eligible = _fibEligibleCount(q);
-      if (q.fibBlankCount > eligible) q.fibBlankCount = eligible.clamp(1, eligible);
-      if (q.fibBlankCount < 1) q.fibBlankCount = 1;
+      // Clamp blank count to [1, eligible]; when eligible hits 0 keep count
+      // at 1 so the field stays valid and validation surfaces the real error.
+      q.fibBlankCount = q.fibBlankCount.clamp(1, eligible < 1 ? 1 : eligible);
     });
   }
 
@@ -1165,50 +1166,52 @@ class _WorkbookCardFormScreenState
           Text(l10n.messageFibBlankCountHelp(eligibleCount), style: muted),
           const SizedBox(height: 16),
 
-          // -- Distractor words (optional) ----------------------------------
-          Text(l10n.labelFibDistractorsOptional,
-              style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 2),
-          Text(l10n.messageFibDistractorsHelp, style: muted),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: q.fibExtraWordInputController,
-                  focusNode: q.fibExtraWordFocus,
-                  decoration: InputDecoration(
-                    hintText: l10n.hintFibDistractorWord,
-                    border: const OutlineInputBorder(),
-                    isDense: true,
+          // -- Distractor words (optional, pill mode only) ------------------
+          if (q.completionMode == CompletionMode.pill) ...[
+            Text(l10n.labelFibDistractorsOptional,
+                style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 2),
+            Text(l10n.messageFibDistractorsHelp, style: muted),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: q.fibExtraWordInputController,
+                    focusNode: q.fibExtraWordFocus,
+                    decoration: InputDecoration(
+                      hintText: l10n.hintFibDistractorWord,
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (v) => _addFibExtraWord(qIdx, v),
                   ),
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (v) => _addFibExtraWord(qIdx, v),
                 ),
-              ),
-              const SizedBox(width: 8),
-              FilledButton(
-                onPressed: () => _addFibExtraWord(
-                    qIdx, q.fibExtraWordInputController.text),
-                child: Text(l10n.actionAdd),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: () => _addFibExtraWord(
+                      qIdx, q.fibExtraWordInputController.text),
+                  child: Text(l10n.actionAdd),
+                ),
+              ],
+            ),
+            if (q.fibExtraWords.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: q.fibExtraWords
+                    .asMap()
+                    .entries
+                    .map((e) => Chip(
+                          label: Text(e.value),
+                          onDeleted: () => _removeFibExtraWord(qIdx, e.key),
+                          visualDensity: VisualDensity.compact,
+                        ))
+                    .toList(),
               ),
             ],
-          ),
-          if (q.fibExtraWords.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: q.fibExtraWords
-                  .asMap()
-                  .entries
-                  .map((e) => Chip(
-                        label: Text(e.value),
-                        onDeleted: () => _removeFibExtraWord(qIdx, e.key),
-                        visualDensity: VisualDensity.compact,
-                      ))
-                  .toList(),
-            ),
           ],
         ],
       ],
@@ -1378,50 +1381,52 @@ class _WorkbookCardFormScreenState
         Text(l10n.messageGridEmptyCountHelp(total), style: muted),
         const SizedBox(height: 16),
 
-        // -- Distractor words (optional) ------------------------------------
-        Text(l10n.labelFibDistractorsOptional,
-            style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 2),
-        Text(l10n.messageFibDistractorsHelp, style: muted),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: q.gridExtraWordInputController,
-                focusNode: q.gridExtraWordFocus,
-                decoration: InputDecoration(
-                  hintText: l10n.hintFibDistractorWord,
-                  border: const OutlineInputBorder(),
-                  isDense: true,
+        // -- Distractor words (optional, pill mode only) --------------------
+        if (q.completionMode == CompletionMode.pill) ...[
+          Text(l10n.labelFibDistractorsOptional,
+              style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 2),
+          Text(l10n.messageFibDistractorsHelp, style: muted),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: q.gridExtraWordInputController,
+                  focusNode: q.gridExtraWordFocus,
+                  decoration: InputDecoration(
+                    hintText: l10n.hintFibDistractorWord,
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (v) => _addGridExtraWord(qIdx, v),
                 ),
-                textInputAction: TextInputAction.done,
-                onSubmitted: (v) => _addGridExtraWord(qIdx, v),
               ),
-            ),
-            const SizedBox(width: 8),
-            FilledButton(
-              onPressed: () =>
-                  _addGridExtraWord(qIdx, q.gridExtraWordInputController.text),
-              child: Text(l10n.actionAdd),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: () =>
+                    _addGridExtraWord(qIdx, q.gridExtraWordInputController.text),
+                child: Text(l10n.actionAdd),
+              ),
+            ],
+          ),
+          if (q.gridExtraWords.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: q.gridExtraWords
+                  .asMap()
+                  .entries
+                  .map((e) => Chip(
+                        label: Text(e.value),
+                        onDeleted: () => _removeGridExtraWord(qIdx, e.key),
+                        visualDensity: VisualDensity.compact,
+                      ))
+                  .toList(),
             ),
           ],
-        ),
-        if (q.gridExtraWords.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 4,
-            children: q.gridExtraWords
-                .asMap()
-                .entries
-                .map((e) => Chip(
-                      label: Text(e.value),
-                      onDeleted: () => _removeGridExtraWord(qIdx, e.key),
-                      visualDensity: VisualDensity.compact,
-                    ))
-                .toList(),
-          ),
         ],
       ],
     );

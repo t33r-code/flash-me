@@ -364,6 +364,24 @@ abstract class AppLocalizations {
   /// **'Incorrect'**
   String get labelIncorrect;
 
+  /// No description provided for @feedbackCorrect0.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct!'**
+  String get feedbackCorrect0;
+
+  /// No description provided for @feedbackClose0.
+  ///
+  /// In en, this message translates to:
+  /// **'Close!'**
+  String get feedbackClose0;
+
+  /// No description provided for @feedbackIncorrect0.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect'**
+  String get feedbackIncorrect0;
+
   /// No description provided for @actionEndSession.
   ///
   /// In en, this message translates to:

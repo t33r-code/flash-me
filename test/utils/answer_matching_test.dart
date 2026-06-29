@@ -2,9 +2,13 @@ import 'package:flash_me/utils/helpers.dart';
 import 'package:test/test.dart';
 
 void main() {
-  // Convenience wrapper — mirrors the AppHelpers.isAnswerCorrect signature.
+  // Bool wrapper — used for tests that only care about accepted / rejected.
   bool check(String input, List<String> accepted, {bool exact = false}) =>
       AppHelpers.isAnswerCorrect(input, accepted, exact: exact);
+
+  // Tri-state wrapper — used for tests that verify correct vs close.
+  AnswerResult grade(String input, List<String> accepted, {bool exact = false}) =>
+      AppHelpers.checkAnswer(input, accepted, exact: exact);
 
   group('isAnswerCorrect — basics', () {
     test('exact match always passes', () {
@@ -139,6 +143,35 @@ void main() {
     test('vowel-for-consonant substitution fails', () {
       // "pračuuu": the u replaces the consonant j → consonant identity lost.
       expect(check('pračuuu', ['pračuju']), isFalse);
+    });
+  });
+
+  group('checkAnswer — tri-state result', () {
+    test('exact typed input returns correct', () {
+      expect(grade('cafe', ['café']), AnswerResult.correct); // diacritic only
+      expect(grade('pračuju', ['pračuju']), AnswerResult.correct);
+    });
+
+    test('vowel-for-vowel swap returns close', () {
+      expect(grade('pračuje', ['pračuju']), AnswerResult.close);
+      expect(grade('habla', ['hablo']), AnswerResult.close);
+    });
+
+    test('consonant error returns incorrect', () {
+      expect(grade('pračubu', ['pračuju']), AnswerResult.incorrect);
+    });
+
+    test('wrong word returns incorrect', () {
+      expect(grade('perro', ['gato']), AnswerResult.incorrect);
+    });
+
+    test('empty input returns incorrect', () {
+      expect(grade('', ['casa']), AnswerResult.incorrect);
+    });
+
+    test('preferred correct over close when list has exact match', () {
+      // Input 'habla' fuzzy-matches 'hablo' (close) but exactly matches 'habla'.
+      expect(grade('habla', ['hablo', 'habla']), AnswerResult.correct);
     });
   });
 

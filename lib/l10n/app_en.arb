@@ -51,6 +51,10 @@
   "actionShowAnswer": "Show Answer",
   "labelCorrect": "Correct!",
   "labelIncorrect": "Incorrect",
+
+  "feedbackCorrect0": "Correct!",
+  "feedbackClose0": "Close!",
+  "feedbackIncorrect0": "Incorrect",
   "actionEndSession": "End Session",
 
   "messageErrorLoadingApp": "Error loading app. Please restart.",

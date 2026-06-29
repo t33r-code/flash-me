@@ -145,6 +145,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get labelIncorrect => 'Incorrect';
 
   @override
+  String get feedbackCorrect0 => 'Correct!';
+
+  @override
+  String get feedbackClose0 => 'Close!';
+
+  @override
+  String get feedbackIncorrect0 => 'Incorrect';
+
+  @override
   String get actionEndSession => 'End Session';
 
   @override

@@ -998,6 +998,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get labelCompletionMode => 'Input mode';
+
+  @override
+  String get labelCompletionModePill => 'Word pills';
+
+  @override
+  String get labelCompletionModeText => 'Type answer';
+
+  @override
   String get actionTokenize => 'Tokenize';
 
   @override
@@ -1513,6 +1522,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String messageAnswerReveal(String answer) {
     return 'Answer: $answer';
+  }
+
+  @override
+  String messageCorrectForm(String answer) {
+    return 'Correct form: $answer';
   }
 
   @override

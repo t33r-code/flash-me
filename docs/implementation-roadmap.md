@@ -200,7 +200,8 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 - [ ] Follow-up (Option B, #200): per-cell "static / non-fillable" marking for label rows/columns **in the middle** of a grid — current header model only covers edge labels
 
 **Normalised text matching (#168)**
-- [ ] Horizontal pass: apply diacritic-forgiving / typo-tolerant matching across all text-input question types (existing + new)
+- [x] Horizontal pass: apply diacritic-forgiving / typo-tolerant matching across all text-input question types (existing + new) — shared `AppHelpers.isAnswerCorrect`; diacritic stripping + consonant-weighted single-edit tolerance (vowel-for-vowel only at the boundary). Spec in `docs/design.md § Normalised answer matching`
+- [ ] Follow-up (#206): tri-state "Close!" feedback + randomized response phrases (matcher returns Correct/Close/Incorrect)
 
 ---
 

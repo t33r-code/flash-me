@@ -18,6 +18,7 @@ import 'package:flash_me/theme/app_colors.dart';
 import 'package:flash_me/screens/study/study_session_summary_screen.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
+import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/utils/transitions.dart';
 
 // ---------------------------------------------------------------------------
@@ -1287,6 +1288,8 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
   bool? _result;
+  // Canonical form of the first accepted answer (for "correct form" hint).
+  String? _matchedAnswer;
 
   @override
   void dispose() {
@@ -1299,18 +1302,28 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
     final input = _controller.text.trim();
     if (input.isEmpty) return;
     final answers = widget.question.correctAnswers ?? [];
-    final correct = widget.question.exactMatch
-        ? answers.any((a) => a == input)
-        : answers.any((a) => a.toLowerCase() == input.toLowerCase());
-    setState(() => _result = correct);
-    correct ? _hapticCorrect() : _hapticIncorrect();
-    widget.onResult?.call(correct);
+    // Find the first accepted answer so we can show the canonical form.
+    String? matched;
+    for (final a in answers) {
+      if (AppHelpers.isAnswerCorrect(input, [a],
+          exact: widget.question.exactMatch)) {
+        matched = a;
+        break;
+      }
+    }
+    setState(() {
+      _result = matched != null;
+      _matchedAnswer = matched;
+    });
+    (matched != null) ? _hapticCorrect() : _hapticIncorrect();
+    widget.onResult?.call(matched != null);
   }
 
   void _tryAgain() {
     setState(() {
       _controller.clear();
       _result = null;
+      _matchedAnswer = null;
     });
     _focusNode.requestFocus();
   }
@@ -1375,7 +1388,7 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
             ),
             if (answered) ...[
               const SizedBox(height: 10),
-              if (isCorrect)
+              if (isCorrect) ...[
                 Row(children: [
                   Icon(Icons.check_circle_outline,
                       color: appColors.onCorrectSurface, size: 20),
@@ -1384,8 +1397,20 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
                       style: TextStyle(
                           color: appColors.onCorrectSurface,
                           fontWeight: FontWeight.bold)),
-                ])
-              else ...[
+                ]),
+                // Show canonical spelling only when the user's input differed.
+                if (_matchedAnswer != null &&
+                    _matchedAnswer != _controller.text.trim()) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    context.l10n.messageCorrectForm(_matchedAnswer!),
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: scheme.onSurfaceVariant),
+                  ),
+                ],
+              ] else ...[
                 Row(children: [
                   Icon(Icons.cancel_outlined,
                       color: scheme.error, size: 20),
@@ -1393,8 +1418,7 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
                   Expanded(
                     child: Text(context.l10n.labelIncorrect,
                         style: TextStyle(
-                            color: scheme.error,
-                            fontWeight: FontWeight.bold)),
+                            color: scheme.error, fontWeight: FontWeight.bold)),
                   ),
                   TextButton(
                       onPressed: _tryAgain,
@@ -1402,7 +1426,8 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
                 ]),
                 const SizedBox(height: 4),
                 Text(
-                  context.l10n.messageAnswerReveal((widget.question.correctAnswers ?? []).join(' / ')),
+                  context.l10n.messageAnswerReveal(
+                      (widget.question.correctAnswers ?? []).join(' / ')),
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall
@@ -1758,6 +1783,8 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
   final Map<int, int> _placement = {}; // blankTokenIndex -> pool index
   int? _selectedBlank;          // blank currently selected to fill
   bool? _result;
+  // Text-input mode: one controller per blank token index.
+  final Map<int, TextEditingController> _textControllers = {};
 
   @override
   void initState() {
@@ -1766,11 +1793,17 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
     _setupRound();
   }
 
+  @override
+  void dispose() {
+    for (final c in _textControllers.values) { c.dispose(); }
+    super.dispose();
+  }
+
   // Randomly pick which eligible words to blank, then build the shuffled pool.
   void _setupRound() {
     final eligible = <int>[];
     for (var i = 0; i < _tokens.length; i++) {
-      if (_tokens[i].eligible) eligible.add(i);
+      if (_tokens[i].eligible) { eligible.add(i); }
     }
     eligible.shuffle();
     final count = widget.question.blankCount.clamp(0, eligible.length);
@@ -1783,10 +1816,21 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
     _placement.clear();
     _selectedBlank = _blankIndices.isNotEmpty ? _blankIndices.first : null;
     _result = null;
+    // Text-input mode: create one controller per blank; dispose any previous.
+    for (final c in _textControllers.values) { c.dispose(); }
+    _textControllers.clear();
+    if (widget.question.completionMode == CompletionMode.textInput) {
+      for (final i in _blankIndices) {
+        _textControllers[i] = TextEditingController();
+      }
+    }
   }
 
   Set<int> get _usedPoolIds => _placement.values.toSet();
   bool get _allFilled => _placement.length == _blankIndices.length;
+  // Text-input mode: every blank has a non-empty entry.
+  bool get _allTextFilled => _blankIndices.every(
+      (i) => (_textControllers[i]?.text ?? '').trim().isNotEmpty);
 
   int? _firstEmptyBlank() {
     for (final b in _blankIndices) {
@@ -1818,6 +1862,16 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
   }
 
   void _check() {
+    if (widget.question.completionMode == CompletionMode.textInput) {
+      // Text-input mode: use normalised matching against each blank's word.
+      final allCorrect = _blankIndices.every((b) => AppHelpers.isAnswerCorrect(
+          _textControllers[b]?.text ?? '', [_tokens[b].word]));
+      setState(() => _result = allCorrect);
+      allCorrect ? _hapticCorrect() : _hapticIncorrect();
+      widget.onResult?.call(allCorrect);
+      return;
+    }
+    // Pill mode: exact match of placed pool word.
     var allCorrect = true;
     for (final b in _blankIndices) {
       final poolId = _placement[b];
@@ -1833,6 +1887,7 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
   }
 
   void _tryAgain() {
+    for (final c in _textControllers.values) { c.clear(); }
     setState(() {
       _placement.clear();
       _selectedBlank = _blankIndices.isNotEmpty ? _blankIndices.first : null;
@@ -1867,7 +1922,7 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
               const SizedBox(height: 12),
             ],
 
-            // Sentence with inline blank slots.
+            // Sentence with inline blank slots (pill or text-input).
             Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
               spacing: 6,
@@ -1875,7 +1930,12 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
               children: [
                 for (var i = 0; i < _tokens.length; i++)
                   if (_blankSet.contains(i))
-                    _affixed(_tokens[i], _buildSlot(i, scheme, appColors))
+                    _affixed(
+                      _tokens[i],
+                      widget.question.completionMode == CompletionMode.textInput
+                          ? _buildTextSlot(i, scheme, appColors)
+                          : _buildSlot(i, scheme, appColors),
+                    )
                   else
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -1887,8 +1947,9 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
             ),
             const SizedBox(height: 16),
 
-            // Word pool — available pills (hidden once answered).
-            if (!answered) ...[
+            // Word pool — pill mode only, hidden once answered.
+            if (widget.question.completionMode == CompletionMode.pill &&
+                !answered) ...[
               Text(context.l10n.labelWordBank,
                   style: Theme.of(context)
                       .textTheme
@@ -1916,7 +1977,12 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
               Align(
                 alignment: Alignment.centerRight,
                 child: FilledButton(
-                  onPressed: _allFilled ? _check : null,
+                  onPressed: (widget.question.completionMode ==
+                              CompletionMode.textInput
+                          ? _allTextFilled
+                          : _allFilled)
+                      ? _check
+                      : null,
                   child: Text(context.l10n.actionCheck),
                 ),
               )
@@ -2036,6 +2102,90 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
     );
   }
 
+  // Text-input slot: a compact inline TextField while unanswered; switches to
+  // a coloured chip showing the CANONICAL correct word (not the user's input)
+  // on reveal so the learner always sees the right form.
+  Widget _buildTextSlot(int tokenIndex, ColorScheme scheme, AppColors appColors) {
+    final correctWord = _tokens[tokenIndex].word;
+    final answered = _result != null;
+
+    if (answered) {
+      final input = _textControllers[tokenIndex]?.text ?? '';
+      final inputTrim = input.trim();
+      final correct = AppHelpers.isAnswerCorrect(inputTrim, [correctWord]);
+      // Was the answer typed exactly, or accepted via tolerance (case /
+      // diacritic / typo)? A close acceptance still shows the canonical form.
+      final exact = correct && inputTrim == correctWord;
+
+      // Clean exact entry → single correct chip.
+      if (exact) {
+        return _slotChip(
+            text: correctWord,
+            bg: appColors.correctSurface,
+            fg: appColors.onCorrectSurface);
+      }
+
+      // Close acceptance → show the user's entry (neutral, not struck) next to
+      // the canonical form so they see what the right spelling was.
+      if (correct) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Wrap(
+            spacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _slotChip(
+                  text: inputTrim.isEmpty ? '—' : inputTrim,
+                  bg: scheme.secondaryContainer,
+                  fg: scheme.onSecondaryContainer),
+              _slotChip(
+                  text: correctWord,
+                  bg: appColors.correctSurface,
+                  fg: appColors.onCorrectSurface),
+            ],
+          ),
+        );
+      }
+
+      // Incorrect → struck-through entry next to the correct form.
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Wrap(
+          spacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            _slotChip(
+                text: inputTrim.isEmpty ? '—' : inputTrim,
+                bg: scheme.errorContainer,
+                fg: scheme.onErrorContainer,
+                strike: true),
+            _slotChip(
+                text: correctWord,
+                bg: appColors.correctSurface,
+                fg: appColors.onCorrectSurface),
+          ],
+        ),
+      );
+    }
+
+    // Active: a small inline text field sized to the expected word length.
+    final approxWidth = (correctWord.length * 11.0).clamp(52.0, 130.0);
+    return SizedBox(
+      width: approxWidth,
+      child: TextField(
+        controller: _textControllers[tokenIndex],
+        decoration: const InputDecoration(
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          border: OutlineInputBorder(),
+        ),
+        style: Theme.of(context).textTheme.bodyLarge,
+        textInputAction: TextInputAction.done,
+        onChanged: (_) => setState(() {}), // recheck _allTextFilled
+      ),
+    );
+  }
+
   Widget _slotChip(
       {required String text,
       required Color bg,
@@ -2083,6 +2233,8 @@ class _GridCardState extends State<_GridCard> {
   final Map<int, int> _placement = {}; // hidden linear index -> pool index
   int? _selectedCell;
   bool? _result;
+  // Text-input mode: one controller per hidden linear cell index.
+  final Map<int, TextEditingController> _textControllers = {};
 
   @override
   void initState() {
@@ -2090,6 +2242,12 @@ class _GridCardState extends State<_GridCard> {
     _cells = widget.question.cells ?? const [];
     _cols = widget.question.columnCount;
     _setupRound();
+  }
+
+  @override
+  void dispose() {
+    for (final c in _textControllers.values) { c.dispose(); }
+    super.dispose();
   }
 
   // Randomly choose which cells to hide, then build the shuffled pool.
@@ -2106,10 +2264,20 @@ class _GridCardState extends State<_GridCard> {
     _placement.clear();
     _selectedCell = _hiddenOrder.isNotEmpty ? _hiddenOrder.first : null;
     _result = null;
+    // Text-input mode: create one controller per hidden cell; dispose previous.
+    for (final c in _textControllers.values) { c.dispose(); }
+    _textControllers.clear();
+    if (widget.question.completionMode == CompletionMode.textInput) {
+      for (final idx in _hiddenOrder) {
+        _textControllers[idx] = TextEditingController();
+      }
+    }
   }
 
   Set<int> get _usedPoolIds => _placement.values.toSet();
   bool get _allFilled => _placement.length == _hiddenOrder.length;
+  bool get _allTextFilled => _hiddenOrder.every(
+      (i) => (_textControllers[i]?.text ?? '').trim().isNotEmpty);
 
   int? _firstEmptyCell() {
     for (final c in _hiddenOrder) {
@@ -2139,6 +2307,15 @@ class _GridCardState extends State<_GridCard> {
   }
 
   void _check() {
+    if (widget.question.completionMode == CompletionMode.textInput) {
+      final allCorrect = _hiddenOrder.every((idx) => AppHelpers.isAnswerCorrect(
+          _textControllers[idx]?.text ?? '',
+          [_cells[idx ~/ _cols][idx % _cols]]));
+      setState(() => _result = allCorrect);
+      allCorrect ? _hapticCorrect() : _hapticIncorrect();
+      widget.onResult?.call(allCorrect);
+      return;
+    }
     var allCorrect = true;
     for (final idx in _hiddenOrder) {
       final poolId = _placement[idx];
@@ -2154,6 +2331,7 @@ class _GridCardState extends State<_GridCard> {
   }
 
   void _tryAgain() {
+    for (final c in _textControllers.values) { c.clear(); }
     setState(() {
       _placement.clear();
       _selectedCell = _hiddenOrder.isNotEmpty ? _hiddenOrder.first : null;
@@ -2223,8 +2401,9 @@ class _GridCardState extends State<_GridCard> {
             ),
             const SizedBox(height: 16),
 
-            // Word pool — available pills (hidden once answered).
-            if (!answered) ...[
+            // Word pool — pill mode only, hidden once answered.
+            if (widget.question.completionMode == CompletionMode.pill &&
+                !answered) ...[
               Text(context.l10n.labelWordBank,
                   style: Theme.of(context)
                       .textTheme
@@ -2252,7 +2431,12 @@ class _GridCardState extends State<_GridCard> {
               Align(
                 alignment: Alignment.centerRight,
                 child: FilledButton(
-                  onPressed: _allFilled ? _check : null,
+                  onPressed: (widget.question.completionMode ==
+                              CompletionMode.textInput
+                          ? _allTextFilled
+                          : _allFilled)
+                      ? _check
+                      : null,
                   child: Text(context.l10n.actionCheck),
                 ),
               )
@@ -2305,7 +2489,8 @@ class _GridCardState extends State<_GridCard> {
         ),
       );
 
-  // A grid data cell: a fixed value, or a tappable slot when hidden.
+  // A grid data cell: fixed value when visible; pill slot or text field when
+  // hidden, depending on completionMode.
   Widget _dataCell(int linearIndex, ColorScheme scheme, AppColors appColors) {
     final value = _cells[linearIndex ~/ _cols][linearIndex % _cols];
 
@@ -2318,9 +2503,72 @@ class _GridCardState extends State<_GridCard> {
       );
     }
 
+    final answered = _result != null;
+
+    // ── Text-input mode ────────────────────────────────────────────────────
+    if (widget.question.completionMode == CompletionMode.textInput) {
+      if (answered) {
+        final input = _textControllers[linearIndex]?.text ?? '';
+        final inputTrim = input.trim();
+        final correct = AppHelpers.isAnswerCorrect(inputTrim, [value]);
+        // Exact typed vs accepted-via-tolerance (case / diacritic / typo).
+        final exact = correct && inputTrim == value;
+        // Show the user's entry above the canonical form whenever it differs —
+        // struck through if wrong, neutral if a close acceptance.
+        final showEntry = !exact;
+        return Container(
+          color: correct
+              ? appColors.correctSurface
+              : scheme.errorContainer.withValues(alpha: 0.6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (showEntry)
+                Text(inputTrim.isEmpty ? '—' : inputTrim,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: correct
+                            ? scheme.onSurfaceVariant
+                            : scheme.error,
+                        fontWeight: FontWeight.w600,
+                        decoration:
+                            correct ? null : TextDecoration.lineThrough)),
+              Text(value,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: appColors.onCorrectSurface,
+                      fontWeight: FontWeight.w600)),
+            ],
+          ),
+        );
+      }
+      // Active text field sized to expected content.
+      final approxWidth = (value.length * 11.0).clamp(52.0, 110.0);
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        child: SizedBox(
+          width: approxWidth,
+          child: TextField(
+            controller: _textControllers[linearIndex],
+            textAlign: TextAlign.center,
+            decoration: const InputDecoration(
+              isDense: true,
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+              border: OutlineInputBorder(),
+            ),
+            style: Theme.of(context).textTheme.bodyMedium,
+            textInputAction: TextInputAction.done,
+            onChanged: (_) => setState(() {}), // recheck _allTextFilled
+          ),
+        ),
+      );
+    }
+
+    // ── Pill (tap-to-fill) mode ────────────────────────────────────────────
     final poolId = _placement[linearIndex];
     final placed = poolId != null ? _pool[poolId] : null;
-    final answered = _result != null;
 
     if (answered) {
       final correct = placed == value;
@@ -2339,7 +2587,6 @@ class _GridCardState extends State<_GridCard> {
                   fontWeight: FontWeight.w600,
                   decoration: correct ? null : TextDecoration.lineThrough,
                 )),
-            // Show the correct value beneath a wrong entry.
             if (!correct)
               Text(value,
                   textAlign: TextAlign.center,

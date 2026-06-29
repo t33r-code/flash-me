@@ -1858,6 +1858,24 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Add cells to the grid first.} =1{1 cell in the grid.} other{{count} cells in the grid.}}'**
   String messageGridEmptyCountHelp(int count);
 
+  /// No description provided for @labelCompletionMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Input mode'**
+  String get labelCompletionMode;
+
+  /// No description provided for @labelCompletionModePill.
+  ///
+  /// In en, this message translates to:
+  /// **'Word pills'**
+  String get labelCompletionModePill;
+
+  /// No description provided for @labelCompletionModeText.
+  ///
+  /// In en, this message translates to:
+  /// **'Type answer'**
+  String get labelCompletionModeText;
+
   /// No description provided for @actionTokenize.
   ///
   /// In en, this message translates to:
@@ -2739,6 +2757,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Answer: {answer}'**
   String messageAnswerReveal(String answer);
+
+  /// No description provided for @messageCorrectForm.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct form: {answer}'**
+  String messageCorrectForm(String answer);
 
   /// No description provided for @titleSessionComplete.
   ///

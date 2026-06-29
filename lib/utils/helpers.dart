@@ -1,3 +1,6 @@
+import 'dart:math';
+
+import 'package:flash_me/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 // Ring buffer of the last 150 log lines; populated by AppLogger.
@@ -56,6 +59,28 @@ class AppLogger {
   }
 }
 
+// Three-way result returned by AppHelpers.checkAnswer.
+// correct  — normalised forms match exactly (includes diacritic / case forgiveness)
+// close    — accepted only via fuzzy tolerance (vowel-for-vowel swap)
+// incorrect — not accepted
+enum AnswerResult { correct, close, incorrect }
+
+// Feedback phrase arrays for each result state.
+// Each array currently holds one phrase; the random-picker infrastructure
+// is ready for additional phrases when UX polish lands (#206).
+class FeedbackPhrases {
+  static final _rng = Random();
+
+  static String forResult(AnswerResult result, AppLocalizations l10n) {
+    final phrases = switch (result) {
+      AnswerResult.correct => [l10n.feedbackCorrect0],
+      AnswerResult.close => [l10n.feedbackClose0],
+      AnswerResult.incorrect => [l10n.feedbackIncorrect0],
+    };
+    return phrases[_rng.nextInt(phrases.length)];
+  }
+}
+
 class AppHelpers {
   // Normalise a raw tag string to its canonical Firestore document ID form:
   // trim whitespace, lowercase, collapse runs of whitespace to a single hyphen.
@@ -87,22 +112,30 @@ class AppHelpers {
     AppLogger.warning('Tag $operation failed for "$tag": $error');
   }
 
-  // Returns true if [input] matches any string in [accepted] under normalised
-  // rules: always trims, lowercases, and strips common Latin diacritics.
-  // Unless [exact] is true, also forgives a single near-miss (see _fuzzyMatch):
-  // at most one edit, and at the tolerance boundary only a vowel-for-vowel
-  // swap — consonant errors and length changes are treated as wrong.
-  static bool isAnswerCorrect(String input, List<String> accepted,
+  // Three-way check: returns correct (normalised exact), close (fuzzy
+  // tolerance), or incorrect. Always trims, lowercases, and strips common
+  // Latin diacritics. Unless [exact] is true, also checks fuzzy tolerance
+  // (vowel-for-vowel swap only — consonant changes and length differences
+  // are always incorrect).
+  static AnswerResult checkAnswer(String input, List<String> accepted,
       {bool exact = false}) {
     final norm = _normalizeForMatch(input.trim());
-    if (norm.isEmpty) return false;
-    return accepted.any((a) {
+    if (norm.isEmpty) return AnswerResult.incorrect;
+    AnswerResult best = AnswerResult.incorrect;
+    for (final a in accepted) {
       final normA = _normalizeForMatch(a.trim());
-      if (norm == normA) return true;
-      if (exact) return false;
-      return _fuzzyMatch(norm, normA);
-    });
+      if (norm == normA) return AnswerResult.correct; // exact normalised match
+      if (!exact && best == AnswerResult.incorrect && _fuzzyMatch(norm, normA)) {
+        best = AnswerResult.close; // keep scanning in case another entry is exact
+      }
+    }
+    return best;
   }
+
+  // Convenience bool wrapper — true when the answer is correct or close.
+  static bool isAnswerCorrect(String input, List<String> accepted,
+      {bool exact = false}) =>
+      checkAnswer(input, accepted, exact: exact) != AnswerResult.incorrect;
 
   // Fuzzy acceptance for two already-normalised, non-equal strings.
   // Accepts when the edit distance is within the threshold, but right at the

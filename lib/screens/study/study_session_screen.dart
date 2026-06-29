@@ -1287,7 +1287,7 @@ class _WorkbookTextInputCard extends StatefulWidget {
 class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
-  bool? _result;
+  AnswerResult? _result;
   // Canonical form of the first accepted answer (for "correct form" hint).
   String? _matchedAnswer;
 
@@ -1302,21 +1302,20 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
     final input = _controller.text.trim();
     if (input.isEmpty) return;
     final answers = widget.question.correctAnswers ?? [];
-    // Find the first accepted answer so we can show the canonical form.
+    // Scan accepted answers — prefer an exact normalised match over a close one.
+    AnswerResult best = AnswerResult.incorrect;
     String? matched;
     for (final a in answers) {
-      if (AppHelpers.isAnswerCorrect(input, [a],
-          exact: widget.question.exactMatch)) {
-        matched = a;
-        break;
+      final r = AppHelpers.checkAnswer(input, [a],
+          exact: widget.question.exactMatch);
+      if (r == AnswerResult.correct) { best = r; matched = a; break; }
+      if (r == AnswerResult.close && best == AnswerResult.incorrect) {
+        best = r; matched = a;
       }
     }
-    setState(() {
-      _result = matched != null;
-      _matchedAnswer = matched;
-    });
-    (matched != null) ? _hapticCorrect() : _hapticIncorrect();
-    widget.onResult?.call(matched != null);
+    setState(() { _result = best; _matchedAnswer = matched; });
+    best != AnswerResult.incorrect ? _hapticCorrect() : _hapticIncorrect();
+    widget.onResult?.call(best != AnswerResult.incorrect);
   }
 
   void _tryAgain() {
@@ -1333,9 +1332,9 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
     final scheme = Theme.of(context).colorScheme;
     final appColors = context.appColors;
     final answered = _result != null;
-    final isCorrect = _result == true;
+    final isAccepted = _result != AnswerResult.incorrect;
     final cardColor = answered
-        ? (isCorrect
+        ? (isAccepted
             ? appColors.correctSurface
             : scheme.errorContainer.withValues(alpha: 0.4))
         : null;
@@ -1388,17 +1387,20 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
             ),
             if (answered) ...[
               const SizedBox(height: 10),
-              if (isCorrect) ...[
+              if (isAccepted) ...[
                 Row(children: [
                   Icon(Icons.check_circle_outline,
                       color: appColors.onCorrectSurface, size: 20),
                   const SizedBox(width: 6),
-                  Text(context.l10n.labelCorrect,
-                      style: TextStyle(
-                          color: appColors.onCorrectSurface,
-                          fontWeight: FontWeight.bold)),
+                  Text(
+                    FeedbackPhrases.forResult(_result!, context.l10n),
+                    style: TextStyle(
+                        color: appColors.onCorrectSurface,
+                        fontWeight: FontWeight.bold),
+                  ),
                 ]),
-                // Show canonical spelling only when the user's input differed.
+                // Show canonical spelling whenever the user's input differed —
+                // covers both diacritic differences and close (fuzzy) matches.
                 if (_matchedAnswer != null &&
                     _matchedAnswer != _controller.text.trim()) ...[
                   const SizedBox(height: 4),
@@ -1416,9 +1418,11 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
                       color: scheme.error, size: 20),
                   const SizedBox(width: 6),
                   Expanded(
-                    child: Text(context.l10n.labelIncorrect,
-                        style: TextStyle(
-                            color: scheme.error, fontWeight: FontWeight.bold)),
+                    child: Text(
+                      FeedbackPhrases.forResult(_result!, context.l10n),
+                      style: TextStyle(
+                          color: scheme.error, fontWeight: FontWeight.bold),
+                    ),
                   ),
                   TextButton(
                       onPressed: _tryAgain,
@@ -1782,7 +1786,7 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
   late List<String> _pool;      // pool words (blanked words + distractors)
   final Map<int, int> _placement = {}; // blankTokenIndex -> pool index
   int? _selectedBlank;          // blank currently selected to fill
-  bool? _result;
+  AnswerResult? _result;
   // Text-input mode: one controller per blank token index.
   final Map<int, TextEditingController> _textControllers = {};
 
@@ -1863,25 +1867,29 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
 
   void _check() {
     if (widget.question.completionMode == CompletionMode.textInput) {
-      // Text-input mode: use normalised matching against each blank's word.
-      final allCorrect = _blankIndices.every((b) => AppHelpers.isAnswerCorrect(
-          _textControllers[b]?.text ?? '', [_tokens[b].word]));
-      setState(() => _result = allCorrect);
-      allCorrect ? _hapticCorrect() : _hapticIncorrect();
-      widget.onResult?.call(allCorrect);
+      // Text-input mode: tri-state — any incorrect slot → incorrect;
+      // all accepted with at least one close → close; all exact → correct.
+      var result = AnswerResult.correct;
+      for (final b in _blankIndices) {
+        final r = AppHelpers.checkAnswer(
+            _textControllers[b]?.text ?? '', [_tokens[b].word]);
+        if (r == AnswerResult.incorrect) { result = AnswerResult.incorrect; break; }
+        if (r == AnswerResult.close) result = AnswerResult.close;
+      }
+      setState(() => _result = result);
+      result != AnswerResult.incorrect ? _hapticCorrect() : _hapticIncorrect();
+      widget.onResult?.call(result != AnswerResult.incorrect);
       return;
     }
-    // Pill mode: exact match of placed pool word.
+    // Pill mode: exact match of placed pool word — correct or incorrect only.
     var allCorrect = true;
     for (final b in _blankIndices) {
       final poolId = _placement[b];
       final placedWord = poolId != null ? _pool[poolId] : null;
-      if (placedWord != _tokens[b].word) {
-        allCorrect = false;
-        break;
-      }
+      if (placedWord != _tokens[b].word) { allCorrect = false; break; }
     }
-    setState(() => _result = allCorrect);
+    final result = allCorrect ? AnswerResult.correct : AnswerResult.incorrect;
+    setState(() => _result = result);
     allCorrect ? _hapticCorrect() : _hapticIncorrect();
     widget.onResult?.call(allCorrect);
   }
@@ -1900,11 +1908,11 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
     final scheme = Theme.of(context).colorScheme;
     final appColors = context.appColors;
     final answered = _result != null;
-    final isCorrect = _result == true;
+    final isAccepted = _result != AnswerResult.incorrect;
     final prompt = widget.question.prompt;
 
     final cardColor = answered
-        ? (isCorrect
+        ? (isAccepted
             ? appColors.correctSurface
             : scheme.errorContainer.withValues(alpha: 0.4))
         : null;
@@ -1986,24 +1994,28 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
                   child: Text(context.l10n.actionCheck),
                 ),
               )
-            else if (isCorrect)
+            else if (isAccepted)
               Row(children: [
                 Icon(Icons.check_circle_outline,
                     color: appColors.onCorrectSurface, size: 20),
                 const SizedBox(width: 6),
-                Text(context.l10n.labelCorrect,
-                    style: TextStyle(
-                        color: appColors.onCorrectSurface,
-                        fontWeight: FontWeight.bold)),
+                Text(
+                  FeedbackPhrases.forResult(_result!, context.l10n),
+                  style: TextStyle(
+                      color: appColors.onCorrectSurface,
+                      fontWeight: FontWeight.bold),
+                ),
               ])
             else ...[
               Row(children: [
                 Icon(Icons.cancel_outlined, color: scheme.error, size: 20),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text(context.l10n.labelIncorrect,
-                      style: TextStyle(
-                          color: scheme.error, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    FeedbackPhrases.forResult(_result!, context.l10n),
+                    style: TextStyle(
+                        color: scheme.error, fontWeight: FontWeight.bold),
+                  ),
                 ),
                 TextButton(
                     onPressed: _tryAgain,
@@ -2232,7 +2244,7 @@ class _GridCardState extends State<_GridCard> {
   late List<String> _pool;
   final Map<int, int> _placement = {}; // hidden linear index -> pool index
   int? _selectedCell;
-  bool? _result;
+  AnswerResult? _result;
   // Text-input mode: one controller per hidden linear cell index.
   final Map<int, TextEditingController> _textControllers = {};
 
@@ -2308,24 +2320,27 @@ class _GridCardState extends State<_GridCard> {
 
   void _check() {
     if (widget.question.completionMode == CompletionMode.textInput) {
-      final allCorrect = _hiddenOrder.every((idx) => AppHelpers.isAnswerCorrect(
-          _textControllers[idx]?.text ?? '',
-          [_cells[idx ~/ _cols][idx % _cols]]));
-      setState(() => _result = allCorrect);
-      allCorrect ? _hapticCorrect() : _hapticIncorrect();
-      widget.onResult?.call(allCorrect);
+      var result = AnswerResult.correct;
+      for (final idx in _hiddenOrder) {
+        final r = AppHelpers.checkAnswer(
+            _textControllers[idx]?.text ?? '',
+            [_cells[idx ~/ _cols][idx % _cols]]);
+        if (r == AnswerResult.incorrect) { result = AnswerResult.incorrect; break; }
+        if (r == AnswerResult.close) result = AnswerResult.close;
+      }
+      setState(() => _result = result);
+      result != AnswerResult.incorrect ? _hapticCorrect() : _hapticIncorrect();
+      widget.onResult?.call(result != AnswerResult.incorrect);
       return;
     }
     var allCorrect = true;
     for (final idx in _hiddenOrder) {
       final poolId = _placement[idx];
       final placed = poolId != null ? _pool[poolId] : null;
-      if (placed != _cells[idx ~/ _cols][idx % _cols]) {
-        allCorrect = false;
-        break;
-      }
+      if (placed != _cells[idx ~/ _cols][idx % _cols]) { allCorrect = false; break; }
     }
-    setState(() => _result = allCorrect);
+    final result = allCorrect ? AnswerResult.correct : AnswerResult.incorrect;
+    setState(() => _result = result);
     allCorrect ? _hapticCorrect() : _hapticIncorrect();
     widget.onResult?.call(allCorrect);
   }
@@ -2344,14 +2359,14 @@ class _GridCardState extends State<_GridCard> {
     final scheme = Theme.of(context).colorScheme;
     final appColors = context.appColors;
     final answered = _result != null;
-    final isCorrect = _result == true;
+    final isAccepted = _result != AnswerResult.incorrect;
     final prompt = widget.question.prompt;
     final q = widget.question;
     final hasRowHeaders = q.rowHeaders.isNotEmpty;
     final hasColHeaders = q.columnHeaders.isNotEmpty;
 
     final cardColor = answered
-        ? (isCorrect
+        ? (isAccepted
             ? appColors.correctSurface
             : scheme.errorContainer.withValues(alpha: 0.4))
         : null;
@@ -2440,24 +2455,28 @@ class _GridCardState extends State<_GridCard> {
                   child: Text(context.l10n.actionCheck),
                 ),
               )
-            else if (isCorrect)
+            else if (isAccepted)
               Row(children: [
                 Icon(Icons.check_circle_outline,
                     color: appColors.onCorrectSurface, size: 20),
                 const SizedBox(width: 6),
-                Text(context.l10n.labelCorrect,
-                    style: TextStyle(
-                        color: appColors.onCorrectSurface,
-                        fontWeight: FontWeight.bold)),
+                Text(
+                  FeedbackPhrases.forResult(_result!, context.l10n),
+                  style: TextStyle(
+                      color: appColors.onCorrectSurface,
+                      fontWeight: FontWeight.bold),
+                ),
               ])
             else
               Row(children: [
                 Icon(Icons.cancel_outlined, color: scheme.error, size: 20),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text(context.l10n.labelIncorrect,
-                      style: TextStyle(
-                          color: scheme.error, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    FeedbackPhrases.forResult(_result!, context.l10n),
+                    style: TextStyle(
+                        color: scheme.error, fontWeight: FontWeight.bold),
+                  ),
                 ),
                 TextButton(
                     onPressed: _tryAgain,

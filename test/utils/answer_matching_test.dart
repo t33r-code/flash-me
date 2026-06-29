@@ -58,13 +58,28 @@ void main() {
   });
 
   group('isAnswerCorrect — typo tolerance (exact: false)', () {
-    test('single-char substitution forgiven for longer word', () {
-      // "hablo" → "habло" (typo in 5-char word): threshold is 1
-      expect(check('hablos', ['hablo']), isTrue);  // 1 insertion
+    test('single vowel-for-vowel swap forgiven', () {
+      // "hablo" → "habla": one vowel substituted, same length → accepted.
+      expect(check('habla', ['hablo']), isTrue);
     });
 
-    test('single-char deletion forgiven for mid-length word', () {
-      expect(check('hblo', ['hablo']), isTrue);  // 1 deletion in 5-char word
+    test('single consonant substitution NOT forgiven', () {
+      // "hablo" → "hadlo": b→d is a consonant change → rejected.
+      expect(check('hadlo', ['hablo']), isFalse);
+    });
+
+    test('insertion at the boundary NOT forgiven', () {
+      // Length change at the tolerance edge is a real error now.
+      expect(check('hablos', ['hablo']), isFalse);
+    });
+
+    test('deletion at the boundary NOT forgiven', () {
+      expect(check('hblo', ['hablo']), isFalse);
+    });
+
+    test('two edits never forgiven', () {
+      // "pracuju" → "pracu": distance 2 → rejected even for a long word.
+      expect(check('praču', ['pracuju']), isFalse);
     });
 
     test('no typo tolerance for 2-char words', () {
@@ -75,8 +90,41 @@ void main() {
       expect(check('a', ['e']), isFalse);
     });
 
-    test('completely wrong long word fails even with tolerance', () {
-      expect(check('perro', ['gato']), isFalse);  // distance 5, threshold 1
+    test('completely wrong long word fails', () {
+      expect(check('perro', ['gato']), isFalse);
+    });
+  });
+
+  group('isAnswerCorrect — consonant-weighted matching (pračuju example)', () {
+    // Real-world tuning case: expected answer "pračuju" (normalises to
+    // "pracuju"). Vowel near-misses pass; consonant near-misses do not.
+    test('exact answer passes', () {
+      expect(check('pračuju', ['pračuju']), isTrue);
+    });
+
+    test('missing diacritic passes', () {
+      expect(check('pracuju', ['pračuju']), isTrue);
+    });
+
+    test('final vowel swap passes', () {
+      expect(check('pračuje', ['pračuju']), isTrue);
+    });
+
+    test('medial vowel swap passes', () {
+      expect(check('pračeju', ['pračuju']), isTrue);
+    });
+
+    test('truncation (two deletions) fails', () {
+      expect(check('praču', ['pračuju']), isFalse);
+    });
+
+    test('consonant substitution fails', () {
+      expect(check('pračubu', ['pračuju']), isFalse);
+    });
+
+    test('vowel-for-consonant substitution fails', () {
+      // "pračuuu": the u replaces the consonant j → consonant identity lost.
+      expect(check('pračuuu', ['pračuju']), isFalse);
     });
   });
 

@@ -369,6 +369,38 @@ Content fields: `rowHeaders: List<String>`, `columnHeaders: List<String>`, `corn
 
 ---
 
+### Normalised answer matching (#168)
+
+All typed answers — the text-input question type, plus the `textInput` completion mode of fill-in-the-blanks and complete-the-grid — are checked through a single shared matcher, `AppHelpers.isAnswerCorrect(input, accepted, {exact})`. A learner shouldn't fail for a missing accent or a one-letter slip, but the tolerance is deliberately asymmetric so it can't wave through a genuinely different word.
+
+**Normalisation (always applied, both sides):**
+1. Trim surrounding whitespace.
+2. Lowercase.
+3. Map common Latin diacritics to their base letter (`č→c`, `ü→u`, `é→e`, `ñ→n`, `ç→c`, …). No external package — a hardcoded codepoint map covers European language-learning needs.
+
+If the normalised forms are equal, it's an exact match → **correct**.
+
+**Typo tolerance (skipped when `exact: true`):** when the normalised forms differ, the matcher allows at most one edit, weighted to protect consonants:
+
+- **Edit-distance cap.** Words averaging ≤2 normalised chars get *no* tolerance (exact-only) — this stops short function words ("a", "in", "is") being confused. Everything longer tolerates a single edit. Two or more edits are never forgiven.
+- **Consonant gate at the boundary.** Right at the one-edit boundary, only a **vowel-for-vowel substitution** is forgiven. A changed consonant, or any insertion/deletion (a length change), is treated as wrong — consonants carry more of a word's identity than vowels do.
+
+Worked example — expected answer `pračuju` (normalises to `pracuju`):
+
+| Input | Outcome | Why |
+|---|---|---|
+| `pracuju` | ✅ accepted | exact after diacritic stripping |
+| `pračuje` / `pračeju` | ✅ accepted | one vowel-for-vowel swap |
+| `praču` | ❌ rejected | two edits (truncation) |
+| `pračubu` | ❌ rejected | consonant substitution (b for j) |
+| `pračuuu` | ❌ rejected | vowel replaces the consonant j |
+
+`exact: true` keeps the diacritic/case normalisation but disables all typo tolerance — reserved for cases where precise spelling is the point of the exercise.
+
+> **Note (#206 follow-up):** the matcher currently returns a `bool`. A planned change splits the "accepted via tolerance" case into a distinct **"Close!"** state with varied feedback phrasing; that work will turn the return value tri-state.
+
+---
+
 ### Study Flow
 
 1. The study session screen detects card type from `cardTypeMap` (see Session Integration below).

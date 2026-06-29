@@ -89,8 +89,9 @@ class AppHelpers {
 
   // Returns true if [input] matches any string in [accepted] under normalised
   // rules: always trims, lowercases, and strips common Latin diacritics.
-  // Unless [exact] is true, also forgives small typos (Levenshtein ≤ 1 for
-  // words up to 5 chars, ≤ 2 for longer).
+  // Unless [exact] is true, also forgives a single near-miss (see _fuzzyMatch):
+  // at most one edit, and at the tolerance boundary only a vowel-for-vowel
+  // swap — consonant errors and length changes are treated as wrong.
   static bool isAnswerCorrect(String input, List<String> accepted,
       {bool exact = false}) {
     final norm = _normalizeForMatch(input.trim());
@@ -99,9 +100,41 @@ class AppHelpers {
       final normA = _normalizeForMatch(a.trim());
       if (norm == normA) return true;
       if (exact) return false;
-      return _levenshtein(norm, normA) <=
-          _editThreshold(norm.length, normA.length);
+      return _fuzzyMatch(norm, normA);
     });
+  }
+
+  // Fuzzy acceptance for two already-normalised, non-equal strings.
+  // Accepts when the edit distance is within the threshold, but right at the
+  // threshold boundary it only forgives a single vowel-for-vowel substitution.
+  // A changed consonant, or any insertion/deletion, is treated as a genuine
+  // error — consonants carry more of a word's identity than vowels do.
+  static bool _fuzzyMatch(String a, String b) {
+    final threshold = _editThreshold(a.length, b.length);
+    if (threshold == 0) return false; // short words: exact-only (already !=)
+    final dist = _levenshtein(a, b);
+    if (dist > threshold) return false;
+    if (dist < threshold) return true; // comfortably inside tolerance
+    // dist == threshold: borderline. A length change here is a pure
+    // insertion/deletion, which we never forgive; otherwise require the one
+    // differing character to be a vowel swapped for another vowel.
+    if (a.length != b.length) return false;
+    return _isSingleVowelSwap(a, b);
+  }
+
+  // Both strings are equal length; returns true only if they differ at exactly
+  // one position and that differing pair are both vowels.
+  static bool _isSingleVowelSwap(String a, String b) {
+    const vowels = 'aeiouy';
+    var diffs = 0;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) {
+        diffs++;
+        if (diffs > 1) return false;
+        if (!vowels.contains(a[i]) || !vowels.contains(b[i])) return false;
+      }
+    }
+    return diffs == 1;
   }
 
   // Lowercase + map common Latin diacritics to their base letter.
@@ -161,14 +194,13 @@ class AppHelpers {
     return prev[b.length];
   }
 
-  // Allowed edit distance: 0 for ≤2 chars, 1 for ≤5, 2 for longer.
-  // Short words (1–2 chars) get no tolerance to avoid over-accepting common
-  // function words ("a", "in", "is") being confused with each other.
+  // Allowed edit distance: 0 for words averaging ≤2 chars, otherwise 1.
+  // We never forgive 2 edits — that much divergence means the word wasn't
+  // learned. Short words (1–2 chars) get no tolerance at all so common
+  // function words ("a", "in", "is") aren't confused with each other.
   static int _editThreshold(int lenA, int lenB) {
     final avg = (lenA + lenB) ~/ 2;
-    if (avg <= 2) return 0;
-    if (avg <= 5) return 1;
-    return 2;
+    return avg <= 2 ? 0 : 1;
   }
 }
 

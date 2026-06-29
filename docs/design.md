@@ -397,6 +397,8 @@ Worked example — expected answer `pračuju` (normalises to `pracuju`):
 
 `exact: true` keeps the diacritic/case normalisation but disables all typo tolerance — reserved for cases where precise spelling is the point of the exercise.
 
+**Result display.** When an answer is accepted but not typed *exactly* (a case/diacritic/typo acceptance), the result shows the learner's own entry alongside the canonical correct form so they can see the right spelling — neutral styling for a close acceptance, struck-through for an outright wrong answer. An exact entry shows only the single correct chip. This applies to the text-input modes of both fill-in-the-blanks and complete-the-grid.
+
 > **Note (#206 follow-up):** the matcher currently returns a `bool`. A planned change splits the "accepted via tolerance" case into a distinct **"Close!"** state with varied feedback phrasing; that work will turn the return value tri-state.
 
 ---

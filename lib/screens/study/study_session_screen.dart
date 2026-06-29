@@ -2111,31 +2111,61 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
 
     if (answered) {
       final input = _textControllers[tokenIndex]?.text ?? '';
-      final correct = AppHelpers.isAnswerCorrect(input, [correctWord]);
-      // Always display the canonical correct word in the result chip.
-      return correct
-          ? _slotChip(
-              text: correctWord,
-              bg: appColors.correctSurface,
-              fg: appColors.onCorrectSurface)
-          : Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Wrap(
-                spacing: 4,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  _slotChip(
-                      text: input.isEmpty ? '—' : input,
-                      bg: scheme.errorContainer,
-                      fg: scheme.onErrorContainer,
-                      strike: true),
-                  _slotChip(
-                      text: correctWord,
-                      bg: appColors.correctSurface,
-                      fg: appColors.onCorrectSurface),
-                ],
-              ),
-            );
+      final inputTrim = input.trim();
+      final correct = AppHelpers.isAnswerCorrect(inputTrim, [correctWord]);
+      // Was the answer typed exactly, or accepted via tolerance (case /
+      // diacritic / typo)? A close acceptance still shows the canonical form.
+      final exact = correct && inputTrim == correctWord;
+
+      // Clean exact entry → single correct chip.
+      if (exact) {
+        return _slotChip(
+            text: correctWord,
+            bg: appColors.correctSurface,
+            fg: appColors.onCorrectSurface);
+      }
+
+      // Close acceptance → show the user's entry (neutral, not struck) next to
+      // the canonical form so they see what the right spelling was.
+      if (correct) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Wrap(
+            spacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _slotChip(
+                  text: inputTrim.isEmpty ? '—' : inputTrim,
+                  bg: scheme.secondaryContainer,
+                  fg: scheme.onSecondaryContainer),
+              _slotChip(
+                  text: correctWord,
+                  bg: appColors.correctSurface,
+                  fg: appColors.onCorrectSurface),
+            ],
+          ),
+        );
+      }
+
+      // Incorrect → struck-through entry next to the correct form.
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Wrap(
+          spacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            _slotChip(
+                text: inputTrim.isEmpty ? '—' : inputTrim,
+                bg: scheme.errorContainer,
+                fg: scheme.onErrorContainer,
+                strike: true),
+            _slotChip(
+                text: correctWord,
+                bg: appColors.correctSurface,
+                fg: appColors.onCorrectSurface),
+          ],
+        ),
+      );
     }
 
     // Active: a small inline text field sized to the expected word length.
@@ -2479,8 +2509,13 @@ class _GridCardState extends State<_GridCard> {
     if (widget.question.completionMode == CompletionMode.textInput) {
       if (answered) {
         final input = _textControllers[linearIndex]?.text ?? '';
-        final correct = AppHelpers.isAnswerCorrect(input, [value]);
-        // Always show the canonical correct value so learners see right form.
+        final inputTrim = input.trim();
+        final correct = AppHelpers.isAnswerCorrect(inputTrim, [value]);
+        // Exact typed vs accepted-via-tolerance (case / diacritic / typo).
+        final exact = correct && inputTrim == value;
+        // Show the user's entry above the canonical form whenever it differs —
+        // struck through if wrong, neutral if a close acceptance.
+        final showEntry = !exact;
         return Container(
           color: correct
               ? appColors.correctSurface
@@ -2489,13 +2524,16 @@ class _GridCardState extends State<_GridCard> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (!correct)
-                Text(input.isEmpty ? '—' : input,
+              if (showEntry)
+                Text(inputTrim.isEmpty ? '—' : inputTrim,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        color: scheme.error,
+                        color: correct
+                            ? scheme.onSurfaceVariant
+                            : scheme.error,
                         fontWeight: FontWeight.w600,
-                        decoration: TextDecoration.lineThrough)),
+                        decoration:
+                            correct ? null : TextDecoration.lineThrough)),
               Text(value,
                   textAlign: TextAlign.center,
                   style: TextStyle(

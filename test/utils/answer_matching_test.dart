@@ -55,6 +55,20 @@ void main() {
       expect(check('müde', ['müde']), isTrue);
       expect(check('café', ['café']), isTrue);
     });
+
+    test('Czech háček stripped (č š ž ř)', () {
+      expect(check('rericha', ['řeřicha']), isTrue);
+      expect(check('zlutoucky', ['žluťoučký']), isTrue);
+    });
+
+    test('Polish diacritics stripped (ł ą ż)', () {
+      expect(check('zolw', ['żółw']), isTrue);
+      expect(check('maka', ['mąka']), isTrue);
+    });
+
+    test('Romanian comma-below stripped (ș ț)', () {
+      expect(check('si', ['și']), isTrue);
+    });
   });
 
   group('isAnswerCorrect — typo tolerance (exact: false)', () {

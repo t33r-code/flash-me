@@ -164,6 +164,27 @@ class AppHelpers {
       0xE6: 'a',
       // œ → o (simplified)
       0x153: 'o',
+
+      // --- Central / Eastern European diacritics ---------------------------
+      // Czech / Slovak: č š ž ř ě ď ť ň ľ ĺ ŕ ů
+      0x10D: 'c', 0x161: 's', 0x17E: 'z', 0x159: 'r', 0x11B: 'e',
+      0x10F: 'd', 0x165: 't', 0x148: 'n', 0x13E: 'l', 0x13A: 'l',
+      0x155: 'r', 0x16F: 'u',
+      // Polish: ł ą ć ę ń ś ź ż
+      0x142: 'l', 0x105: 'a', 0x107: 'c', 0x119: 'e', 0x144: 'n',
+      0x15B: 's', 0x17A: 'z', 0x17C: 'z',
+      // Croatian / Slovenian: đ
+      0x111: 'd',
+      // Baltic (Latvian / Lithuanian): ā ē ī ū ō į ų ė ņ ļ ķ ģ
+      0x101: 'a', 0x113: 'e', 0x12B: 'i', 0x16B: 'u', 0x14D: 'o',
+      0x12F: 'i', 0x173: 'u', 0x117: 'e', 0x146: 'n', 0x13C: 'l',
+      0x137: 'k', 0x123: 'g',
+      // Romanian: ă ș ț (and older cedilla forms ş ţ)
+      0x103: 'a', 0x219: 's', 0x21B: 't', 0x15F: 's', 0x163: 't',
+      // Hungarian: ő ű
+      0x151: 'o', 0x171: 'u',
+      // Turkish: ğ ı
+      0x11F: 'g', 0x131: 'i',
     };
     final buf = StringBuffer();
     // toLowerCase() first so only lowercase codepoints need to be in the map.

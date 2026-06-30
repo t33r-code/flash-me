@@ -1990,6 +1990,18 @@ abstract class AppLocalizations {
   /// **'Question {number}: select the correct option.'**
   String messageSelectCorrectOptionNumber(int number);
 
+  /// No description provided for @labelQuestionAsCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Question as card'**
+  String get labelQuestionAsCard;
+
+  /// No description provided for @messageQuestionAsCardSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the question immediately without tapping \"More\" (single-question cards only)'**
+  String get messageQuestionAsCardSubtitle;
+
   /// No description provided for @titleNewWorkbookCard.
   ///
   /// In en, this message translates to:

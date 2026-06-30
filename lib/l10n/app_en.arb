@@ -453,6 +453,9 @@
     }
   },
 
+  "labelQuestionAsCard": "Question as card",
+  "messageQuestionAsCardSubtitle": "Show the question immediately without tapping \"More\" (single-question cards only)",
+
   "titleNewWorkbookCard": "New Workbook Card",
   "titleEditWorkbookCard": "Edit Workbook Card",
   "titleDeleteWorkbookCard": "Delete Workbook Card",

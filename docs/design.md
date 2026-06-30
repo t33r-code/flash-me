@@ -408,8 +408,9 @@ Worked example — expected answer `pračuju` (normalises to `pracuju`):
 1. The study session screen detects card type from `cardTypeMap` (see Session Integration below).
 2. For a Workbook Card, the primary view shows only the **prompt** — there is no word/translation reveal.
 3. **More** reveals all questions simultaneously. Users can answer in any order.
-4. **Skip / Review** marks work identically to Flash Cards — one mark per card for the whole card.
-5. Per-question pass/fail is tracked in `questionResults` using the same `{cardId}_{questionId}` key pattern used for Flash Card fields.
+4. When `questionAsCard == true` (single-question cards only), the card opens pre-expanded — the "More" prompt card is skipped entirely.
+5. **Skip / Review** marks work identically to Flash Cards — one mark per card for the whole card.
+6. Per-question pass/fail is tracked in `questionResults` using the same `{cardId}_{questionId}` key pattern used for Flash Card fields.
 
 ---
 
@@ -423,6 +424,7 @@ workbookCards/{cardId}
     type: string                  ← 'text_input' | 'multiple_choice' | 'word_order' | 'fill_in_blanks' | 'grid'
     prompt: string?               ← optional per-question label / instruction
     content: map                  ← shape varies by type (see below)
+  questionAsCard: bool            ← when true (and exactly one question) the card opens pre-expanded; default false
   tags: string[]
   nativeLanguage: string?         ← ISO 639-1 code
   targetLanguage: string?         ← ISO 639-1 code

@@ -534,7 +534,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
           child: child,
         ),
       ),
-      child: _fullyRevealed
+      child: (_fullyRevealed || card.questionAsCard)
           ? SingleChildScrollView(
               key: ValueKey('$_currentIndex-wb-revealed'),
               padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),

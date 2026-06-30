@@ -353,6 +353,7 @@ class _WorkbookCardFormScreenState
   final List<_QuestionState> _questions = [];
   String? _nativeLanguage;
   String? _targetLanguage;
+  bool _questionAsCard = false;
   bool _isSaving = false;
 
   bool get _isEditing => widget.card != null;
@@ -367,6 +368,7 @@ class _WorkbookCardFormScreenState
       _questions.addAll(card.questions.map(_QuestionState.fromQuestion));
       _nativeLanguage = card.nativeLanguage;
       _targetLanguage = card.targetLanguage;
+      _questionAsCard = card.questionAsCard;
     } else if (widget.parentSet != null) {
       _nativeLanguage = widget.parentSet!.nativeLanguage;
       _targetLanguage = widget.parentSet!.targetLanguage;
@@ -386,12 +388,19 @@ class _WorkbookCardFormScreenState
     super.dispose();
   }
 
-  void _addQuestion() => setState(() => _questions.add(_QuestionState.empty()));
+  void _addQuestion() {
+    setState(() {
+      _questions.add(_QuestionState.empty());
+      // questionAsCard is only valid for exactly one question.
+      if (_questions.length != 1) _questionAsCard = false;
+    });
+  }
 
   void _removeQuestion(int index) {
     setState(() {
       _questions[index].dispose();
       _questions.removeAt(index);
+      if (_questions.length != 1) _questionAsCard = false;
     });
   }
 
@@ -722,6 +731,7 @@ class _WorkbookCardFormScreenState
                 id: '',
                 prompt: _promptController.text.trim(),
                 questions: questions,
+                questionAsCard: _questionAsCard,
                 tags: normalizedTags,
                 nativeLanguage: _nativeLanguage,
                 targetLanguage: _targetLanguage,
@@ -742,6 +752,7 @@ class _WorkbookCardFormScreenState
               widget.card!.copyWith(
                 prompt: _promptController.text.trim(),
                 questions: questions,
+                questionAsCard: _questionAsCard,
                 tags: normalizedTags,
                 nativeLanguage: _nativeLanguage,
                 targetLanguage: _targetLanguage,
@@ -1723,6 +1734,19 @@ class _WorkbookCardFormScreenState
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 12),
                 ..._questions.asMap().entries.map((e) => _buildQuestionCard(e.key)),
+                // "Question as card" only makes sense for exactly one question.
+                if (_questions.length == 1) ...[
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    value: _questionAsCard,
+                    onChanged: (v) => setState(() => _questionAsCard = v),
+                    title: Text(l10n.labelQuestionAsCard),
+                    subtitle: Text(l10n.messageQuestionAsCardSubtitle),
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  ),
+                ],
+                const SizedBox(height: 8),
                 OutlinedButton.icon(
                   onPressed: _addQuestion,
                   icon: const Icon(Icons.add),

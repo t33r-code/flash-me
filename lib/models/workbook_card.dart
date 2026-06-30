@@ -24,6 +24,9 @@ class WorkbookCard {
   // Task description shown before the questions expand (e.g. "Read and answer").
   final String prompt;
   final List<CardQuestion> questions;
+  // When true (and there is exactly one question), study mode opens the card
+  // pre-expanded — the question is shown immediately without tapping "More".
+  final bool questionAsCard;
   final List<String> tags;
   final String? nativeLanguage; // ISO 639-1 code
   final String? targetLanguage; // ISO 639-1 code
@@ -35,6 +38,7 @@ class WorkbookCard {
     required this.id,
     required this.prompt,
     required this.questions,
+    this.questionAsCard = false,
     this.tags = const [],
     this.nativeLanguage,
     this.targetLanguage,
@@ -51,6 +55,7 @@ class WorkbookCard {
       questions: (data['questions'] as List<dynamic>? ?? [])
           .map((q) => CardQuestion.fromJson(q as Map<String, dynamic>))
           .toList(),
+      questionAsCard: data['questionAsCard'] as bool? ?? false,
       tags: List<String>.from(data['tags'] as List? ?? []),
       nativeLanguage: data['nativeLanguage'] as String?,
       targetLanguage: data['targetLanguage'] as String?,
@@ -63,6 +68,7 @@ class WorkbookCard {
   Map<String, dynamic> toFirestore() => {
         'prompt': prompt,
         'questions': questions.map((q) => q.toJson()).toList(),
+        'questionAsCard': questionAsCard,
         'tags': tags,
         'nativeLanguage': nativeLanguage,
         'targetLanguage': targetLanguage,
@@ -75,6 +81,7 @@ class WorkbookCard {
         'id': id,
         'prompt': prompt,
         'questions': questions.map((q) => q.toJson()).toList(),
+        'questionAsCard': questionAsCard,
         'tags': tags,
         'nativeLanguage': nativeLanguage,
         'targetLanguage': targetLanguage,
@@ -87,6 +94,7 @@ class WorkbookCard {
     String? id,
     String? prompt,
     List<CardQuestion>? questions,
+    bool? questionAsCard,
     List<String>? tags,
     String? nativeLanguage,
     String? targetLanguage,
@@ -98,6 +106,7 @@ class WorkbookCard {
         id: id ?? this.id,
         prompt: prompt ?? this.prompt,
         questions: questions ?? this.questions,
+        questionAsCard: questionAsCard ?? this.questionAsCard,
         tags: tags ?? this.tags,
         nativeLanguage: nativeLanguage ?? this.nativeLanguage,
         targetLanguage: targetLanguage ?? this.targetLanguage,

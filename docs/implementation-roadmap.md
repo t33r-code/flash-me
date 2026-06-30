@@ -201,7 +201,12 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 
 **Normalised text matching (#168)**
 - [x] Horizontal pass: apply diacritic-forgiving / typo-tolerant matching across all text-input question types (existing + new) — shared `AppHelpers.isAnswerCorrect`; diacritic stripping + consonant-weighted single-edit tolerance (vowel-for-vowel only at the boundary). Spec in `docs/design.md § Normalised answer matching`
-- [ ] Follow-up (#206): tri-state "Close!" feedback + randomized response phrases (matcher returns Correct/Close/Incorrect)
+- [x] Follow-up (#206): tri-state "Close!" feedback + randomized response phrases (matcher returns Correct/Close/Incorrect)
+
+**Question-as-card mode (#169)**
+- [x] `questionAsCard: bool` field on `WorkbookCard`; default false; persisted to Firestore
+- [x] Authoring UI: toggle shown only when exactly one question is defined; clears automatically when question count changes away from 1
+- [x] Study mode: when true, card opens pre-expanded (skips the "More" prompt card)
 
 ---
 

@@ -1080,6 +1080,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get labelQuestionAsCard => 'Question as card';
+
+  @override
+  String get messageQuestionAsCardSubtitle =>
+      'Show the question immediately without tapping \"More\" (single-question cards only)';
+
+  @override
   String get titleNewWorkbookCard => 'New Workbook Card';
 
   @override

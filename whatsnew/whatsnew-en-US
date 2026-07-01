@@ -1,5 +1,3 @@
-Alpha 0.4
+Alpha 0.5
 
-New: Study Review and Study Mistakes modes let you drill flagged cards or recent errors from across your whole library. A language filter keeps sessions focused when your pool spans multiple languages. High contrast theme activates automatically from your device accessibility settings. Haptic feedback gives a tactile pulse for correct and incorrect answers in study mode.
-
-Bug fix: import no longer falsely flags unchanged multiple-choice cards as modified.
+New question types: fill-in-the-blanks (pick or type missing words) and complete-the-grid (fill labelled grid cells — great for conjugation tables). Text answers now accept missing diacritics and minor typos. Answers are graded correct, close, or incorrect with varied feedback phrases. Single-question workbook cards can now open directly to the question.`

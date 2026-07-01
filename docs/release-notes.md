@@ -2,6 +2,24 @@
 
 ---
 
+## v0.5.0 — Alpha 0.5 — 2026-07-01
+
+### New features
+- Fill-in-the-blanks question type — blank out selected words in a sentence and answer by picking from a word bank or typing the answer (#170)
+- Complete-the-grid question type — fill cells in a labelled grid, ideal for conjugation tables and similar structured patterns (#167)
+- Distractor words for complete-the-grid — add extra words to the word bank to increase difficulty (#203)
+- Smart answer matching — text input answers are accepted with missing diacritics or minor typing slips; full diacritic entry still accepted (#168)
+- Three-level answer feedback — answers are graded as correct, close (minor slip forgiven), or incorrect, with varied confirmation phrases (#206)
+- Question-as-card mode — single-question workbook cards can open directly to the question without tapping "More" (#169)
+
+### Bug fixes
+- None
+
+### Known issues
+- None identified
+
+---
+
 ## v0.4a — Alpha 0.4 — 2026-06-25
 
 ### New features

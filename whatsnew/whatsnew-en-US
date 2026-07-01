@@ -1,3 +1,5 @@
 Alpha 0.5
 
-New question types: fill-in-the-blanks (pick or type missing words) and complete-the-grid (fill labelled grid cells — great for conjugation tables). Text answers now accept missing diacritics and minor typos. Answers are graded correct, close, or incorrect with varied feedback phrases. Single-question workbook cards can now open directly to the question.`
+New question types: fill-in-the-blanks (pick or type missing words) and complete-the-grid (fill labelled grid cells — great for conjugation tables). Add distractor words to grids to raise the difficulty. Text answers now accept missing diacritics and minor typos. Answers are graded correct, close, or incorrect with varied feedback phrases. Single-question workbook cards can now open directly to the question.
+
+Bug fix: Study Again no longer hangs on the Session Complete screen.

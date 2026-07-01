@@ -13,7 +13,7 @@
 - Question-as-card mode — single-question workbook cards can open directly to the question without tapping "More" (#169)
 
 ### Bug fixes
-- None
+- Fixed "Study Again" button showing a spinner indefinitely after completing a session (#211)
 
 ### Known issues
 - None identified

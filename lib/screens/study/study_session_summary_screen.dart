@@ -111,9 +111,17 @@ class _StudySessionSummaryScreenState
     setState(() => _starting = true);
 
     try {
-      final cardIds =
-          ref.read(cardIdsInSetProvider(widget.cardSet.id)).asData?.value ?? [];
-      if (cardIds.isEmpty) return;
+      // Fetch directly from the repository rather than reading the provider
+      // snapshot — the autoDispose provider may have been released by the time
+      // the summary screen calls Study Again, leaving asData?.value as null.
+      final cardIds = await ref
+          .read(cardSetRepositoryProvider)
+          .watchCardIdsInSet(widget.cardSet.id, _uid)
+          .first;
+      if (cardIds.isEmpty) {
+        if (mounted) setState(() => _starting = false);
+        return;
+      }
 
       // Fetch setCard join docs to rebuild cardTypeMap (flash vs workbook).
       // Without this, workbook cards are not recognised in the new session.

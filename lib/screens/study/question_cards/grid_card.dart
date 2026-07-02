@@ -129,15 +129,6 @@ class _GridCardState extends State<_GridCard> {
     widget.onResult?.call(allCorrect);
   }
 
-  void _tryAgain() {
-    for (final c in _textControllers.values) { c.clear(); }
-    setState(() {
-      _placement.clear();
-      _selectedCell = _hiddenOrder.isNotEmpty ? _hiddenOrder.first : null;
-      _result = null;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -217,18 +208,10 @@ class _GridCardState extends State<_GridCard> {
                   child: Text(context.l10n.actionCheck),
                 ),
               )
-            else if (isAccepted)
-              _ResultBanner(
-                accepted: true,
-                message: FeedbackPhrases.forResult(_result!, context.l10n),
-              )
             else
               _ResultBanner(
-                accepted: false,
+                accepted: isAccepted,
                 message: FeedbackPhrases.forResult(_result!, context.l10n),
-                trailing: TextButton(
-                    onPressed: _tryAgain,
-                    child: Text(context.l10n.actionTryAgain)),
               ),
           ],
         ),

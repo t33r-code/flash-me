@@ -1533,9 +1533,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionCheck => 'Check';
 
   @override
-  String get actionTryAgain => 'Try Again';
-
-  @override
   String messageAnswerReveal(String answer) {
     return 'Answer: $answer';
   }

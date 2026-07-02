@@ -307,7 +307,7 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 - [x] Reveal-on-click fields: prompt label + tap-to-reveal answer
 - [x] Text input fields: text field + submit; case-insensitive validation; respect `exactMatch` flag; correct/incorrect feedback
 - [x] Multiple choice fields: option buttons; highlight correct/incorrect on selection
-- [x] "Try Again" button to re-attempt a field after a wrong answer
+- [x] ~~"Try Again" button to re-attempt a field after a wrong answer~~ — removed in #213 (results are final; confuses session scoring / review signals)
 - [x] Feedback messaging (correct, incorrect, partial) with visual distinction
 
 ##### Phase 5c — Session controls, navigation & persistence (complete)

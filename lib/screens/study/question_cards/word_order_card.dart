@@ -42,14 +42,6 @@ class _WordOrderCardState extends State<_WordOrderCard> {
     widget.onResult?.call(correct);
   }
 
-  void _tryAgain() {
-    setState(() {
-      _available = List.from(widget.question.wordBank ?? []);
-      _placed.clear();
-      _result = null;
-    });
-  }
-
   bool _ordersEqual(List<String> a, List<String> b) {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
@@ -153,9 +145,6 @@ class _WordOrderCardState extends State<_WordOrderCard> {
               _ResultBanner(
                 accepted: false,
                 message: context.l10n.labelIncorrect,
-                trailing: TextButton(
-                    onPressed: _tryAgain,
-                    child: Text(context.l10n.actionTryAgain)),
                 detail: Text(
                   context.l10n.messageAnswerReveal(
                       (widget.question.correctOrder ?? []).join(' ')),

@@ -2776,12 +2776,6 @@ abstract class AppLocalizations {
   /// **'Check'**
   String get actionCheck;
 
-  /// No description provided for @actionTryAgain.
-  ///
-  /// In en, this message translates to:
-  /// **'Try Again'**
-  String get actionTryAgain;
-
   /// No description provided for @messageAnswerReveal.
   ///
   /// In en, this message translates to:

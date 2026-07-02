@@ -226,20 +226,19 @@ Color? _answeredCardColor(BuildContext context,
 //
 // [accepted] picks the icon and colour (check / green vs cancel / red).
 // [message] is the headline (a FeedbackPhrases string or a fixed label).
-// [trailing] is an optional action shown at the end of the row (e.g. Try
-// Again). When present, the message expands to fill the row as it does today.
 // [detail] is an optional line rendered below the row (e.g. the correct-form
 // hint or the answer reveal).
+//
+// The label is always Expanded so longer feedback phrases wrap rather than
+// overflow the row.
 // ---------------------------------------------------------------------------
 class _ResultBanner extends StatelessWidget {
   final bool accepted;
   final String message;
-  final Widget? trailing;
   final Widget? detail;
   const _ResultBanner({
     required this.accepted,
     required this.message,
-    this.trailing,
     this.detail,
   });
 
@@ -248,19 +247,16 @@ class _ResultBanner extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final color = accepted ? context.appColors.onCorrectSurface : scheme.error;
     final icon = accepted ? Icons.check_circle_outline : Icons.cancel_outlined;
-    final label = Text(
-      message,
-      style: TextStyle(color: color, fontWeight: FontWeight.bold),
-    );
 
     final row = Row(children: [
       Icon(icon, color: color, size: 20),
       const SizedBox(width: 6),
-      // Expand the label only when there's a trailing action, matching the
-      // original per-card layouts (plain Text when alone, Expanded with a
-      // button beside it).
-      if (trailing != null) Expanded(child: label) else label,
-      ?trailing,
+      Expanded(
+        child: Text(
+          message,
+          style: TextStyle(color: color, fontWeight: FontWeight.bold),
+        ),
+      ),
     ]);
 
     if (detail == null) return row;

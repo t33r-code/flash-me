@@ -133,7 +133,8 @@ class StudySession {
   final int cardsKnown;
   final int cardsUnknown;
   // First-attempt question score across the session (flash + workbook questions).
-  // Each distinct question counts once; retries via "Try Again" don't re-count.
+  // Each distinct question counts once; re-answers after back-navigation don't
+  // re-count.
   final int questionsCorrect;
   final int questionsTotal;
   final SessionStats sessionStats;

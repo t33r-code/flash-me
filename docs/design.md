@@ -1293,8 +1293,7 @@ The primary word is a recall exercise with no objective answer to check, so the 
   - ◐ Close (if partial match, if logic implemented)
   - ✗ Incorrect: The correct answer is... (if wrong)
   - Show hint if available
-- Field state locked after checking (can't edit without resetting)
-- Option: "Try Again" button to reset and try different answer
+- Field state locked after checking — the result is final; the user moves on via the session navigation controls (no re-attempt)
 
 **Multiple Choice Field:**
 - Shows label/question and options as radio buttons
@@ -1304,8 +1303,7 @@ The primary word is a recall exercise with no objective answer to check, so the 
   - ✓ Correct!
   - ✗ Incorrect: The correct answer is [option]
   - Optional explanation shown if provided
-- Field state locked after checking
-- Option: "Try Again" button to reset selection
+- Field state locked after checking — the result is final (no re-attempt)
 
 #### Navigation & Control
 
@@ -1460,7 +1458,7 @@ Every time a user answers an interactive field during study, the outcome is reco
 | `multiple_choice` | User selects an option | `success` if selected index matches `correctIndex`; `fail` otherwise |
 | `reveal` | User taps to reveal | **Not tracked** — passive field with no checkable outcome |
 
-A **Try Again** on a text input generates a second result entry if the user re-checks — the full attempt history is captured.
+Each check records a single result entry. There is no in-session re-attempt — once a question is checked its outcome is final for that visit.
 
 #### Rolling Window
 

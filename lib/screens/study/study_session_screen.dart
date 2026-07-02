@@ -81,8 +81,8 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   bool _cardLoadFailed = false;
 
   // Question keys ('{cardId}_{questionId}') already counted toward the session
-  // score. Ensures first-attempt-only scoring — retries via "Try Again" and
-  // re-answers after back-navigation don't re-count.
+  // score. Ensures first-attempt-only scoring — re-answers after back-navigation
+  // don't re-count.
   final Set<String> _countedQuestions = {};
 
   @override

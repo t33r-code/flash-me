@@ -134,15 +134,6 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
     widget.onResult?.call(allCorrect);
   }
 
-  void _tryAgain() {
-    for (final c in _textControllers.values) { c.clear(); }
-    setState(() {
-      _placement.clear();
-      _selectedBlank = _blankIndices.isNotEmpty ? _blankIndices.first : null;
-      _result = null;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -221,9 +212,6 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
               _ResultBanner(
                 accepted: false,
                 message: FeedbackPhrases.forResult(_result!, context.l10n),
-                trailing: TextButton(
-                    onPressed: _tryAgain,
-                    child: Text(context.l10n.actionTryAgain)),
                 detail: Text(
                   context.l10n.messageAnswerReveal(
                       widget.question.sentence ?? ''),

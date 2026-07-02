@@ -86,7 +86,7 @@ After tapping **More**, any interactive fields on the card become active:
 
 ### Text Input { #study-text-input }
 
-Type your answer and tap **Check** (or press Enter). Agora tells you whether you're correct and, if not, shows the accepted answer(s). Tap **Try Again** to re-attempt before moving on.
+Type your answer and tap **Check** (or press Enter). Agora tells you whether you're correct and, if not, shows the accepted answer(s). Your result is final — move on with the navigation controls at the bottom.
 
 ### Multiple Choice { #study-multiple-choice }
 

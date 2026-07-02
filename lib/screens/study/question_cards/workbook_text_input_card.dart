@@ -47,15 +47,6 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
     widget.onResult?.call(best != AnswerResult.incorrect);
   }
 
-  void _tryAgain() {
-    setState(() {
-      _controller.clear();
-      _result = null;
-      _matchedAnswer = null;
-    });
-    _focusNode.requestFocus();
-  }
-
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -130,9 +121,6 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
                 _ResultBanner(
                   accepted: false,
                   message: FeedbackPhrases.forResult(_result!, context.l10n),
-                  trailing: TextButton(
-                      onPressed: _tryAgain,
-                      child: Text(context.l10n.actionTryAgain)),
                   detail: Text(
                     context.l10n.messageAnswerReveal(
                         (widget.question.correctAnswers ?? []).join(' / ')),

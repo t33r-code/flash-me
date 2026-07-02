@@ -674,7 +674,6 @@
   "semanticsOptionIncorrect": ", incorrect",
   "hintTypeYourAnswer": "Type your answer",
   "actionCheck": "Check",
-  "actionTryAgain": "Try Again",
   "messageAnswerReveal": "Answer: {answer}",
   "@messageAnswerReveal": {
     "placeholders": {

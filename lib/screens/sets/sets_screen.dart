@@ -13,6 +13,12 @@ import 'package:flash_me/screens/sets/set_form_screen.dart';
 
 enum _SortOrder { updated, name, cardCount }
 
+// Parses a CSS hex colour string (e.g. '#a1b2c3') into a Flutter Color.
+Color _hexColor(String hex) {
+  final h = hex.replaceFirst('#', '');
+  return Color(int.parse('ff$h', radix: 16));
+}
+
 // Converts a DateTime to a short locale-aware relative date string.
 String _formatRelativeDate(DateTime dt, AppLocalizations l10n) {
   final now = DateTime.now();
@@ -202,77 +208,21 @@ class _MySetsTabState extends ConsumerState<_MySetsTab> {
 
     return Column(
       children: [
-        // Search bar.
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: l10n.hintSearchSets,
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () => setState(() {
-                        _searchController.clear();
-                        _searchQuery = '';
-                      }),
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(28),
-                borderSide: BorderSide.none,
-              ),
-              filled: true,
-            ),
-            onChanged: (v) => setState(() => _searchQuery = v.trim()),
-          ),
+        _SetsSearchAndFilter(
+          controller: _searchController,
+          searchQuery: _searchQuery,
+          hintText: l10n.hintSearchSets,
+          allTags: allTags,
+          selectedTag: _selectedTag,
+          onSearch: (v) => setState(() => _searchQuery = v.trim()),
+          onClearSearch: () => setState(() {
+            _searchController.clear();
+            _searchQuery = '';
+          }),
+          onTagSelected: (tag) => setState(() => _selectedTag = tag),
+          // Sort indicator only shown when there are sets to sort.
+          sortLabel: allSets.isNotEmpty ? sortLabel : null,
         ),
-
-        // Tag filter chips.
-        if (allTags.isNotEmpty)
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Row(
-              children: [
-                FilterChip(
-                  label: Text(l10n.labelAll),
-                  selected: _selectedTag == null,
-                  onSelected: (_) => setState(() => _selectedTag = null),
-                ),
-                const SizedBox(width: 8),
-                ...allTags.map((tag) => Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(tag),
-                        selected: _selectedTag == tag,
-                        onSelected: (_) => setState(() =>
-                            _selectedTag = _selectedTag == tag ? null : tag),
-                      ),
-                    )),
-              ],
-            ),
-          ),
-
-        // Active sort label — subtle indicator below the chips.
-        if (allSets.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-            child: Row(
-              children: [
-                Icon(Icons.sort,
-                    size: 14,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant),
-                const SizedBox(width: 4),
-                Text(
-                  sortLabel,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant),
-                ),
-              ],
-            ),
-          ),
 
         Expanded(
           child: setsAsync.when(
@@ -350,11 +300,6 @@ class _MySetsEmptyState extends StatelessWidget {
 class _SetTile extends StatelessWidget {
   final CardSet cardSet;
   const _SetTile({required this.cardSet});
-
-  Color _hexColor(String hex) {
-    final h = hex.replaceFirst('#', '');
-    return Color(int.parse('ff$h', radix: 16));
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -542,58 +487,19 @@ class _MarketTabState extends ConsumerState<_MarketTab> {
 
     return Column(
       children: [
-        // Search bar.
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: l10n.hintSearchMarket,
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () => setState(() {
-                        _searchController.clear();
-                        _searchQuery = '';
-                      }),
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(28),
-                borderSide: BorderSide.none,
-              ),
-              filled: true,
-            ),
-            onChanged: (v) => setState(() => _searchQuery = v.trim()),
-          ),
+        _SetsSearchAndFilter(
+          controller: _searchController,
+          searchQuery: _searchQuery,
+          hintText: l10n.hintSearchMarket,
+          allTags: allTags,
+          selectedTag: _selectedTag,
+          onSearch: (v) => setState(() => _searchQuery = v.trim()),
+          onClearSearch: () => setState(() {
+            _searchController.clear();
+            _searchQuery = '';
+          }),
+          onTagSelected: (tag) => setState(() => _selectedTag = tag),
         ),
-
-        // Tag filter chips.
-        if (allTags.isNotEmpty)
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Row(
-              children: [
-                FilterChip(
-                  label: Text(l10n.labelAll),
-                  selected: _selectedTag == null,
-                  onSelected: (_) => setState(() => _selectedTag = null),
-                ),
-                const SizedBox(width: 8),
-                ...allTags.map((tag) => Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(tag),
-                        selected: _selectedTag == tag,
-                        onSelected: (_) => setState(() =>
-                            _selectedTag = _selectedTag == tag ? null : tag),
-                      ),
-                    )),
-              ],
-            ),
-          ),
 
         Expanded(
           child: setsAsync.when(
@@ -672,11 +578,6 @@ class _MarketEmptyState extends StatelessWidget {
 class _MarketSetTile extends ConsumerWidget {
   final CardSet cardSet;
   const _MarketSetTile({required this.cardSet});
-
-  Color _hexColor(String hex) {
-    final h = hex.replaceFirst('#', '');
-    return Color(int.parse('ff$h', radix: 16));
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -849,6 +750,113 @@ class _MarketSetTile extends ConsumerWidget {
         ),
       ), // IntrinsicHeight
       ), // InkWell
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Shared search bar + tag filter chips used by both the My Sets and Market
+// tabs.  [sortLabel], when non-null, adds a subtle active-sort indicator row
+// below the chips (My Sets tab only; pass null to suppress it).
+// ---------------------------------------------------------------------------
+class _SetsSearchAndFilter extends StatelessWidget {
+  final TextEditingController controller;
+  final String searchQuery;
+  final String hintText;
+  final List<String> allTags;
+  final String? selectedTag;
+  final ValueChanged<String> onSearch;
+  final VoidCallback onClearSearch;
+  final ValueChanged<String?> onTagSelected;
+  final String? sortLabel;
+
+  const _SetsSearchAndFilter({
+    required this.controller,
+    required this.searchQuery,
+    required this.hintText,
+    required this.allTags,
+    required this.selectedTag,
+    required this.onSearch,
+    required this.onClearSearch,
+    required this.onTagSelected,
+    this.sortLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final scheme = Theme.of(context).colorScheme;
+
+    return Column(
+      children: [
+        // Search field.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          child: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              hintText: hintText,
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: onClearSearch,
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(28),
+                borderSide: BorderSide.none,
+              ),
+              filled: true,
+            ),
+            onChanged: onSearch,
+          ),
+        ),
+
+        // Tag filter chips.
+        if (allTags.isNotEmpty)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                FilterChip(
+                  label: Text(l10n.labelAll),
+                  selected: selectedTag == null,
+                  onSelected: (_) => onTagSelected(null),
+                ),
+                const SizedBox(width: 8),
+                ...allTags.map((tag) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(tag),
+                        selected: selectedTag == tag,
+                        // Toggle off if the same tag is tapped again.
+                        onSelected: (_) =>
+                            onTagSelected(selectedTag == tag ? null : tag),
+                      ),
+                    )),
+              ],
+            ),
+          ),
+
+        // Active sort label — My Sets tab only.
+        if (sortLabel != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+            child: Row(
+              children: [
+                Icon(Icons.sort, size: 14, color: scheme.onSurfaceVariant),
+                const SizedBox(width: 4),
+                Text(
+                  sortLabel!,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: scheme.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

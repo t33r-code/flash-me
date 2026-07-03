@@ -14,7 +14,11 @@ part of '../study_session_screen.dart';
 class _GridCard extends StatefulWidget {
   final GridQuestion question;
   final void Function(bool correct)? onResult;
-  const _GridCard({required this.question, this.onResult});
+  // Resolved display label ("Question N") from the parent; falls back to the
+  // question's own prompt when null.
+  final String? labelOverride;
+  const _GridCard(
+      {required this.question, this.onResult, this.labelOverride});
 
   @override
   State<_GridCard> createState() => _GridCardState();
@@ -135,7 +139,7 @@ class _GridCardState extends State<_GridCard> {
     final appColors = context.appColors;
     final answered = _result != null;
     final isAccepted = _result != AnswerResult.incorrect;
-    final prompt = widget.question.prompt;
+    final prompt = widget.labelOverride ?? widget.question.prompt;
     final q = widget.question;
     final hasRowHeaders = q.rowHeaders.isNotEmpty;
     final hasColHeaders = q.columnHeaders.isNotEmpty;

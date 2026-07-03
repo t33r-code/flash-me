@@ -85,6 +85,8 @@ If you advance without choosing either, the card's recall is counted as **skippe
 
 After tapping **More**, any interactive fields on the card become active:
 
+On a card with **more than one question**, the questions reveal one at a time so you can work through them at a natural pace. The first question is shown straight away; each later question stays collapsed to just its label until you answer the one before it, then it expands automatically. Questions you've already answered stay open. A question with no label of its own shows **Question 1**, **Question 2**, and so on. Cards with a single question are unaffected.
+
 ### Text Input { #study-text-input }
 
 Type your answer and tap **Check** (or press Enter). Agora tells you whether you're correct and, if not, shows the accepted answer(s). Your result is final — move on with the navigation controls at the bottom.

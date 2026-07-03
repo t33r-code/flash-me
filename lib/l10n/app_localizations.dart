@@ -2140,6 +2140,12 @@ abstract class AppLocalizations {
   /// **'e.g. Choose the correct gender'**
   String get hintQuestionLabelWorkbookExample;
 
+  /// No description provided for @hintQuestionNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Question {number}'**
+  String hintQuestionNumber(int number);
+
   /// No description provided for @titlePromptSection.
   ///
   /// In en, this message translates to:

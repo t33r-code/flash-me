@@ -1163,6 +1163,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'e.g. Choose the correct gender';
 
   @override
+  String hintQuestionNumber(int number) {
+    return 'Question $number';
+  }
+
+  @override
   String get titlePromptSection => 'Prompt';
 
   @override

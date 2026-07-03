@@ -278,7 +278,7 @@ A Workbook Card has two visible sections during study:
 
 1. **Prompt** — a plain-text block describing the task (e.g. *"Read the sentence and answer the questions below"*). Shown alone on first view. The user taps **Next** to skip the card entirely, or **More** to expand the questions.
 
-2. **Questions** — all revealed at once when **More** is tapped. Users can work through them in any order and revisit earlier ones. Five question types are supported.
+2. **Questions** — revealed when **More** is tapped. On a multi-question card they reveal **progressively** (#215): the first question shows fully, each later question stays collapsed to its label until the preceding one is answered, then expands automatically. Answered questions remain expanded. A question with a blank prompt shows a **"Question N"** default label (1-based), resolved at render time — no data migration. Single-question cards are unaffected. Five question types are supported.
 
 ---
 
@@ -411,7 +411,7 @@ Worked example — expected answer `pračuju` (normalises to `pracuju`):
 
 1. The study session screen detects card type from `cardTypeMap` (see Session Integration below).
 2. For a Workbook Card, the primary view shows only the **prompt** — there is no word/translation reveal.
-3. **More** reveals all questions simultaneously. Users can answer in any order.
+3. **More** reveals the questions. Multi-question cards reveal **progressively** (#215) — each question expands only once its predecessor has been answered (any result); the first is always shown, answered questions stay expanded. Blank prompts fall back to a **"Question N"** label. This applies to any multi-question card, including Flash Cards that carry multiple questions.
 4. When `questionAsCard == true` (single-question cards only), the card opens pre-expanded — the "More" prompt card is skipped entirely.
 5. **Skip / Review** marks work identically to Flash Cards — one mark per card for the whole card.
 6. Per-question pass/fail is tracked in `questionResults` using the same `{cardId}_{questionId}` key pattern used for Flash Card fields.

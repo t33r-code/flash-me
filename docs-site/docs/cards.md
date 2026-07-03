@@ -154,6 +154,9 @@ Question Templates are useful when the same question recurs across many cards �
 6. Optionally add [tags](#card-tags) — the same autocomplete tag field as on Flash Cards.
 7. Tap **Save**.
 
+!!! tip "Question labels and progressive reveal"
+    On a card with several questions, the learner sees them [one at a time](study.md#answering-fields) — each question stays collapsed to its **label** until the previous one is answered. A clear label per question makes that collapsed state readable. If you leave a question's label blank, study falls back to **Question 1**, **Question 2**, and so on (the label field previews this as placeholder text).
+
 ### Question Types { #question-types }
 
 #### Text Input { #question-text-input }

@@ -19,6 +19,7 @@ import 'package:flash_me/screens/study/study_session_summary_screen.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
+import 'package:flash_me/utils/question_reveal.dart';
 import 'package:flash_me/utils/study_filters.dart';
 import 'package:flash_me/utils/transitions.dart';
 
@@ -90,6 +91,12 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   // was answered incorrectly; reset each time we move to a card. Combined with a
   // "Not yet" self-eval at advance time to decide whether to re-queue.
   bool _currentCardMissed = false;
+
+  // Progressive reveal (#215): 0-based indices of questions on the CURRENT card
+  // that have been answered this visit. Drives which later questions are still
+  // collapsed to a label. Reset on every card change (fresh visit).
+  final Set<int> _answeredQuestions = {};
+
   // Sequence positions whose recall contribution has already been counted, so
   // each visit is graded exactly once. Every visit (including a re-queued
   // repeat, which occupies a new position) is a separate graded experience;
@@ -190,6 +197,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
         _currentIndex--;
         _fullyRevealed = false;
         _currentCardMissed = false; // fresh visit — recompute miss state
+        _answeredQuestions.clear(); // fresh visit — questions start collapsed
         _session = _session.copyWith(currentCardIndex: _currentIndex);
       });
       _scheduleAutoSave();
@@ -225,6 +233,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
         _currentIndex = next;
         _fullyRevealed = false;
         _currentCardMissed = false;
+        _answeredQuestions.clear(); // fresh visit — questions start collapsed
         _session = _session.copyWith(
           currentCardIndex: next,
           // Total experiences high-water: every visit counts, so a re-queued
@@ -498,7 +507,8 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
               child: Column(
                 children: [
                   _PrimaryFieldCard(card: flashCard),
-                  for (final q in flashCard.questions) _buildQuestion(q),
+                  for (final (i, q) in flashCard.questions.indexed)
+                    _revealQuestion(q, i),
                   const SizedBox(height: 16),
                 ],
               ),
@@ -577,8 +587,8 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
               child: Column(
                 children: [
                   _WorkbookPromptHeader(card: card),
-                  for (final q in card.questions)
-                    _buildQuestion(q),
+                  for (final (i, q) in card.questions.indexed)
+                    _revealQuestion(q, i),
                   const SizedBox(height: 16),
                 ],
               ),
@@ -591,30 +601,69 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     );
   }
 
+  // Progressive reveal (#215): wrap a question in a _QuestionReveal so later
+  // questions stay collapsed to a label until their predecessor is answered.
+  // The first question (and any whose predecessor is already answered) shows
+  // fully; the full question widget is only built once expanded.
+  Widget _revealQuestion(CardQuestion q, int index) {
+    final expanded = isQuestionExpanded(index, _answeredQuestions);
+    return _QuestionReveal(
+      key: ValueKey(q.questionId),
+      expanded: expanded,
+      label: _questionLabel(q, index),
+      child: expanded ? _buildQuestion(q, index) : null,
+    );
+  }
+
+  // The label shown for a question — its own prompt, or a "Question N" default
+  // (1-based) when the author left the prompt blank (#215). Used both for the
+  // collapsed state and as the expanded question's header label.
+  String _questionLabel(CardQuestion q, int index) {
+    final p = q.prompt?.trim();
+    return (p != null && p.isNotEmpty)
+        ? p
+        : context.l10n.labelQuestionNumber(index + 1);
+  }
+
+  // Records a question's result and advances the progressive reveal so the next
+  // question expands. Reveal advances on ANY result (correct or not).
+  void _onQuestionResult(CardQuestion q, int index, bool correct) {
+    _recordQuestionResult(q, correct);
+    if (_answeredQuestions.add(index)) setState(() {});
+  }
+
   // Dispatch each question to its typed study widget — used for both flash
   // card questions and workbook card questions since they share CardQuestion.
-  Widget _buildQuestion(CardQuestion q) => switch (q) {
-        TextInputQuestion q => _WorkbookTextInputCard(
-            question: q,
-            onResult: (correct) => _recordQuestionResult(q, correct),
-          ),
-        MultipleChoiceQuestion q => _WorkbookMultipleChoiceCard(
-            question: q,
-            onResult: (correct) => _recordQuestionResult(q, correct),
-          ),
-        WordOrderQuestion q => _WordOrderCard(
-            question: q,
-            onResult: (correct) => _recordQuestionResult(q, correct),
-          ),
-        FillInTheBlanksQuestion q => _FillInTheBlanksCard(
-            question: q,
-            onResult: (correct) => _recordQuestionResult(q, correct),
-          ),
-        GridQuestion q => _GridCard(
-            question: q,
-            onResult: (correct) => _recordQuestionResult(q, correct),
-          ),
-      };
+  Widget _buildQuestion(CardQuestion q, int index) {
+    final label = _questionLabel(q, index);
+    return switch (q) {
+      TextInputQuestion q => _WorkbookTextInputCard(
+          question: q,
+          labelOverride: label,
+          onResult: (correct) => _onQuestionResult(q, index, correct),
+        ),
+      MultipleChoiceQuestion q => _WorkbookMultipleChoiceCard(
+          question: q,
+          labelOverride: label,
+          onResult: (correct) => _onQuestionResult(q, index, correct),
+        ),
+      WordOrderQuestion q => _WordOrderCard(
+          question: q,
+          labelOverride: label,
+          onResult: (correct) => _onQuestionResult(q, index, correct),
+        ),
+      FillInTheBlanksQuestion q => _FillInTheBlanksCard(
+          question: q,
+          labelOverride: label,
+          onResult: (correct) => _onQuestionResult(q, index, correct),
+        ),
+      GridQuestion q => _GridCard(
+          question: q,
+          labelOverride: label,
+          onResult: (correct) => _onQuestionResult(q, index, correct),
+        ),
+    };
+  }
 }
 
 // ---------------------------------------------------------------------------

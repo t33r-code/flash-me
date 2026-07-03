@@ -484,6 +484,18 @@
   "tooltipMoveDown": "Move down",
   "labelQuestionLabelFullOptional": "Question label (optional)",
   "hintQuestionLabelWorkbookExample": "e.g. Choose the correct gender",
+  "labelQuestionNumber": "Question {number}",
+  "@labelQuestionNumber": {
+    "placeholders": {
+      "number": {"type": "int"}
+    }
+  },
+  "hintQuestionNumber": "Question {number}",
+  "@hintQuestionNumber": {
+    "placeholders": {
+      "number": {"type": "int"}
+    }
+  },
   "titlePromptSection": "Prompt",
   "messagePromptSectionHelp": "Task description shown before questions are revealed",
   "labelPromptRequired": "Prompt *",

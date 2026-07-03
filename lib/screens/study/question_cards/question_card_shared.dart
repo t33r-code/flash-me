@@ -299,6 +299,70 @@ class _ResultBanner extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
+// _QuestionReveal — progressive reveal wrapper (#215). Shows the full question
+// widget when [expanded]; otherwise a compact label-only placeholder. The size
+// change is animated so a question smoothly expands when its predecessor is
+// answered. [child] is only supplied (and thus built) once expanded.
+// ---------------------------------------------------------------------------
+class _QuestionReveal extends StatelessWidget {
+  final bool expanded;
+  final String label;
+  final Widget? child;
+  const _QuestionReveal({
+    super.key,
+    required this.expanded,
+    required this.label,
+    this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) => AnimatedSize(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+        alignment: Alignment.topCenter,
+        child: expanded && child != null
+            ? child!
+            : _CollapsedQuestionCard(label: label),
+      );
+}
+
+// ---------------------------------------------------------------------------
+// _CollapsedQuestionCard — a not-yet-revealed question: just its label, dimmed,
+// with a lock hint icon. Non-interactive; it expands when the preceding
+// question is answered (#215).
+// ---------------------------------------------------------------------------
+class _CollapsedQuestionCard extends StatelessWidget {
+  final String label;
+  const _CollapsedQuestionCard({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Icon(Icons.lock_outline, size: 18, color: scheme.onSurfaceVariant),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // _WordBankChips — the tappable word pool shared by fill-in-the-blanks and the
 // grid card (pill completion mode). Pool entries already placed (their index in
 // [usedIds]) are hidden; tapping a remaining chip calls [onTap] with its index.

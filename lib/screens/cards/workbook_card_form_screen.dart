@@ -1598,12 +1598,13 @@ class _WorkbookCardFormScreenState
             ),
             const SizedBox(height: 8),
 
-            // Optional per-question label.
+            // Optional per-question label. Left blank, study shows "Question N"
+            // (#215) — so the placeholder previews that default to the author.
             TextFormField(
               controller: q.promptController,
               decoration: InputDecoration(
                 labelText: l10n.labelQuestionLabelFullOptional,
-                hintText: l10n.hintQuestionLabelWorkbookExample,
+                hintText: l10n.hintQuestionNumber(index + 1),
                 border: const OutlineInputBorder(),
               ),
             ),

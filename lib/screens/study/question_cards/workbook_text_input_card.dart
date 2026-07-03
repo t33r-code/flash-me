@@ -7,7 +7,11 @@ part of '../study_session_screen.dart';
 class _WorkbookTextInputCard extends StatefulWidget {
   final TextInputQuestion question;
   final void Function(bool correct)? onResult;
-  const _WorkbookTextInputCard({required this.question, this.onResult});
+  // Resolved display label ("Question N") from the parent; falls back to the
+  // question's own prompt when null.
+  final String? labelOverride;
+  const _WorkbookTextInputCard(
+      {required this.question, this.onResult, this.labelOverride});
 
   @override
   State<_WorkbookTextInputCard> createState() => _WorkbookTextInputCardState();
@@ -52,7 +56,7 @@ class _WorkbookTextInputCardState extends State<_WorkbookTextInputCard> {
     final scheme = Theme.of(context).colorScheme;
     final answered = _result != null;
     final isAccepted = _result != AnswerResult.incorrect;
-    final prompt = widget.question.prompt;
+    final prompt = widget.labelOverride ?? widget.question.prompt;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

@@ -13,7 +13,11 @@ part of '../study_session_screen.dart';
 class _FillInTheBlanksCard extends StatefulWidget {
   final FillInTheBlanksQuestion question;
   final void Function(bool correct)? onResult;
-  const _FillInTheBlanksCard({required this.question, this.onResult});
+  // Resolved display label ("Question N") from the parent; falls back to the
+  // question's own prompt when null.
+  final String? labelOverride;
+  const _FillInTheBlanksCard(
+      {required this.question, this.onResult, this.labelOverride});
 
   @override
   State<_FillInTheBlanksCard> createState() => _FillInTheBlanksCardState();
@@ -140,7 +144,7 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
     final appColors = context.appColors;
     final answered = _result != null;
     final isAccepted = _result != AnswerResult.incorrect;
-    final prompt = widget.question.prompt;
+    final prompt = widget.labelOverride ?? widget.question.prompt;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

@@ -6,8 +6,11 @@ part of '../study_session_screen.dart';
 class _WorkbookMultipleChoiceCard extends StatefulWidget {
   final MultipleChoiceQuestion question;
   final void Function(bool correct)? onResult;
+  // Resolved display label ("Question N") from the parent; falls back to the
+  // question's own prompt when null.
+  final String? labelOverride;
   const _WorkbookMultipleChoiceCard(
-      {required this.question, this.onResult});
+      {required this.question, this.onResult, this.labelOverride});
 
   @override
   State<_WorkbookMultipleChoiceCard> createState() =>
@@ -45,7 +48,7 @@ class _WorkbookMultipleChoiceCardState
     final options = _displayOptions;
     final correctIndex = _displayCorrectIndex;
     final answered = _selectedIndex != null;
-    final prompt = widget.question.prompt;
+    final prompt = widget.labelOverride ?? widget.question.prompt;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

@@ -233,6 +233,12 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 - [x] Metrics are **per-visit** ("total experiences"): `totalCardsStudied`, recall tallies, and question score count every visit (re-queued repeats included), finalized once per sequence position so back-navigation doesn't double-count; summary derives flash vs workbook visits from `cardSequence.take(totalCardsStudied)`
 - [x] Pure helper `requeueMissedCard` in `utils/study_filters.dart`; unit tests in `test/utils/requeue_test.dart` (incl. reappear-until-correct composition)
 
+**Progressive question reveal in multi-question cards (#215)**
+- [x] On a multi-question card the first question shows fully; each later question stays collapsed to its label until its predecessor is answered (any result), then expands (`AnimatedSize`); answered questions stay expanded
+- [x] Applies to both Workbook Cards and Flash Cards that carry multiple questions; `questionAsCard` / single-question cards unaffected
+- [x] Blank prompts fall back to a **"Question N"** label resolved at render time (no data migration); workbook form previews the same default as placeholder hint text
+- [x] Per-visit reveal state (`_answeredQuestions`) reset on every card change; pure helper `isQuestionExpanded` in `utils/question_reveal.dart` with unit tests in `test/utils/question_reveal_test.dart`
+
 ---
 
 ### Phase 4: Card Sets Management (Weeks 5-6)

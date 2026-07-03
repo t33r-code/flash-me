@@ -1388,6 +1388,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Randomise card order for this session';
 
   @override
+  String get labelRequeueMissed => 'Re-queue missed cards';
+
+  @override
+  String get messageRequeueMissedSubtitle =>
+      'Re-show cards you answer incorrectly until you get them right';
+
+  @override
   String get actionStartNewSession => 'Start New Session';
 
   @override

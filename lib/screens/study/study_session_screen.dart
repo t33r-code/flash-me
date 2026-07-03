@@ -19,6 +19,7 @@ import 'package:flash_me/screens/study/study_session_summary_screen.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
+import 'package:flash_me/utils/study_filters.dart';
 import 'package:flash_me/utils/transitions.dart';
 
 // Workbook question-card widgets and their shared helpers live in part files
@@ -85,15 +86,27 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   // don't re-count.
   final Set<String> _countedQuestions = {};
 
+  // Re-queue missed cards (#214): true once any question on the CURRENT visit
+  // was answered incorrectly; reset each time we move to a card. When the user
+  // advances off a missed card (and requeueMissed is on) the card is appended
+  // to the back of the sequence for another attempt.
+  bool _currentCardMissed = false;
+  // Distinct card IDs the user has actually reached — drives "cards studied" so
+  // re-queued repetitions count once, not per visit.
+  late final Set<String> _seenCardIds;
+
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.session.currentCardIndex;
     _session = widget.session;
-    // Ensure totalCardsStudied reflects at minimum the card currently on screen.
-    final seen = _currentIndex + 1;
-    if (seen > _session.totalCardsStudied) {
-      _session = _session.copyWith(totalCardsStudied: seen);
+    // Distinct cards reached so far (dedupes any re-queued repetitions already
+    // in the persisted sequence up to the resume point).
+    _seenCardIds =
+        _session.cardSequence.take(_currentIndex + 1).toSet();
+    // Ensure totalCardsStudied reflects at minimum the unique cards seen.
+    if (_seenCardIds.length > _session.totalCardsStudied) {
+      _session = _session.copyWith(totalCardsStudied: _seenCardIds.length);
     }
     _loadSessionCards();
   }
@@ -171,6 +184,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
       setState(() {
         _currentIndex--;
         _fullyRevealed = false;
+        _currentCardMissed = false; // fresh visit — recompute miss state
         _session = _session.copyWith(currentCardIndex: _currentIndex);
       });
       _scheduleAutoSave();
@@ -179,16 +193,31 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
 
   // On last card, Next triggers session completion instead of advancing.
   void _next() {
+    // Re-queue the current card to the back if it was missed this visit. This
+    // may grow the sequence, so it happens before the last-card check below —
+    // a re-queued last card advances into its new copy instead of completing.
+    final newSeq = requeueMissedCard(
+      _session.cardSequence,
+      _currentIndex,
+      enabled: _session.requeueMissed,
+      missed: _currentCardMissed,
+    );
+    if (!identical(newSeq, _session.cardSequence)) {
+      _session = _session.copyWith(cardSequence: newSeq);
+    }
+
     if (_currentIndex < _total - 1) {
       final next = _currentIndex + 1;
       setState(() {
         _currentIndex = next;
         _fullyRevealed = false;
+        _currentCardMissed = false;
+        _seenCardIds.add(_session.cardSequence[next]);
         _session = _session.copyWith(
           currentCardIndex: next,
-          // High-water mark: only grows as the user navigates forward.
-          totalCardsStudied: next + 1 > _session.totalCardsStudied
-              ? next + 1
+          // High-water mark of distinct cards reached (re-queues count once).
+          totalCardsStudied: _seenCardIds.length > _session.totalCardsStudied
+              ? _seenCardIds.length
               : _session.totalCardsStudied,
         );
       });
@@ -475,6 +504,10 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   // Key format: '{cardId}_{questionId}' — consistent across flash and workbook cards.
   void _recordQuestionResult(CardQuestion question, bool correct) {
     final key = '${_currentCardId}_${question.questionId}';
+
+    // Re-queue (#214): any wrong answer this visit marks the card as missed, so
+    // it will be appended to the back of the queue when the user advances.
+    if (!correct) _currentCardMissed = true;
 
     // Session score: count each question once, on its first attempt only.
     if (_countedQuestions.add(key)) {

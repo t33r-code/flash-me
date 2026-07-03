@@ -1217,6 +1217,7 @@ users/{userId}/studySessions/{sessionId}
 **2. Study Session Configuration (Optional)**
 - Before starting, user can configure:
   - **Shuffle cards**: Randomize card order (yes/no)
+  - **Re-queue missed cards** (#214): persisted as `StudySession.requeueMissed` (default false). When on, the session engine appends a card's ID to the back of `cardSequence` when the user advances off it having answered any question incorrectly that visit; the card keeps reappearing until a visit with no wrong answers. Appended at most once per visit. Driven by **question results only** — a flashcard with no questions (pure recall self-eval) is never re-queued. The dynamic append is persisted via the normal auto-save path, so a resumed session continues re-queuing. `totalCardsStudied` counts **distinct** cards reached (`uniqueCardsStudied`), so the summary reflects unique cards, not total visits. Pure helpers `requeueMissedCard` / `uniqueCardsStudied` live in `utils/study_filters.dart`. **Study Again** always starts a clean single pass (requeue defaults off; not carried over like `shuffled`).
   - **Filter**: Study only certain cards (e.g., cards marked unknown last session)
   - **Session limit**: Study only first N cards, or time-based limit (optional future feature)
 

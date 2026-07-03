@@ -36,9 +36,10 @@ If the gathered cards span more than one target language, the setup screen shows
 On the setup screen you'll see:
 
 - **Shuffle cards** — when on, the card order is randomised for this session.
+- **Re-queue missed cards** — when on, any card you answer with a wrong question is added to the end of the queue and shown again later, and keeps coming back until you answer every question on it correctly in a single visit. Cards you get right first time are not repeated. The session summary still counts each card once, not per repeat.
 - **Start Session** — begins a new session from the first card.
 
-If a session for this set is already in progress, you'll also see a **Resume** button and a summary of where you left off. You can either resume or start a fresh session with **Start New Session**.
+If a session for this set is already in progress, you'll also see a **Resume** button and a summary of where you left off. You can either resume or start a fresh session with **Start New Session**. (**Study Again** from the summary always starts a clean single pass, regardless of the re-queue setting.)
 
 ---
 

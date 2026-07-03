@@ -141,6 +141,10 @@ class StudySession {
   // Whether the card sequence was shuffled when this session was created.
   // Used by the summary screen to re-apply the same setting on Study Again.
   final bool shuffled;
+  // When true, a card answered with any incorrect question is appended to the
+  // back of cardSequence and re-shown until answered all-correct in one visit
+  // (#214). Persisted so a resumed session honours the setting.
+  final bool requeueMissed;
   // Maps each cardId in cardSequence to its type ('flashcard' | 'workbook').
   // Absent on old sessions — those are all flashcards (backward compatible).
   final Map<String, String> cardTypeMap;
@@ -161,6 +165,7 @@ class StudySession {
     this.questionsTotal = 0,
     required this.sessionStats,
     this.shuffled = false,
+    this.requeueMissed = false,
     this.cardTypeMap = const {},
   });
 
@@ -193,6 +198,7 @@ class StudySession {
               data['sessionStats'] as Map<String, dynamic>)
           : const SessionStats(),
       shuffled: data['shuffled'] as bool? ?? false,
+      requeueMissed: data['requeueMissed'] as bool? ?? false,
       cardTypeMap: Map<String, String>.from(
           data['cardTypeMap'] as Map? ?? {}),
     );
@@ -218,6 +224,7 @@ class StudySession {
         'questionsTotal': questionsTotal,
         'sessionStats': sessionStats.toJson(),
         'shuffled': shuffled,
+        'requeueMissed': requeueMissed,
         'cardTypeMap': cardTypeMap,
       };
 
@@ -237,6 +244,7 @@ class StudySession {
     int? questionsTotal,
     SessionStats? sessionStats,
     bool? shuffled,
+    bool? requeueMissed,
     Map<String, String>? cardTypeMap,
   }) =>
       StudySession(
@@ -255,6 +263,7 @@ class StudySession {
         questionsTotal: questionsTotal ?? this.questionsTotal,
         sessionStats: sessionStats ?? this.sessionStats,
         shuffled: shuffled ?? this.shuffled,
+        requeueMissed: requeueMissed ?? this.requeueMissed,
         cardTypeMap: cardTypeMap ?? this.cardTypeMap,
       );
 }

@@ -599,6 +599,8 @@
   "titleOptions": "Options",
   "labelShuffleCards": "Shuffle cards",
   "messageShuffleCardsSubtitle": "Randomise card order for this session",
+  "labelRequeueMissed": "Re-queue missed cards",
+  "messageRequeueMissedSubtitle": "Re-show cards you answer incorrectly until you get them right",
   "actionStartNewSession": "Start New Session",
   "actionStartSession": "Start Session",
   "errorFailedStartSession": "Failed to start session. Please try again.",

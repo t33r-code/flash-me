@@ -2518,6 +2518,18 @@ abstract class AppLocalizations {
   /// **'Randomise card order for this session'**
   String get messageShuffleCardsSubtitle;
 
+  /// No description provided for @labelRequeueMissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-queue missed cards'**
+  String get labelRequeueMissed;
+
+  /// No description provided for @messageRequeueMissedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-show cards you answer incorrectly until you get them right'**
+  String get messageRequeueMissedSubtitle;
+
   /// No description provided for @actionStartNewSession.
   ///
   /// In en, this message translates to:

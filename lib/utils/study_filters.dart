@@ -110,3 +110,37 @@ String defaultLanguageSelection(
     });
   return sorted.first.key;
 }
+
+// ---------------------------------------------------------------------------
+// Re-queue missed cards (#214) — pure helpers for the study session engine.
+// ---------------------------------------------------------------------------
+
+// Returns the card sequence to use after leaving the card at [currentIndex].
+// When re-queue is [enabled] and the card was [missed] this visit (any question
+// answered incorrectly), a copy of the sequence with that card ID appended to
+// the back is returned; otherwise the original sequence is returned unchanged.
+// Appending at most once per call enforces "never re-queued more than once per
+// visit" — the caller invokes this exactly once when advancing off a card.
+List<String> requeueMissedCard(
+  List<String> sequence,
+  int currentIndex, {
+  required bool enabled,
+  required bool missed,
+}) {
+  if (!enabled ||
+      !missed ||
+      currentIndex < 0 ||
+      currentIndex >= sequence.length) {
+    return sequence;
+  }
+  return [...sequence, sequence[currentIndex]];
+}
+
+// Number of distinct card IDs among the visited positions of a session
+// sequence (indices 0..currentIndex inclusive). Used for "cards studied" so
+// re-queued repetitions count once, not per visit.
+int uniqueCardsStudied(List<String> sequence, int currentIndex) {
+  if (sequence.isEmpty || currentIndex < 0) return 0;
+  final end = (currentIndex + 1).clamp(0, sequence.length);
+  return sequence.take(end).toSet().length;
+}

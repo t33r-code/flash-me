@@ -218,8 +218,15 @@ class _StudySessionSummaryScreenState
 
     // Flashcard count = total studied minus workbook cards (which have no recall
     // self-evaluation). "Skipped" = flashcards seen but not self-evaluated.
-    final workbookCount = widget.session.cardTypeMap.values
-        .where((t) => t == AppConstants.cardTypeWorkbook)
+    // Count workbook VISITS among the positions actually reached (re-queued
+    // repeats counted per visit), so this stays consistent with `studied` being
+    // a per-visit total (#214).
+    final seq = widget.session.cardSequence;
+    final types = widget.session.cardTypeMap;
+    final visited = studied.clamp(0, seq.length);
+    final workbookCount = seq
+        .take(visited)
+        .where((id) => types[id] == AppConstants.cardTypeWorkbook)
         .length;
     final flashcardsStudied = (studied - workbookCount).clamp(0, studied);
     final skipped = (flashcardsStudied - known - unknown).clamp(0, studied);

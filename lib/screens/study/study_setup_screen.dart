@@ -43,6 +43,9 @@ class StudySetupScreen extends ConsumerStatefulWidget {
 
 class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
   bool _shuffle = false;
+  // When on, cards answered with any wrong question are re-shown later in the
+  // session until answered all-correct in one visit (#214).
+  bool _requeueMissed = false;
   // true while the initial getActiveSession() call is in flight
   bool _checkingSession = true;
   bool _starting = false;
@@ -141,6 +144,7 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
               cardsUnknown: 0,
               sessionStats: const SessionStats(),
               shuffled: _shuffle,
+              requeueMissed: _requeueMissed,
               cardTypeMap: cardTypeMap,
             ),
             uid,
@@ -342,6 +346,20 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
                       // Disable while a start is in progress.
                       onChanged:
                           _starting ? null : (v) => setState(() => _shuffle = v),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // ── Re-queue missed cards toggle (#214) ────────────────
+                  Card(
+                    child: SwitchListTile(
+                      title: Text(context.l10n.labelRequeueMissed),
+                      subtitle:
+                          Text(context.l10n.messageRequeueMissedSubtitle),
+                      value: _requeueMissed,
+                      onChanged: _starting
+                          ? null
+                          : (v) => setState(() => _requeueMissed = v),
                     ),
                   ),
 

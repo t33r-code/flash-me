@@ -226,6 +226,13 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 - [x] Grid distractor field accepts a comma-separated entry; overlap filtered against all cell values
 - [x] Existing one-by-one entry preserved (a single word is just a one-item CSV); chips still individually removable; help text + hint updated to signal CSV support
 
+**Re-queue incorrectly answered cards within a session (#214)**
+- [x] `StudySession.requeueMissed: bool` (default false) — persisted, honoured on resume
+- [x] "Re-queue missed cards" toggle on Study Setup (off by default); not carried into Study Again (always a clean pass)
+- [x] Session engine: a card missed this visit — any wrong question answer **or** a "Not yet" flashcard self-eval — is appended to the back of `cardSequence` on advance, and re-shown until a visit where it isn't missed; appended at most once per visit; dynamic appends persisted via auto-save
+- [x] Metrics are **per-visit** ("total experiences"): `totalCardsStudied`, recall tallies, and question score count every visit (re-queued repeats included), finalized once per sequence position so back-navigation doesn't double-count; summary derives flash vs workbook visits from `cardSequence.take(totalCardsStudied)`
+- [x] Pure helper `requeueMissedCard` in `utils/study_filters.dart`; unit tests in `test/utils/requeue_test.dart` (incl. reappear-until-correct composition)
+
 ---
 
 ### Phase 4: Card Sets Management (Weeks 5-6)

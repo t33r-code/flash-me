@@ -220,6 +220,12 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 - [x] Grid text-input cells sized per-cell; max divided across columns (+ row-header slot) so a long value can't push its column off-screen
 - [x] Replaces the earlier crude `length * 11` approximation (duplicated across both cards); pill mode unaffected
 
+**CSV distractor entry for FIB and Grid (#209)**
+- [x] Shared pure parser `AppHelpers.parseDistractorCsv` — splits on commas, trims, drops empties, dedupes (CSV-internal + against existing distractors), discards words already in the question; case-insensitive, preserves original casing; unit tests in `test/utils/distractor_csv_test.dart`
+- [x] FIB distractor field accepts a comma-separated entry; overlap filtered against all sentence tokens
+- [x] Grid distractor field accepts a comma-separated entry; overlap filtered against all cell values
+- [x] Existing one-by-one entry preserved (a single word is just a one-item CSV); chips still individually removable; help text + hint updated to signal CSV support
+
 ---
 
 ### Phase 4: Card Sets Management (Weeks 5-6)

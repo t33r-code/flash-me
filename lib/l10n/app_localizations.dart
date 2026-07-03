@@ -1951,13 +1951,13 @@ abstract class AppLocalizations {
   /// No description provided for @messageFibDistractorsHelp.
   ///
   /// In en, this message translates to:
-  /// **'Extra words added to the pool to make it harder.'**
+  /// **'Extra words added to the pool to make it harder. Separate several with commas; words already in the question are skipped.'**
   String get messageFibDistractorsHelp;
 
   /// No description provided for @hintFibDistractorWord.
   ///
   /// In en, this message translates to:
-  /// **'Add a distractor word'**
+  /// **'Add distractors (comma-separated)'**
   String get hintFibDistractorWord;
 
   /// No description provided for @tooltipDecrease.

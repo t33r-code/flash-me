@@ -507,24 +507,41 @@ class _WorkbookCardFormScreenState
     setState(() => q.fibBlankCount = count.clamp(1, eligible < 1 ? 1 : eligible));
   }
 
-  void _addFibExtraWord(int qIdx, String word) {
-    final w = word.trim();
-    if (w.isEmpty) return;
-    setState(() => _questions[qIdx].fibExtraWords.add(w));
-    _questions[qIdx].fibExtraWordInputController.clear();
-    // Return focus to the field so the next word can be typed immediately.
-    _questions[qIdx].fibExtraWordFocus.requestFocus();
+  // Add one or more distractors from a comma-separated entry (#209).
+  // Words already in the sentence, dupes, and CSV-internal repeats are dropped.
+  void _addFibExtraWord(int qIdx, String csv) {
+    final q = _questions[qIdx];
+    final questionWords =
+        q.fibTokens.map((t) => t.word.toLowerCase()).toSet();
+    final toAdd =
+        AppHelpers.parseDistractorCsv(csv, q.fibExtraWords, questionWords);
+    if (toAdd.isNotEmpty) {
+      setState(() => q.fibExtraWords.addAll(toAdd));
+    }
+    q.fibExtraWordInputController.clear();
+    // Return focus to the field so the next entry can be typed immediately.
+    q.fibExtraWordFocus.requestFocus();
   }
 
   void _removeFibExtraWord(int qIdx, int idx) =>
       setState(() => _questions[qIdx].fibExtraWords.removeAt(idx));
 
-  void _addGridExtraWord(int qIdx, String word) {
-    final w = word.trim();
-    if (w.isEmpty) return;
-    setState(() => _questions[qIdx].gridExtraWords.add(w));
-    _questions[qIdx].gridExtraWordInputController.clear();
-    _questions[qIdx].gridExtraWordFocus.requestFocus();
+  // Add one or more distractors from a comma-separated entry (#209).
+  // Words already in a grid cell, dupes, and CSV-internal repeats are dropped.
+  void _addGridExtraWord(int qIdx, String csv) {
+    final q = _questions[qIdx];
+    final questionWords = <String>{
+      for (final row in q.gridCells)
+        for (final c in row)
+          if (c.text.trim().isNotEmpty) c.text.trim().toLowerCase(),
+    };
+    final toAdd =
+        AppHelpers.parseDistractorCsv(csv, q.gridExtraWords, questionWords);
+    if (toAdd.isNotEmpty) {
+      setState(() => q.gridExtraWords.addAll(toAdd));
+    }
+    q.gridExtraWordInputController.clear();
+    q.gridExtraWordFocus.requestFocus();
   }
 
   void _removeGridExtraWord(int qIdx, int idx) =>

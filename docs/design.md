@@ -583,6 +583,11 @@ setCards/{linkId}                 ← many-to-many join collection
 - Create a `setCards` join document for each card (`{setId, cardId, userId, cardType, addedAt}`)
 - Increment the `cardCount` counter on the set document
 - Cards can be added from: create card flow, card browser, or bulk operations
+- **Picker search/filter**: the add-card bottom sheet has a diacritic- and case-insensitive search box (Flash Cards match `primaryWord`/`translation`/tags; Workbook Cards match `prompt`) and a horizontally-scrollable row of language-pair filter chips. Chips are derived from the language pairs present in the card pool, ordered set's-pair-first then by card count descending; the set's declared pair (if any) is the default selection. Filtering is entirely client-side on the already-loaded card lists.
+- **Language-consistency check (on Add)**: fired when the user taps **Add**, using only the set's *declared* language pair as the reference. Cards with no language metadata are neutral and never trigger a warning.
+  - Set has a declared pair and any selected card differs → "Different language" warning (proceed / cancel).
+  - Set has no declared pair and all selected (non-neutral) cards share one pair → "Set language?" dialog offering *Set language + Add* / *Add only* / *Cancel*; *Set language + Add* writes `targetLanguage`/`nativeLanguage` to the set before adding.
+  - Set has no declared pair and the selection spans multiple pairs → "Mixed languages" warning (proceed / cancel).
 
 **Remove Cards from Set:**
 - User selects card(s) to remove

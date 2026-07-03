@@ -234,6 +234,8 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 - [x] Remove card from set — swipe-left Dismissible on each card row
 - [x] setByIdProvider — keeps AppBar title in sync after editing set metadata
 - [x] Update Firestore indexes: setCards composite indexes now include userId (required by ordered queries with the security rule constraint)
+- [x] Card-picker search + language filter (#210): diacritic/case-insensitive search box (flash: word/translation/tags, workbook: prompt) and a scrollable language-pair chip row (pairs from the pool, set's-pair-first then by card count); all client-side
+- [x] Card-picker language-consistency check on Add (#210): warns on cross-language additions to a language-tagged set; offers to adopt the cards' pair as the set's language when the set is untagged; warns on mixed-language selections. Cards without language metadata are neutral
 
 ##### Phase 4c — Search & filter (deferred, depends on Phase 4d)
 - [ ] Search sets by name *(→ deferred to Alpha 0.2)*

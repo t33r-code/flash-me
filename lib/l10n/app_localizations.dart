@@ -3315,6 +3315,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'By'**
   String get labelMetaBy;
+
+  /// No description provided for @titleSetLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Set language?'**
+  String get titleSetLanguage;
+
+  /// No description provided for @messageSetLanguagePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'{neutralCount, plural, =0{All selected cards are {label}. Set this as the default language for this set?} =1{Some selected cards are {label}. Set this as the default language for this set? (1 selected card has no language set and will be added as-is.)} other{Some selected cards are {label}. Set this as the default language for this set? ({neutralCount} selected cards have no language set and will be added as-is.)}}'**
+  String messageSetLanguagePrompt(int neutralCount, String label);
+
+  /// No description provided for @actionAddOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Add only'**
+  String get actionAddOnly;
+
+  /// No description provided for @actionSetLanguageAndAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Set language + Add'**
+  String get actionSetLanguageAndAdd;
+
+  /// No description provided for @titleMixedLanguages.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed languages'**
+  String get titleMixedLanguages;
+
+  /// No description provided for @messageMixedLanguages.
+  ///
+  /// In en, this message translates to:
+  /// **'The selected cards span more than one language. Sets work best with a single language — add anyway?'**
+  String get messageMixedLanguages;
+
+  /// No description provided for @titleDifferentLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Different language'**
+  String get titleDifferentLanguage;
+
+  /// No description provided for @messageDifferentLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Some of the selected cards are in a different language from this set ({label}). Add anyway?'**
+  String messageDifferentLanguage(String label);
+
+  /// No description provided for @actionAddAnyway.
+  ///
+  /// In en, this message translates to:
+  /// **'Add anyway'**
+  String get actionAddAnyway;
 }
 
 class _AppLocalizationsDelegate

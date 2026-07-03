@@ -1920,4 +1920,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get labelMetaBy => 'By';
+
+  @override
+  String get titleSetLanguage => 'Set language?';
+
+  @override
+  String messageSetLanguagePrompt(int neutralCount, String label) {
+    String _temp0 = intl.Intl.pluralLogic(
+      neutralCount,
+      locale: localeName,
+      other:
+          'Some selected cards are $label. Set this as the default language for this set? ($neutralCount selected cards have no language set and will be added as-is.)',
+      one:
+          'Some selected cards are $label. Set this as the default language for this set? (1 selected card has no language set and will be added as-is.)',
+      zero:
+          'All selected cards are $label. Set this as the default language for this set?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get actionAddOnly => 'Add only';
+
+  @override
+  String get actionSetLanguageAndAdd => 'Set language + Add';
+
+  @override
+  String get titleMixedLanguages => 'Mixed languages';
+
+  @override
+  String get messageMixedLanguages =>
+      'The selected cards span more than one language. Sets work best with a single language — add anyway?';
+
+  @override
+  String get titleDifferentLanguage => 'Different language';
+
+  @override
+  String messageDifferentLanguage(String label) {
+    return 'Some of the selected cards are in a different language from this set ($label). Add anyway?';
+  }
+
+  @override
+  String get actionAddAnyway => 'Add anyway';
 }

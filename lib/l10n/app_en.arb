@@ -881,5 +881,26 @@
   "titleCardInfo": "Card info",
   "labelMetaCreated": "Created",
   "labelMetaUpdated": "Last updated",
-  "labelMetaBy": "By"
+  "labelMetaBy": "By",
+
+  "titleSetLanguage": "Set language?",
+  "messageSetLanguagePrompt": "{neutralCount, plural, =0{All selected cards are {label}. Set this as the default language for this set?} =1{Some selected cards are {label}. Set this as the default language for this set? (1 selected card has no language set and will be added as-is.)} other{Some selected cards are {label}. Set this as the default language for this set? ({neutralCount} selected cards have no language set and will be added as-is.)}}",
+  "@messageSetLanguagePrompt": {
+    "placeholders": {
+      "neutralCount": {"type": "int"},
+      "label": {"type": "String"}
+    }
+  },
+  "actionAddOnly": "Add only",
+  "actionSetLanguageAndAdd": "Set language + Add",
+  "titleMixedLanguages": "Mixed languages",
+  "messageMixedLanguages": "The selected cards span more than one language. Sets work best with a single language — add anyway?",
+  "titleDifferentLanguage": "Different language",
+  "messageDifferentLanguage": "Some of the selected cards are in a different language from this set ({label}). Add anyway?",
+  "@messageDifferentLanguage": {
+    "placeholders": {
+      "label": {"type": "String"}
+    }
+  },
+  "actionAddAnyway": "Add anyway"
 }

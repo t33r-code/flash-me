@@ -32,6 +32,21 @@ These options are available on the create and edit screens:
 4. Tap a card to select it (a tick appears). You can select as many as you like.
 5. Tap **Add** to add the selected cards to the set.
 
+### Finding cards in the picker { #picker-search }
+
+When your library is large, use the tools at the top of the picker to narrow the list:
+
+- **Search** — type any part of a word to filter instantly. Flash Cards match on their word, translation, or tags; Workbook Cards match on their prompt. Search ignores accents and capitalisation.
+- **Language filter chips** — a scrollable row of language pairs found in your cards (for example `ES → EN`). Tap one to show only cards in that language, or **All** to show everything. If the set already has a language, that pair is selected by default.
+
+### Keeping a set to one language { #picker-language-check }
+
+Sets work best with a single language pair. When you add cards, Agora checks the languages involved:
+
+- **The set already has a language** and a selected card is in a different one — you're warned before adding, and can choose to add anyway.
+- **The set has no language yet** and every selected card shares one pair — you're offered to make that pair the set's default language as part of adding. (Cards with no language set are added as-is.)
+- **The set has no language yet** and the selection spans more than one pair — you're warned that the cards are mixed, and can choose to add anyway.
+
 ---
 
 ## Removing Cards from a Set { #remove-cards }

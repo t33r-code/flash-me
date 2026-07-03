@@ -229,10 +229,9 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 **Re-queue incorrectly answered cards within a session (#214)**
 - [x] `StudySession.requeueMissed: bool` (default false) — persisted, honoured on resume
 - [x] "Re-queue missed cards" toggle on Study Setup (off by default); not carried into Study Again (always a clean pass)
-- [x] Session engine: a card with any wrong question answer this visit is appended to the back of `cardSequence` on advance, and re-shown until a visit with no wrong answers; appended at most once per visit; dynamic appends persisted via auto-save
-- [x] `totalCardsStudied` counts distinct cards reached, so the summary reflects unique cards not total visits
-- [x] Pure helpers `requeueMissedCard` / `uniqueCardsStudied` in `utils/study_filters.dart`; unit tests in `test/utils/requeue_test.dart` (incl. reappear-until-correct composition)
-- [ ] Follow-up: pure-recall flashcards (no questions) are not re-queued today — decide whether a "Not yet" self-eval should also trigger re-queue
+- [x] Session engine: a card missed this visit — any wrong question answer **or** a "Not yet" flashcard self-eval — is appended to the back of `cardSequence` on advance, and re-shown until a visit where it isn't missed; appended at most once per visit; dynamic appends persisted via auto-save
+- [x] Metrics are **per-visit** ("total experiences"): `totalCardsStudied`, recall tallies, and question score count every visit (re-queued repeats included), finalized once per sequence position so back-navigation doesn't double-count; summary derives flash vs workbook visits from `cardSequence.take(totalCardsStudied)`
+- [x] Pure helper `requeueMissedCard` in `utils/study_filters.dart`; unit tests in `test/utils/requeue_test.dart` (incl. reappear-until-correct composition)
 
 ---
 

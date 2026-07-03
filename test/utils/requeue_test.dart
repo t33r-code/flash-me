@@ -49,31 +49,6 @@ void main() {
     });
   });
 
-  group('uniqueCardsStudied', () {
-    test('counts every card once when there are no re-queues', () {
-      expect(uniqueCardsStudied(['a', 'b', 'c'], 2), 3);
-    });
-
-    test('only counts visited positions (0..currentIndex)', () {
-      expect(uniqueCardsStudied(['a', 'b', 'c'], 0), 1);
-      expect(uniqueCardsStudied(['a', 'b', 'c'], 1), 2);
-    });
-
-    test('re-queued repetitions count once', () {
-      // a was re-queued to the end; after visiting the repeat, still 2 unique.
-      expect(uniqueCardsStudied(['a', 'b', 'a'], 2), 2);
-    });
-
-    test('empty sequence and negative index yield 0', () {
-      expect(uniqueCardsStudied([], 0), 0);
-      expect(uniqueCardsStudied(['a'], -1), 0);
-    });
-
-    test('currentIndex beyond the end is clamped', () {
-      expect(uniqueCardsStudied(['a', 'b'], 10), 2);
-    });
-  });
-
   // Composition test: models the session engine calling requeueMissedCard once
   // per visit, to demonstrate the "keeps reappearing until all correct" AC.
   group('re-queue loop (composition)', () {

@@ -87,27 +87,32 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   final Set<String> _countedQuestions = {};
 
   // Re-queue missed cards (#214): true once any question on the CURRENT visit
-  // was answered incorrectly; reset each time we move to a card. When the user
-  // advances off a missed card (and requeueMissed is on) the card is appended
-  // to the back of the sequence for another attempt.
+  // was answered incorrectly; reset each time we move to a card. Combined with a
+  // "Not yet" self-eval at advance time to decide whether to re-queue.
   bool _currentCardMissed = false;
-  // Distinct card IDs the user has actually reached — drives "cards studied" so
-  // re-queued repetitions count once, not per visit.
-  late final Set<String> _seenCardIds;
+  // Sequence positions whose recall contribution has already been counted, so
+  // each visit is graded exactly once. Every visit (including a re-queued
+  // repeat, which occupies a new position) is a separate graded experience;
+  // back-navigating to an already-left position does not re-count.
+  late final Set<int> _finalizedPositions;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.session.currentCardIndex;
     _session = widget.session;
-    // Distinct cards reached so far (dedupes any re-queued repetitions already
-    // in the persisted sequence up to the resume point).
-    _seenCardIds =
-        _session.cardSequence.take(_currentIndex + 1).toSet();
-    // Ensure totalCardsStudied reflects at minimum the unique cards seen.
-    if (_seenCardIds.length > _session.totalCardsStudied) {
-      _session = _session.copyWith(totalCardsStudied: _seenCardIds.length);
+    // Total experiences high-water: at least the card currently on screen.
+    // Re-queued repeats each occupy a new position, so this counts every visit.
+    final seen = _currentIndex + 1;
+    if (seen > _session.totalCardsStudied) {
+      _session = _session.copyWith(totalCardsStudied: seen);
     }
+    // When resuming THIS same session, positions before the resume point were
+    // already graded earlier in this run and are counted in this session's own
+    // restored tallies. Seed them as finalized so navigating back then forward
+    // doesn't double-count them. (A brand-new session — Start New / Study Again —
+    // starts with empty tallies and an empty set; no cross-session carry-over.)
+    _finalizedPositions = {for (var i = 0; i < _currentIndex; i++) i};
     _loadSessionCards();
   }
 
@@ -193,14 +198,22 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
 
   // On last card, Next triggers session completion instead of advancing.
   void _next() {
-    // Re-queue the current card to the back if it was missed this visit. This
-    // may grow the sequence, so it happens before the last-card check below —
-    // a re-queued last card advances into its new copy instead of completing.
+    // Count this visit's recall result before leaving the card.
+    _finalizeCurrentVisit();
+
+    // The card is "missed" this visit if any question was answered wrong OR the
+    // user self-evaluated the primary word as "Not yet" (#214).
+    final missed = _currentCardMissed ||
+        _currentCardData.primaryResult == AppConstants.primaryResultUnknown;
+
+    // Re-queue the current card to the back if it was missed. This may grow the
+    // sequence, so it happens before the last-card check below — a re-queued
+    // last card advances into its new copy instead of completing.
     final newSeq = requeueMissedCard(
       _session.cardSequence,
       _currentIndex,
       enabled: _session.requeueMissed,
-      missed: _currentCardMissed,
+      missed: missed,
     );
     if (!identical(newSeq, _session.cardSequence)) {
       _session = _session.copyWith(cardSequence: newSeq);
@@ -212,12 +225,12 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
         _currentIndex = next;
         _fullyRevealed = false;
         _currentCardMissed = false;
-        _seenCardIds.add(_session.cardSequence[next]);
         _session = _session.copyWith(
           currentCardIndex: next,
-          // High-water mark of distinct cards reached (re-queues count once).
-          totalCardsStudied: _seenCardIds.length > _session.totalCardsStudied
-              ? _seenCardIds.length
+          // Total experiences high-water: every visit counts, so a re-queued
+          // repeat (a new position) increments this just like a fresh card.
+          totalCardsStudied: next + 1 > _session.totalCardsStudied
+              ? next + 1
               : _session.totalCardsStudied,
         );
       });
@@ -264,9 +277,10 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   }
 
   // Records the user's self-evaluation of the primary word recall for the
-  // current card. Sets primaryResult and recomputes the session known/not-yet
-  // tallies. Does not auto-advance — the user proceeds via the nav arrow, and
-  // may still tap More to answer the card's questions afterwards.
+  // current card into the progress map (for UI highlight + resume). The recall
+  // tallies are NOT recomputed here — each visit's contribution is counted once
+  // when the user leaves the card (see _finalizeCurrentVisit), so re-queued
+  // repeats each count as a separate experience (#214).
   void _setPrimaryResult(String result) {
     HapticFeedback.selectionClick();
     final updated = Map<String, CardSessionData>.from(_session.cardProgress);
@@ -275,25 +289,25 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
       status: AppConstants.cardStatusAnswered,
     );
 
-    // Recount from the full progress map. Workbook cards never set primaryResult,
-    // so this is inherently flashcard-only.
-    int known = 0, unknown = 0;
-    for (final d in updated.values) {
-      if (d.primaryResult == AppConstants.primaryResultKnown) {
-        known++;
-      } else if (d.primaryResult == AppConstants.primaryResultUnknown) {
-        unknown++;
-      }
-    }
-
     setState(() {
-      _session = _session.copyWith(
-        cardProgress: updated,
-        cardsKnown: known,
-        cardsUnknown: unknown,
-      );
+      _session = _session.copyWith(cardProgress: updated);
     });
     _scheduleAutoSave();
+  }
+
+  // Counts the current visit's recall result toward the session tallies, exactly
+  // once per sequence position (#214). Every visit — including a re-queued
+  // repeat, which occupies a new position — is a distinct graded experience;
+  // back-navigating to an already-left position does not re-count. Workbook
+  // cards never set primaryResult, so they contribute nothing here.
+  void _finalizeCurrentVisit() {
+    if (!_finalizedPositions.add(_currentIndex)) return; // already counted
+    final result = _currentCardData.primaryResult;
+    if (result == AppConstants.primaryResultKnown) {
+      _session = _session.copyWith(cardsKnown: _session.cardsKnown + 1);
+    } else if (result == AppConstants.primaryResultUnknown) {
+      _session = _session.copyWith(cardsUnknown: _session.cardsUnknown + 1);
+    }
   }
 
   // Cancel any pending save and restart the countdown.
@@ -503,13 +517,16 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   // Persists a success/fail outcome for a question — fire-and-forget.
   // Key format: '{cardId}_{questionId}' — consistent across flash and workbook cards.
   void _recordQuestionResult(CardQuestion question, bool correct) {
-    final key = '${_currentCardId}_${question.questionId}';
+    // Key by sequence position so each VISIT of a question scores once: a
+    // re-queued card sits at a new position and counts again (a fresh
+    // experience), while re-answering within one visit does not double-count.
+    final key = '${_currentIndex}_${_currentCardId}_${question.questionId}';
 
     // Re-queue (#214): any wrong answer this visit marks the card as missed, so
     // it will be appended to the back of the queue when the user advances.
     if (!correct) _currentCardMissed = true;
 
-    // Session score: count each question once, on its first attempt only.
+    // Session score: count each question once per visit, on its first attempt.
     if (_countedQuestions.add(key)) {
       setState(() {
         _session = _session.copyWith(

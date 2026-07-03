@@ -21,14 +21,18 @@ Pick the first result as the current milestone. Report its title and number to t
   --milestone "<MILESTONE_TITLE>" \
   --state closed \
   --json number,title,labels \
-  --jq '.[] | {number: .number, title: .title, labels: [.labels[].name]}'
+  --jq '.[] | select([.labels[].name] | index("internal") | not) | {number: .number, title: .title, labels: [.labels[].name]}'
 ```
 
 (Substitute `<MILESTONE_TITLE>` with the actual title from Step 1. Fall back to plain `gh` if the full path fails.)
 
+The `select(... index("internal") | not)` clause drops any issue carrying the **`internal`** label — devops/tooling/CI/chore work that must never appear in user-facing release notes (see CLAUDE.md → Workflow conventions).
+
 ## Step 3 — Categorise the issues
 
-Sort closed issues into three buckets based on their labels:
+First, **discard any issue labeled `internal`** — these are internal/devops and never belong in release notes (Step 2 already filters them, but re-check here as a safety net).
+
+Sort the remaining closed issues into three buckets based on their labels:
 - **New features**: label contains `feature`, `enhancement`, or `improvement`
 - **Bug fixes**: label contains `bug` or `fix`
 - **Everything else** (chore, deployment, testing, etc.): omit from user-facing notes unless significant

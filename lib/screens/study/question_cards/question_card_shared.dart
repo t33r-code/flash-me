@@ -222,6 +222,36 @@ Color? _answeredCardColor(BuildContext context,
 }
 
 // ---------------------------------------------------------------------------
+// _measuredInputWidth — sizes a fill-in-the-blanks / grid text-input box to fit
+// its expected answer (#216). Lays out [answer] at [style] with a TextPainter
+// (honouring the ambient text scale), then adds the field's horizontal content
+// padding plus slack for the cursor and border. The result is clamped to
+// [minWidth, maxWidth] so single-character answers stay tappable and long ones
+// don't overflow their row — callers pass an available-width-derived maxWidth.
+//
+// The length hint is intentional (#216): box width loosely signals answer
+// length, like a printed fill-in exercise.
+// ---------------------------------------------------------------------------
+double _measuredInputWidth(
+  BuildContext context,
+  String answer,
+  TextStyle? style, {
+  double contentPadding = 8, // horizontal contentPadding per side of the field
+  double minWidth = 52,
+  double maxWidth = 220,
+}) {
+  final painter = TextPainter(
+    text: TextSpan(text: answer, style: style),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: 1,
+  )..layout();
+  // Measured glyphs + padding on both sides + slack for the cursor / border.
+  final width = painter.width + contentPadding * 2 + 14;
+  return width.clamp(minWidth, maxWidth.clamp(minWidth, double.infinity));
+}
+
+// ---------------------------------------------------------------------------
 // _ResultBanner — the post-answer feedback row shared by every question type.
 //
 // [accepted] picks the icon and colour (check / green vs cancel / red).

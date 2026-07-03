@@ -293,12 +293,22 @@ class _GridCardState extends State<_GridCard> {
           ),
         );
       }
-      // Active text field sized to expected content.
-      final approxWidth = (value.length * 11.0).clamp(52.0, 110.0);
+      // Active text field measured to fit the cell's expected value.
+      // maxWidth divides the screen across columns (+1 for a row-header slot)
+      // so a long value can't push its column off-screen.
+      final fieldStyle = Theme.of(context).textTheme.bodyMedium;
+      final fieldWidth = _measuredInputWidth(
+        context,
+        value,
+        fieldStyle,
+        contentPadding: 6, // grid field uses horizontal:6 contentPadding
+        maxWidth:
+            (MediaQuery.sizeOf(context).width / (_cols + 1)).clamp(56.0, 160.0),
+      );
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         child: SizedBox(
-          width: approxWidth,
+          width: fieldWidth,
           child: TextField(
             controller: _textControllers[linearIndex],
             textAlign: TextAlign.center,
@@ -308,7 +318,7 @@ class _GridCardState extends State<_GridCard> {
                   EdgeInsets.symmetric(horizontal: 6, vertical: 6),
               border: OutlineInputBorder(),
             ),
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: fieldStyle,
             textInputAction: TextInputAction.done,
             onChanged: (_) => setState(() {}), // recheck _allTextFilled
           ),

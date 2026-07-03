@@ -210,6 +210,18 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 
 ---
 
+##### Phase 3g — Question Type Polish (Alpha 0.6)
+
+**Goal**: Refinements to the text-input study experience for the new question types.
+
+**Size FIB/Grid text-input boxes to answer length (#216)**
+- [x] Shared `_measuredInputWidth` helper (`question_card_shared.dart`): `TextPainter`-measures the correct answer at the field's text style (honouring text scale), adds content padding + cursor slack, clamps to `[minWidth, maxWidth]`
+- [x] Fill-in-the-blanks text-input blanks sized per-blank; max tracks screen width so long answers wrap in the sentence `Wrap` rather than overflow
+- [x] Grid text-input cells sized per-cell; max divided across columns (+ row-header slot) so a long value can't push its column off-screen
+- [x] Replaces the earlier crude `length * 11` approximation (duplicated across both cards); pill mode unaffected
+
+---
+
 ### Phase 4: Card Sets Management (Weeks 5-6)
 
 **Goal**: Enable users to organize cards into sets and manage membership.

@@ -336,7 +336,7 @@ User completes a sentence with one or more blanks. The author types a complete s
 
 In `textInput` mode each blank field is sized to its own correct word (#216): the answer is measured with a `TextPainter` at the field's text style and clamped to a minimum (single-letter answers stay tappable) and a screen-width-derived maximum (long answers wrap in the sentence `Wrap` rather than overflow). The width is a deliberate length hint, like a printed fill-in exercise. Shared helper `_measuredInputWidth` in `question_card_shared.dart`.
 
-**Distractors:** `extraWords` are author-added words that join the pill pool beyond those drawn from the sentence, raising difficulty in pill mode.
+**Distractors:** `extraWords` are author-added words that join the pill pool beyond those drawn from the sentence, raising difficulty in pill mode. The editor accepts a **comma-separated entry** (#209): one tap adds every non-empty word, deduplicating CSV-internal repeats and existing distractors and discarding any word that already appears in the question (sentence tokens for FIB, cell values for the grid), all case-insensitively — so the same raw word list can be pasted onto every question without manual per-question pruning. Shared parser `AppHelpers.parseDistractorCsv`; the grid editor uses the same mechanism.
 
 Content fields: `sentence: String`, `tokens: List<{word, eligible}>`, `blankCount: int`, `extraWords: List<String>`, `completionMode: 'pill' | 'textInput'`.
 

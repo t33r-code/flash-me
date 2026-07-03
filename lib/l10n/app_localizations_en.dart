@@ -1055,10 +1055,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get messageFibDistractorsHelp =>
-      'Extra words added to the pool to make it harder.';
+      'Extra words added to the pool to make it harder. Separate several with commas; words already in the question are skipped.';
 
   @override
-  String get hintFibDistractorWord => 'Add a distractor word';
+  String get hintFibDistractorWord => 'Add distractors (comma-separated)';
 
   @override
   String get tooltipDecrease => 'Decrease';

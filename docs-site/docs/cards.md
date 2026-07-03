@@ -189,7 +189,7 @@ The learner completes a sentence with one or more missing words, chosen from a p
 1. Type the full **Sentence** (e.g. *The cat sat on the mat*) and tap **Tokenize** to split it into words.
 2. Tap the words that may be blanked out — these are highlighted as **eligible**.
 3. Set the **Number of blanks** — each time the question is shown, that many eligible words are hidden at random.
-4. Optionally add **distractor words** — extra pills added to the pool to make it harder.
+4. Optionally add **distractor words** — extra pills added to the pool to make it harder. Type one word or paste a comma-separated list and tap **Add** to create them all at once; any word that already appears in the sentence is skipped automatically, so you can reuse the same list across questions.
 - **Question label** *(optional)* — shown above the sentence.
 
 When studying, the learner taps a blank to select it, then taps a word pill to fill it in. Each card shuffles which eligible words are hidden, so the same question stays fresh on repeat.
@@ -202,6 +202,7 @@ The learner fills in missing cells of a table — handy for conjugation tables, 
 2. Optionally turn on **Column headers** and/or **Row headers** to add a labelled top row or left column. When both are on, the top-left **corner** field lets you title the row-label column (e.g. *Pronoun*).
 3. Fill in every cell of the table (the grid scrolls sideways if it's wide).
 4. Set **Cells to leave empty** — each time the question is shown, that many cells are hidden at random for the learner to complete.
+5. Optionally add **distractor words** — extra pills added to the pool. As with fill-in-the-blanks, you can paste a comma-separated list to add several at once, and any word already used in a grid cell is skipped.
 - **Question label** *(optional)* — shown above the grid.
 
 !!! tip "Labels go in headers, not cells"

@@ -112,6 +112,33 @@ class AppHelpers {
     AppLogger.warning('Tag $operation failed for "$tag": $error');
   }
 
+  // Parse a comma-separated distractor entry (#209) into the list of new words
+  // to add to a fill-in-the-blanks / grid word pool. Splits on commas, trims,
+  // and drops any entry that is empty, duplicates another entry or an already
+  // added distractor ([existing]), or already appears in the question
+  // ([questionWords] — the sentence tokens or grid cell values). Comparison is
+  // case-insensitive; [questionWords] must be supplied lowercased. The original
+  // casing of each kept word is preserved in the result.
+  static List<String> parseDistractorCsv(
+    String csv,
+    List<String> existing,
+    Set<String> questionWords,
+  ) {
+    final seen = <String>{
+      ...existing.map((w) => w.toLowerCase()),
+      ...questionWords,
+    };
+    final added = <String>[];
+    for (final raw in csv.split(',')) {
+      final w = raw.trim();
+      if (w.isEmpty) continue;
+      // Set.add returns false when the (lowercased) word is already present —
+      // covers CSV-internal dupes, existing distractors, and question overlaps.
+      if (seen.add(w.toLowerCase())) added.add(w);
+    }
+    return added;
+  }
+
   // Three-way check: returns correct (normalised exact), close (fuzzy
   // tolerance), or incorrect. Always trims, lowercases, and strips common
   // Latin diacritics. Unless [exact] is true, also checks fuzzy tolerance

@@ -334,6 +334,8 @@ User completes a sentence with one or more blanks. The author types a complete s
 
 **Check** is disabled until all blanks are filled. On checking, correct slots are highlighted green; incorrect slots red with the correct word shown inline. Text-input answers use the system-wide normalised matching (#168, applied as a later horizontal pass across all text-input types).
 
+In `textInput` mode each blank field is sized to its own correct word (#216): the answer is measured with a `TextPainter` at the field's text style and clamped to a minimum (single-letter answers stay tappable) and a screen-width-derived maximum (long answers wrap in the sentence `Wrap` rather than overflow). The width is a deliberate length hint, like a printed fill-in exercise. Shared helper `_measuredInputWidth` in `question_card_shared.dart`.
+
 **Distractors:** `extraWords` are author-added words that join the pill pool beyond those drawn from the sentence, raising difficulty in pill mode.
 
 Content fields: `sentence: String`, `tokens: List<{word, eligible}>`, `blankCount: int`, `extraWords: List<String>`, `completionMode: 'pill' | 'textInput'`.
@@ -356,6 +358,8 @@ User completes a partially-filled table — a conjugation table, pronoun grid, d
 | `textInput` | Empty cells are editable text fields; the user types the missing values |
 
 **Check** is disabled until all empty cells are filled. On checking, correct cells turn green; incorrect cells red with the correct value shown inline. Text-input answers use the system-wide normalised matching (#168).
+
+In `textInput` mode each editable cell is sized to its own correct value (#216) via the same `_measuredInputWidth` helper as fill-in-the-blanks; the maximum is divided across the columns (plus a row-header slot) so a long value can't push its column off-screen.
 
 **Headers vs. cells:** only `cells` are eligible to be hidden — `rowHeaders`, `columnHeaders`, and `cornerLabel` are static labels that are never blanked. This is the mechanism for "label" rows/columns (e.g. the pronoun column of a conjugation table): put the labels in the headers, not in cells. The optional **`cornerLabel`** fills the previously-blank top-left corner so the row-header column can be titled (e.g. *Pronoun*) — without it, authors are tempted to make the label column a regular data column, whose values then become fillable. *Limitation:* labels must live on the grid's edges. A label row/column **in the middle** of the grid is not yet expressible — tracked as a follow-up to add per-cell "static" marking (#200).
 

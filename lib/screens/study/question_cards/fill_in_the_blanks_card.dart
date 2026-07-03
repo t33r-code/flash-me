@@ -371,10 +371,17 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
       );
     }
 
-    // Active: a small inline text field sized to the expected word length.
-    final approxWidth = (correctWord.length * 11.0).clamp(52.0, 130.0);
+    // Active: a small inline text field measured to fit the expected word.
+    // maxWidth tracks screen width so long answers wrap rather than overflow.
+    final fieldStyle = Theme.of(context).textTheme.bodyLarge;
+    final fieldWidth = _measuredInputWidth(
+      context,
+      correctWord,
+      fieldStyle,
+      maxWidth: (MediaQuery.sizeOf(context).width - 64).clamp(120.0, 260.0),
+    );
     return SizedBox(
-      width: approxWidth,
+      width: fieldWidth,
       child: TextField(
         controller: _textControllers[tokenIndex],
         decoration: const InputDecoration(
@@ -382,7 +389,7 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
           contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           border: OutlineInputBorder(),
         ),
-        style: Theme.of(context).textTheme.bodyLarge,
+        style: fieldStyle,
         textInputAction: TextInputAction.done,
         onChanged: (_) => setState(() {}), // recheck _allTextFilled
       ),

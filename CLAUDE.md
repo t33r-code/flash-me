@@ -215,6 +215,7 @@ Remaining Phase 1 items: account linking (deferred), Google Sign-In testing on r
 - **Default branch**: `main`
 - **PRs**: squash-merge, delete branch after merge
 - **Commit messages**: ALWAYS include the GitHub issue number of the work being implemented, e.g. `feat: add account deletion (#77)`. Every commit must be traceable to an issue.
+- **`internal` label**: devops / tooling / CI / chore work that has no user-facing effect gets the **`internal`** GitHub label. Issues carrying it are automatically excluded from user-facing release notes (the `/prepare-release` script filters them out). Use it for build scripts, CI config, agent commands, refactors with no observable behaviour change, etc.
 - **Firestore rules changes**: always deploy after merging (`firebase deploy --only firestore:rules --project flash-me-7a1a2`)
 - **Storage rules changes**: always deploy after merging (`firebase deploy --only storage --project flash-me-7a1a2`)
 - **Roadmap**: update task checkboxes as work is completed; commit the change in the same branch as the work

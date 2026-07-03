@@ -170,6 +170,10 @@ class AppHelpers {
     return diffs == 1;
   }
 
+  // Public entry point for the diacritic-stripping normalizer — used by
+  // search bars that need the same tolerance as answer checking.
+  static String normalizeSearch(String s) => _normalizeForMatch(s);
+
   // Lowercase + map common Latin diacritics to their base letter.
   // Covers European language learning use cases without requiring a package.
   static String _normalizeForMatch(String s) {

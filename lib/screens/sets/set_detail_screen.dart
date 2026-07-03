@@ -245,12 +245,17 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   // Opens the card picker bottom sheet.
   Future<void> _showCardPicker() async {
     final uid = ref.read(authStateProvider).asData?.value ?? '';
+    // Use the live set so a just-edited language pair is reflected immediately.
+    final currentSet =
+        ref.read(setByIdProvider(widget.cardSet.id)) ?? widget.cardSet;
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (_) => _CardPickerSheet(
         setId: widget.cardSet.id,
         userId: uid,
+        targetLanguage: currentSet.targetLanguage,
+        nativeLanguage: currentSet.nativeLanguage,
       ),
     );
   }
@@ -499,7 +504,16 @@ class _WorkbookCardInSetTile extends StatelessWidget {
 class _CardPickerSheet extends ConsumerStatefulWidget {
   final String setId;
   final String userId;
-  const _CardPickerSheet({required this.setId, required this.userId});
+  // If the set has a language pair, these are pre-populated so the picker
+  // defaults to showing only cards in the same language.
+  final String? targetLanguage;
+  final String? nativeLanguage;
+  const _CardPickerSheet({
+    required this.setId,
+    required this.userId,
+    this.targetLanguage,
+    this.nativeLanguage,
+  });
 
   @override
   ConsumerState<_CardPickerSheet> createState() => _CardPickerSheetState();
@@ -510,6 +524,24 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
   final Set<String> _selected = {};
   final Map<String, String> _idToType = {};
   bool _isAdding = false;
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+  // True when the language filter is active; defaults on when the set has a
+  // language pair so the picker opens pre-filtered to matching cards.
+  late bool _applyLangFilter;
+
+  @override
+  void initState() {
+    super.initState();
+    _applyLangFilter =
+        widget.targetLanguage != null && widget.nativeLanguage != null;
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   Future<void> _addSelected() async {
     if (_selected.isEmpty) return;
@@ -624,6 +656,60 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
           ),
           const Divider(height: 1),
 
+          // Language filter chips — only shown when the set has a language pair.
+          if (widget.targetLanguage != null && widget.nativeLanguage != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+              child: Row(
+                children: [
+                  FilterChip(
+                    label: Text(l10n.labelAll),
+                    selected: !_applyLangFilter,
+                    onSelected: (_) =>
+                        setState(() => _applyLangFilter = false),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  const SizedBox(width: 8),
+                  FilterChip(
+                    label: Text(
+                      '${widget.targetLanguage!.toUpperCase()} → ${widget.nativeLanguage!.toUpperCase()}',
+                    ),
+                    selected: _applyLangFilter,
+                    onSelected: (_) => setState(() => _applyLangFilter = true),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
+            ),
+
+          // Search bar.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: l10n.hintSearchCards,
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => setState(() {
+                          _searchController.clear();
+                          _searchQuery = '';
+                        }),
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                isDense: true,
+              ),
+              onChanged: (v) => setState(() => _searchQuery = v.trim()),
+            ),
+          ),
+
           // Card list.
           Expanded(
             child: isLoading
@@ -651,17 +737,53 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
     Set<String> cardIdsInSet,
   ) {
     final l10n = context.l10n;
-    // Flash card buckets.
+
+    // Apply diacritic-forgiving search filter to both card types.
+    final normQuery = _searchQuery.isEmpty
+        ? ''
+        : AppHelpers.normalizeSearch(_searchQuery);
+    var filteredFlash = normQuery.isEmpty
+        ? allFlash
+        : allFlash
+            .where((c) =>
+                AppHelpers.normalizeSearch(c.primaryWord).contains(normQuery) ||
+                AppHelpers.normalizeSearch(c.translation).contains(normQuery) ||
+                c.tags.any(
+                    (t) => AppHelpers.normalizeSearch(t).contains(normQuery)))
+            .toList();
+    var filteredWorkbook = normQuery.isEmpty
+        ? allWorkbook
+        : allWorkbook
+            .where((c) =>
+                AppHelpers.normalizeSearch(c.prompt).contains(normQuery))
+            .toList();
+
+    // Language filter — only cards whose language pair matches the set's.
+    // Cards with no language metadata are excluded when the filter is active.
+    if (_applyLangFilter && widget.targetLanguage != null) {
+      filteredFlash = filteredFlash
+          .where((c) =>
+              c.targetLanguage == widget.targetLanguage &&
+              c.nativeLanguage == widget.nativeLanguage)
+          .toList();
+      filteredWorkbook = filteredWorkbook
+          .where((c) =>
+              c.targetLanguage == widget.targetLanguage &&
+              c.nativeLanguage == widget.nativeLanguage)
+          .toList();
+    }
+
+    // Flash card buckets (based on filtered list).
     final flashInSet =
-        allFlash.where((c) => cardIdsInSet.contains(c.id)).toList();
+        filteredFlash.where((c) => cardIdsInSet.contains(c.id)).toList();
     final inSetWords = flashInSet.map((c) => c.primaryWord).toSet();
-    final flashNotInSet = allFlash
+    final flashNotInSet = filteredFlash
         .where((c) =>
             !cardIdsInSet.contains(c.id) &&
             !inSetWords.contains(c.primaryWord))
         .toList();
     // Different card, same word — can't add without creating a duplicate word.
-    final flashWordConflict = allFlash
+    final flashWordConflict = filteredFlash
         .where((c) =>
             !cardIdsInSet.contains(c.id) &&
             inSetWords.contains(c.primaryWord))
@@ -669,9 +791,9 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
 
     // Workbook card buckets — no word conflict possible.
     final workbookNotInSet =
-        allWorkbook.where((c) => !cardIdsInSet.contains(c.id)).toList();
+        filteredWorkbook.where((c) => !cardIdsInSet.contains(c.id)).toList();
     final workbookInSet =
-        allWorkbook.where((c) => cardIdsInSet.contains(c.id)).toList();
+        filteredWorkbook.where((c) => cardIdsInSet.contains(c.id)).toList();
 
     final hasAnythingSelectable =
         flashNotInSet.isNotEmpty || workbookNotInSet.isNotEmpty;
@@ -682,6 +804,7 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    // Library is genuinely empty (not a search result — check unfiltered).
     if (allFlash.isEmpty && allWorkbook.isEmpty) {
       return Center(
         child: Padding(
@@ -694,7 +817,23 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
       );
     }
 
-    if (!hasAnythingSelectable) {
+    // Active search produced no matches at all.
+    if (normQuery.isNotEmpty &&
+        filteredFlash.isEmpty &&
+        filteredWorkbook.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text(
+            l10n.messageNoCardsMatchSearch,
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    // No search active and every card is already in the set.
+    if (normQuery.isEmpty && !hasAnythingSelectable) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),

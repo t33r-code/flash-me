@@ -2,6 +2,24 @@
 
 ---
 
+## v0.6.0 — Alpha 0.6 — 2026-07-04
+
+### New features
+- Re-queue missed cards within a study session — an optional setting brings back cards you got wrong so they keep reappearing until you answer them right in one go (#214)
+- Progressive question reveal — on cards with several questions, each question now appears one at a time as you answer the previous one, instead of all at once (#215)
+- Search and filter your cards when adding them to a set, so large libraries are easier to work through (#210)
+- Add distractor words in bulk — paste a comma-separated list to create several at once when building fill-in-the-blanks and grid questions (#209)
+- Answer boxes in fill-in-the-blanks and grid questions are now sized to the expected answer length, as a subtle length hint (#216)
+- Answering a question is now final across all question types — the "Try Again" retry was removed for consistent scoring (#213)
+
+### Bug fixes
+- None
+
+### Known issues
+- None identified
+
+---
+
 ## v0.5.0 — Alpha 0.5 — 2026-07-01
 
 ### New features

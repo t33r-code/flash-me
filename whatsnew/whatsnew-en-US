@@ -1,5 +1,3 @@
-Alpha 0.5
+Alpha 0.6
 
-New question types: fill-in-the-blanks (pick or type missing words) and complete-the-grid (fill labelled grid cells — great for conjugation tables). Add distractor words to grids to raise the difficulty. Text answers now accept missing diacritics and minor typos. Answers are graded correct, close, or incorrect with varied feedback phrases. Single-question workbook cards can now open directly to the question.
-
-Bug fix: Study Again no longer hangs on the Session Complete screen.
+Study sessions can now re-queue cards you miss, bringing them back until you answer them right. On cards with several questions, questions reveal one at a time as you go, instead of all at once. Adding cards to a set now has search and filter. When building fill-in-the-blanks and grid questions, you can paste a comma-separated list to add distractor words in bulk, and answer boxes are sized to the expected answer length. Answers are now final across all question types.

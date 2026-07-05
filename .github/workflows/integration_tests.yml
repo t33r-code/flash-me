@@ -13,6 +13,10 @@ on:
       - 'integration_test/**'
       - 'firestore.rules'
       - 'firebase.json'
+      # Run when the workflow itself changes, so CI edits are verified on the PR.
+      - '.github/workflows/integration_tests.yml'
+  # Allow manual runs (e.g. to confirm a fix or re-check a flake).
+  workflow_dispatch:
 
 jobs:
   integration-tests:
@@ -37,7 +41,10 @@ jobs:
           node-version: '20'
 
       - name: Install Firebase CLI
-        run: npm install -g firebase-tools
+        # Pinned (was unpinned `firebase-tools`) so the bundled Firestore emulator
+        # version is reproducible and cannot silently drift between runs. Matches
+        # the version used by the last known-good run; bump deliberately (#228).
+        run: npm install -g firebase-tools@15.22.4
 
       # Resolve the Windows emulator cache path at runtime and export it so the
       # cache action receives a plain string rather than an env context expression.
@@ -75,5 +82,17 @@ jobs:
           timeout 60 bash -c 'until (echo > /dev/tcp/localhost/9099) 2>/dev/null; do echo "waiting for Auth..."; sleep 3; done'
           echo "Emulators ready"
 
+      # The suite runs as one long-lived Windows process; the native
+      # firebase_firestore plugin occasionally crashes near the tail under
+      # cumulative load (abrupt exit, no Dart error — see #228). Retry once so a
+      # single native flake doesn't fail CI. A genuine regression fails both
+      # attempts and the job stays red, so real breakage is not masked. Each
+      # attempt is a fresh `flutter test` process with unique per-test users, so
+      # re-running against the still-running emulator is state-safe.
       - name: Run integration tests
-        run: flutter test integration_test/all_tests.dart -d windows --reporter expanded
+        uses: nick-fields/retry@v3
+        with:
+          shell: pwsh
+          timeout_minutes: 20
+          max_attempts: 2
+          command: flutter test integration_test/all_tests.dart -d windows --reporter expanded

@@ -55,6 +55,10 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
   // or an ISO 639-1 code.
   String? _selectedLangKey;
 
+  // True when the set's author fixed the card order (#244). Synthetic Review /
+  // Mistakes sets span multiple sets, so enforcement never applies to them.
+  bool get _orderEnforced => widget.cardSet.enforceOrder && !widget.isSynthetic;
+
   @override
   void initState() {
     super.initState();
@@ -103,9 +107,11 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
         cardTypeMap = {for (final sc in setCards) sc.cardId: sc.cardType};
       }
 
-      // Build card order — optionally shuffled via Fisher-Yates.
+      // Build card order — cardIds already arrive in author `position` order.
+      // Shuffle only when the learner asked AND the author hasn't fixed the order.
+      final doShuffle = _shuffle && !_orderEnforced;
       final sequence = List<String>.from(cardIds);
-      if (_shuffle) {
+      if (doShuffle) {
         final rng = Random();
         for (var i = sequence.length - 1; i > 0; i--) {
           final j = rng.nextInt(i + 1);
@@ -143,7 +149,7 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
               cardsKnown: 0,
               cardsUnknown: 0,
               sessionStats: const SessionStats(),
-              shuffled: _shuffle,
+              shuffled: doShuffle,
               requeueMissed: _requeueMissed,
               cardTypeMap: cardTypeMap,
             ),
@@ -336,18 +342,31 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
                     const SizedBox(height: 8),
                   ],
 
-                  // ── Shuffle toggle ─────────────────────────────────────
-                  Card(
-                    child: SwitchListTile(
-                      title: Text(context.l10n.labelShuffleCards),
-                      subtitle:
-                          Text(context.l10n.messageShuffleCardsSubtitle),
-                      value: _shuffle,
-                      // Disable while a start is in progress.
-                      onChanged:
-                          _starting ? null : (v) => setState(() => _shuffle = v),
+                  // ── Shuffle toggle / fixed-order note ──────────────────
+                  // When the author enforces order, replace the shuffle toggle
+                  // with an explanatory, non-interactive note.
+                  if (_orderEnforced)
+                    Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.lock_outline),
+                        title: Text(context.l10n.labelFixedCardOrder),
+                        subtitle:
+                            Text(context.l10n.messageFixedCardOrderSubtitle),
+                      ),
+                    )
+                  else
+                    Card(
+                      child: SwitchListTile(
+                        title: Text(context.l10n.labelShuffleCards),
+                        subtitle:
+                            Text(context.l10n.messageShuffleCardsSubtitle),
+                        value: _shuffle,
+                        // Disable while a start is in progress.
+                        onChanged: _starting
+                            ? null
+                            : (v) => setState(() => _shuffle = v),
+                      ),
                     ),
-                  ),
                   const SizedBox(height: 8),
 
                   // ── Re-queue missed cards toggle (#214) ────────────────

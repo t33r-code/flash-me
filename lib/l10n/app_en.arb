@@ -614,6 +614,8 @@
   "titleOptions": "Options",
   "labelShuffleCards": "Shuffle cards",
   "messageShuffleCardsSubtitle": "Randomise card order for this session",
+
+  "messageFixedCardOrderSubtitle": "The author fixed this set's order, so it can't be shuffled.",
   "labelRequeueMissed": "Re-queue missed cards",
   "messageRequeueMissedSubtitle": "Re-show cards you answer incorrectly until you get them right",
   "actionStartNewSession": "Start New Session",

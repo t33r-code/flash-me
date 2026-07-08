@@ -35,7 +35,7 @@ If the gathered cards span more than one target language, the setup screen shows
 
 On the setup screen you'll see:
 
-- **Shuffle cards** — when on, the card order is randomised for this session.
+- **Shuffle cards** — when on, the card order is randomised for this session. If the set's author has turned on [Enforce card order](sets.md#set-details), this toggle stays visible but is switched off and disabled — the set is always studied in the author's order and can't be shuffled. (Study Review and Study Mistakes are never affected — they can always be shuffled.)
 - **Re-queue missed cards** — when on, any card you *miss* is added to the end of the queue and shown again later, and keeps coming back until you get it right in a single visit. A card counts as missed if you answer any of its questions incorrectly, or if you rate a flash card's word **Not yet**. Cards you get right first time are not repeated. Your session stats count **every time you see a card**, so if a re-queued card comes back and you get it right, that counts as a separate experience from the earlier miss — the summary reflects your whole session, repeats included.
 - **Start Session** — begins a new session from the first card.
 

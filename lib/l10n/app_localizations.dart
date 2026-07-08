@@ -2536,6 +2536,12 @@ abstract class AppLocalizations {
   /// **'Randomise card order for this session'**
   String get messageShuffleCardsSubtitle;
 
+  /// No description provided for @messageFixedCardOrderSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The author fixed this set\'s order, so it can\'t be shuffled.'**
+  String get messageFixedCardOrderSubtitle;
+
   /// No description provided for @labelRequeueMissed.
   ///
   /// In en, this message translates to:

@@ -310,6 +310,16 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 - [x] Name search on My Cards and My Sets screens
 - [x] Sort options (name, last updated, card count) on sets
 
+##### Phase 4e — Author-controlled set ordering (Alpha 0.7, #244)
+- [x] `setCards.position` field (0-based; absent on legacy links) + `CardSet.enforceOrder` flag (default false)
+- [x] Client-side ordering (`utils/set_ordering.dart::sortSetCardsByPosition`): reads query by `addedAt` and sort by `position` with addedAt fallback — no `orderBy('position')`, so legacy links are never hidden; no new index or migration (see design.md rationale)
+- [x] New links stamped with `position = cardCount` (single + bulk add)
+- [x] `reorderCards()` repository method — rewrites the set's positions and backfills legacy links
+- [x] "Enforce card order" toggle on the set form
+- [x] Unit tests: `test/utils/set_ordering_test.dart`, `test/models/set_card_test.dart`, `test/models/card_set_test.dart`
+- [ ] Drag-to-reorder UI in the in-place set builder *(→ #245)*
+- [ ] Study honours enforced order + disables learner randomize *(→ #246)*
+
 **Deliverable**: Complete set management with card organization.
 
 ---

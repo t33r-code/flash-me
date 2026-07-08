@@ -538,6 +538,8 @@ sets/{setId}
   - color: string (optional, for UI differentiation)
   - nativeLanguage: string? (optional, ISO 639-1 code; inherited by cards created within this set)
   - targetLanguage: string? (optional, ISO 639-1 code; inherited by cards created within this set)
+  - enforceOrder: boolean (default false; when true the set's card order — setCards.position — is
+                           authoritative and learners cannot randomize it in study. Legacy sets read false.)
 ```
 
 #### Set Description Format
@@ -556,7 +558,11 @@ setCards/{linkId}                 ← many-to-many join collection
   - userId: string                ← owner; used in security rules
   - cardType: string              ← 'flashcard' | 'workbook'; legacy documents without this field are treated as 'flashcard'
   - addedAt: timestamp
+  - position: integer?            ← author-controlled 0-based order within the set; absent on legacy links.
+                                    New links are stamped with position = the set's current cardCount (appended).
 ```
+
+**Ordering (`position`):** Cards in a set have an author-controlled order. Rather than a Firestore `orderBy('position')` — which would silently drop legacy links that predate the field, hiding cards — reads query by `addedAt` (returning every link) and sort **client-side** by `position`, falling back to addedAt order for links that lack one (`sortSetCardsByPosition`). New links are stamped with a `position` on add; `reorderCards()` rewrites the whole set's positions (also backfilling any legacy links). Sets are bounded, so no `(setId, position)` index or migration is needed; the existing `(setId, addedAt)` index still backs the query.
 
 #### Card-Set Relationship
 - **Many-to-Many**: One card can belong to multiple sets; one set contains many cards
@@ -578,13 +584,14 @@ setCards/{linkId}                 ← many-to-many join collection
 - Display set metadata and card count
 
 **Update Set:**
-- Edit set name, description, tags, color
+- Edit set name, description, tags, color, and the **Enforce card order** toggle (`enforceOrder`)
 - All metadata fields editable except userId and timestamps
 - UpdatedAt timestamp updated on save
 
 **Add Cards to Set:**
 - User selects one or more existing cards (Flash Cards and/or Workbook Cards)
-- Create a `setCards` join document for each card (`{setId, cardId, userId, cardType, addedAt}`)
+- Create a `setCards` join document for each card (`{setId, cardId, userId, cardType, addedAt, position}`)
+- Newly-added cards are appended: `position` = the set's current `cardCount`
 - Increment the `cardCount` counter on the set document
 - Cards can be added from: create card flow, card browser, or bulk operations
 - **Picker search/filter**: the add-card bottom sheet has a diacritic- and case-insensitive search box (Flash Cards match `primaryWord`/`translation`/tags; Workbook Cards match `prompt`) and a horizontally-scrollable row of language-pair filter chips. Chips are derived from the language pairs present in the card pool, ordered set's-pair-first then by card count descending; the set's declared pair (if any) is the default selection. Filtering is entirely client-side on the already-loaded card lists.

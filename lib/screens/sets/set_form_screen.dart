@@ -30,6 +30,7 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
   String? _selectedColor;
   String? _nativeLanguage;
   String? _targetLanguage;
+  bool _enforceOrder = false;
   bool _isSaving = false;
 
   bool get _isEditing => widget.cardSet != null;
@@ -58,6 +59,7 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
     _selectedColor = s?.color;
     _nativeLanguage = s?.nativeLanguage;
     _targetLanguage = s?.targetLanguage;
+    _enforceOrder = s?.enforceOrder ?? false;
   }
 
   @override
@@ -96,6 +98,7 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
           color: _selectedColor,
           nativeLanguage: _nativeLanguage,
           targetLanguage: _targetLanguage,
+          enforceOrder: _enforceOrder,
         ));
         for (final tag in normalizedTags) { tagRepo.upsertTag(tag, uid); }
       } else {
@@ -110,6 +113,7 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
           color: _selectedColor,
           nativeLanguage: _nativeLanguage,
           targetLanguage: _targetLanguage,
+          enforceOrder: _enforceOrder,
         ));
         for (final tag in toUpsert) { tagRepo.upsertTag(tag, uid); }
         for (final norm in toDecrement) { tagRepo.decrementTag(norm); }
@@ -278,6 +282,18 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
                 tags: _tags,
                 enabled: !_isSaving,
                 onChanged: (updated) => setState(() => _tags = updated),
+              ),
+              const SizedBox(height: 16),
+
+              // --- Ordering ---
+              SwitchListTile(
+                value: _enforceOrder,
+                onChanged: _isSaving
+                    ? null
+                    : (v) => setState(() => _enforceOrder = v),
+                title: Text(l10n.labelEnforceCardOrder),
+                subtitle: Text(l10n.messageEnforceCardOrderSubtitle),
+                contentPadding: EdgeInsets.zero,
               ),
 
               // --- Save / Cancel ---

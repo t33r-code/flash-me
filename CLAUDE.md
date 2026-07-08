@@ -149,10 +149,12 @@ cards/{cardId}
   fields[], templateId?, createdAt, updatedAt, createdBy
 
 sets/{setId}
-  userId, name, description, cardCount, createdAt, updatedAt, isPublic, tags[], color
+  userId, name, description, cardCount, createdAt, updatedAt, isPublic, tags[], color,
+  enforceOrder                             ← when true, card order is authoritative; learners can't randomize in study
 
 setCards/{linkId}                          ← many-to-many join; no cardIds[] array on sets
-  setId, cardId, userId, addedAt
+  setId, cardId, userId, addedAt,
+  position?                                ← author-controlled 0-based order; absent on legacy links (client-side sort, addedAt fallback)
 
 templates/{templateId}
   createdBy, name, description, fields[]   ← same CardField model; answer content is nullable

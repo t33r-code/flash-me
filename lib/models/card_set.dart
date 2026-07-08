@@ -17,6 +17,9 @@ class CardSet {
   final String? color; // optional hex color for UI differentiation
   final String? nativeLanguage; // ISO 639-1 code for the user's native language
   final String? targetLanguage; // ISO 639-1 code for the language being studied
+  // When true, the set's card order (setCards.position) is authoritative and
+  // learners cannot randomize during study. Default false; legacy sets read false.
+  final bool enforceOrder;
 
   // Synthetic sets (Study Review / Study Mistakes) are assembled in memory from
   // the user's study signals and never persisted. isSynthetic flags this, and
@@ -39,6 +42,7 @@ class CardSet {
     this.color,
     this.nativeLanguage,
     this.targetLanguage,
+    this.enforceOrder = false,
     this.isSynthetic = false,
     this.memberCardIds = const [],
   });
@@ -78,6 +82,7 @@ class CardSet {
       color: data['color'] as String?,
       nativeLanguage: data['nativeLanguage'] as String?,
       targetLanguage: data['targetLanguage'] as String?,
+      enforceOrder: data['enforceOrder'] as bool? ?? false,
     );
   }
 
@@ -94,6 +99,7 @@ class CardSet {
         'color': color,
         'nativeLanguage': nativeLanguage,
         'targetLanguage': targetLanguage,
+        'enforceOrder': enforceOrder,
       };
 
   Map<String, dynamic> toJson() => {
@@ -110,6 +116,7 @@ class CardSet {
         'color': color,
         'nativeLanguage': nativeLanguage,
         'targetLanguage': targetLanguage,
+        'enforceOrder': enforceOrder,
       };
 
   // Returns validation errors for user-entered fields; empty list means safe to save.
@@ -133,6 +140,7 @@ class CardSet {
     String? color,
     String? nativeLanguage,
     String? targetLanguage,
+    bool? enforceOrder,
     bool? isSynthetic,
     List<String>? memberCardIds,
   }) =>
@@ -150,6 +158,7 @@ class CardSet {
         color: color ?? this.color,
         nativeLanguage: nativeLanguage ?? this.nativeLanguage,
         targetLanguage: targetLanguage ?? this.targetLanguage,
+        enforceOrder: enforceOrder ?? this.enforceOrder,
         isSynthetic: isSynthetic ?? this.isSynthetic,
         memberCardIds: memberCardIds ?? this.memberCardIds,
       );

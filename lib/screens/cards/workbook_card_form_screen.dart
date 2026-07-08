@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_set.dart';
+import 'package:flash_me/models/card_template.dart';
+import 'package:flash_me/models/question_template.dart';
 import 'package:flash_me/models/workbook_card.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/language_provider.dart';
@@ -11,6 +13,7 @@ import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/widgets/language_picker.dart';
 import 'package:flash_me/widgets/tag_input_field.dart';
+import 'package:flash_me/widgets/template_picker_sheet.dart';
 
 // ---------------------------------------------------------------------------
 // _QuestionState — mutable holder for one workbook question while the form
@@ -400,6 +403,58 @@ class _WorkbookCardFormScreenState
     setState(() {
       _questions[index].dispose();
       _questions.removeAt(index);
+      if (_questions.length != 1) _questionAsCard = false;
+    });
+  }
+
+  // Opens the shared two-tab template picker.
+  // CardTemplate result → replaces all questions (with confirmation if any exist).
+  // QuestionTemplate result → appends a single question.
+  Future<void> _showTemplatePicker() async {
+    final result = await showTemplatePicker(context, ref);
+    if (result == null || !mounted) return;
+
+    if (result is CardTemplate) {
+      if (_questions.isNotEmpty) {
+        final confirmed = await confirmReplaceQuestions(context, result.name);
+        if (!confirmed || !mounted) return;
+      }
+      _applyTemplate(result);
+    } else if (result is QuestionTemplate) {
+      _appendQuestionFromTemplate(result);
+    }
+  }
+
+  // Disposes existing questions, then populates from the template's structure.
+  // Answers are left blank; config (options, hints, exactMatch) carries over.
+  void _applyTemplate(CardTemplate template) {
+    setState(() {
+      for (final q in _questions) {
+        q.dispose();
+      }
+      _questions.clear();
+      _questions.addAll(template.questions.map(_QuestionState.fromQuestion));
+      // questionAsCard is only valid for exactly one question.
+      if (_questions.length != 1) _questionAsCard = false;
+    });
+  }
+
+  // Appends a single question from a QuestionTemplate with a fresh questionId.
+  void _appendQuestionFromTemplate(QuestionTemplate qt) {
+    final freshQuestion = switch (qt.question) {
+      TextInputQuestion q =>
+        q.copyWith(questionId: CardQuestion.generateId()),
+      MultipleChoiceQuestion q =>
+        q.copyWith(questionId: CardQuestion.generateId()),
+      WordOrderQuestion q =>
+        q.copyWith(questionId: CardQuestion.generateId()),
+      FillInTheBlanksQuestion q =>
+        q.copyWith(questionId: CardQuestion.generateId()),
+      GridQuestion q =>
+        q.copyWith(questionId: CardQuestion.generateId()),
+    };
+    setState(() {
+      _questions.add(_QuestionState.fromQuestion(freshQuestion));
       if (_questions.length != 1) _questionAsCard = false;
     });
   }
@@ -1748,8 +1803,19 @@ class _WorkbookCardFormScreenState
 
                 // --- Questions --------------------------------------------
                 const SizedBox(height: 24),
-                Text(l10n.titleQuestionsSection,
-                    style: Theme.of(context).textTheme.titleMedium),
+                // "Use Template" button sits alongside the section header.
+                Row(
+                  children: [
+                    Text(l10n.titleQuestionsSection,
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: _showTemplatePicker,
+                      icon: const Icon(Icons.copy_all_outlined, size: 18),
+                      label: Text(l10n.actionUseTemplate),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 12),
                 ..._questions.asMap().entries.map((e) => _buildQuestionCard(e.key)),
                 // "Question as card" only makes sense for exactly one question.

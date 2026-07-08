@@ -3,7 +3,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flash_me/l10n/app_localizations.dart';
 import 'package:flash_me/models/card_question.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/card_template.dart';
@@ -16,158 +15,11 @@ import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/widgets/tag_input_field.dart';
 import 'package:flash_me/providers/language_provider.dart';
 import 'package:flash_me/providers/storage_provider.dart';
-import 'package:flash_me/providers/question_template_provider.dart';
-import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/models/question_template.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/screens/templates/template_form_screen.dart';
 import 'package:flash_me/widgets/language_picker.dart';
-
-// ---------------------------------------------------------------------------
-// _TemplatePickerSheet — two-tab bottom sheet.
-// Tab 0: Card Templates — returns a CardTemplate (replaces all questions).
-// Tab 1: Question Templates — returns a QuestionTemplate (appends one question).
-// ---------------------------------------------------------------------------
-class _TemplatePickerSheet extends ConsumerStatefulWidget {
-  final List<CardTemplate> cardTemplates;
-  const _TemplatePickerSheet({required this.cardTemplates});
-
-  @override
-  ConsumerState<_TemplatePickerSheet> createState() =>
-      _TemplatePickerSheetState();
-}
-
-class _TemplatePickerSheetState extends ConsumerState<_TemplatePickerSheet>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final questionTemplates =
-        ref.watch(userQuestionTemplatesProvider).asData?.value ?? [];
-
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.55,
-      minChildSize: 0.35,
-      maxChildSize: 0.9,
-      builder: (ctx, _) => Column(
-        children: [
-          // Drag handle.
-          const SizedBox(height: 8),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.outlineVariant,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: Text(l10n.actionUseTemplate,
-                style: Theme.of(context).textTheme.titleMedium),
-          ),
-          TabBar(
-            controller: _tabController,
-            tabs: [
-              Tab(text: l10n.tabCardTemplates),
-              Tab(text: l10n.tabQuestionTemplates),
-            ],
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // Card templates — selecting one replaces all questions.
-                _buildList(
-                  context,
-                  items: widget.cardTemplates,
-                  icon: Icons.copy_all_outlined,
-                  emptyMessage: l10n.messageNoCardTemplatesYet,
-                  title: (t) => t.name,
-                  subtitle: (t) {
-                    final n = t.questions.length;
-                    final s = l10n.labelQuestionCount(n);
-                    return t.description != null
-                        ? '${t.description}  ·  $s'
-                        : s;
-                  },
-                  onTap: (t) => Navigator.of(ctx).pop(t),
-                ),
-                // Question templates — selecting one appends a single question.
-                _buildList(
-                  context,
-                  items: questionTemplates,
-                  icon: Icons.quiz_outlined,
-                  emptyMessage: l10n.messageNoQuestionTemplatesYet,
-                  title: (t) => t.name,
-                  subtitle: (t) => t.description ?? _questionTypeLabel(t, l10n),
-                  onTap: (t) => Navigator.of(ctx).pop(t),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Generic list builder used for both tabs.
-  Widget _buildList<T>(
-    BuildContext context, {
-    required List<T> items,
-    required IconData icon,
-    required String emptyMessage,
-    required String Function(T) title,
-    required String Function(T) subtitle,
-    required void Function(T) onTap,
-  }) {
-    if (items.isEmpty) {
-      return Center(
-        child: Text(emptyMessage,
-            style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant)),
-      );
-    }
-    return ListView.builder(
-      itemCount: items.length,
-      itemBuilder: (_, i) {
-        final item = items[i];
-        return ListTile(
-          leading: Icon(icon),
-          title: Text(title(item)),
-          subtitle: Text(subtitle(item),
-              maxLines: 1, overflow: TextOverflow.ellipsis),
-          onTap: () => onTap(item),
-        );
-      },
-    );
-  }
-
-  String _questionTypeLabel(QuestionTemplate t, AppLocalizations l10n) =>
-      switch (t.question) {
-        TextInputQuestion _ => l10n.labelQuestionTypeTextInput,
-        MultipleChoiceQuestion _ => l10n.labelQuestionTypeMultipleChoice,
-        WordOrderQuestion _ => l10n.labelQuestionTypeWordOrder,
-        FillInTheBlanksQuestion _ => l10n.labelQuestionTypeFillInBlanks,
-        GridQuestion _ => l10n.labelQuestionTypeGrid,
-      };
-}
+import 'package:flash_me/widgets/template_picker_sheet.dart';
 
 // ---------------------------------------------------------------------------
 // _QuestionState — mutable holder for one question while the form is open.
@@ -431,37 +283,13 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
   // CardTemplate result → replaces all questions (with confirmation if any exist).
   // QuestionTemplate result → appends a single question.
   Future<void> _showTemplatePicker() async {
-    final cardTemplates =
-        ref.read(userTemplatesProvider).asData?.value ?? [];
-
-    final result = await showModalBottomSheet<Object>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => _TemplatePickerSheet(cardTemplates: cardTemplates),
-    );
+    final result = await showTemplatePicker(context, ref);
     if (result == null || !mounted) return;
 
     if (result is CardTemplate) {
       if (_questions.isNotEmpty) {
-        final l10n = context.l10n;
-        final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: Text(l10n.titleReplaceQuestions),
-            content: Text(l10n.messageReplaceQuestionsConfirm(result.name)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: Text(l10n.labelCancel),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: Text(l10n.actionReplace),
-              ),
-            ],
-          ),
-        );
-        if (confirmed != true || !mounted) return;
+        final confirmed = await confirmReplaceQuestions(context, result.name);
+        if (!confirmed || !mounted) return;
       }
       _applyTemplate(result);
     } else if (result is QuestionTemplate) {

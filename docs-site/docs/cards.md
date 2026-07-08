@@ -149,7 +149,7 @@ Question Templates are useful when the same question recurs across many cards �
 1. Tap the **Cards** tab (:material-cards-outline:).
 2. Tap **+** and choose **Workbook Card**.
 3. Enter a **Prompt** — the text or instruction the learner reads before answering (e.g. *Read the passage and answer the questions below.*).
-4. Tap **Add question** to add your first question.
+4. Tap **Add question** to add your first question — or tap **Use Template** to start from a saved [Question Template](#question-templates) (appends one question) or [Card Template](#card-templates) (replaces all questions).
 5. Choose a [question type](#question-types), fill in the details, and repeat for additional questions.
 6. Optionally add [tags](#card-tags) — the same autocomplete tag field as on Flash Cards.
 7. Tap **Save**.

@@ -615,8 +615,7 @@
   "labelShuffleCards": "Shuffle cards",
   "messageShuffleCardsSubtitle": "Randomise card order for this session",
 
-  "labelFixedCardOrder": "Fixed card order",
-  "messageFixedCardOrderSubtitle": "The author set a fixed order for this set, so it's always studied in order and can't be shuffled.",
+  "messageFixedCardOrderSubtitle": "The author fixed this set's order, so it can't be shuffled.",
   "labelRequeueMissed": "Re-queue missed cards",
   "messageRequeueMissedSubtitle": "Re-show cards you answer incorrectly until you get them right",
   "actionStartNewSession": "Start New Session",

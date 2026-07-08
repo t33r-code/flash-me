@@ -1400,11 +1400,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Randomise card order for this session';
 
   @override
-  String get labelFixedCardOrder => 'Fixed card order';
-
-  @override
   String get messageFixedCardOrderSubtitle =>
-      'The author set a fixed order for this set, so it\'s always studied in order and can\'t be shuffled.';
+      'The author fixed this set\'s order, so it can\'t be shuffled.';
 
   @override
   String get labelRequeueMissed => 'Re-queue missed cards';

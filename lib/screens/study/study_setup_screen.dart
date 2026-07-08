@@ -342,31 +342,23 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
                     const SizedBox(height: 8),
                   ],
 
-                  // ── Shuffle toggle / fixed-order note ──────────────────
-                  // When the author enforces order, replace the shuffle toggle
-                  // with an explanatory, non-interactive note.
-                  if (_orderEnforced)
-                    Card(
-                      child: ListTile(
-                        leading: const Icon(Icons.lock_outline),
-                        title: Text(context.l10n.labelFixedCardOrder),
-                        subtitle:
-                            Text(context.l10n.messageFixedCardOrderSubtitle),
-                      ),
-                    )
-                  else
-                    Card(
-                      child: SwitchListTile(
-                        title: Text(context.l10n.labelShuffleCards),
-                        subtitle:
-                            Text(context.l10n.messageShuffleCardsSubtitle),
-                        value: _shuffle,
-                        // Disable while a start is in progress.
-                        onChanged: _starting
-                            ? null
-                            : (v) => setState(() => _shuffle = v),
-                      ),
+                  // ── Shuffle toggle ─────────────────────────────────────
+                  // Always shown in the same place. When the author enforces
+                  // order it stays visible but off + disabled, with the subtitle
+                  // explaining why it can't be changed.
+                  Card(
+                    child: SwitchListTile(
+                      title: Text(context.l10n.labelShuffleCards),
+                      subtitle: Text(_orderEnforced
+                          ? context.l10n.messageFixedCardOrderSubtitle
+                          : context.l10n.messageShuffleCardsSubtitle),
+                      value: _orderEnforced ? false : _shuffle,
+                      // Disabled when the order is enforced or a start is running.
+                      onChanged: (_orderEnforced || _starting)
+                          ? null
+                          : (v) => setState(() => _shuffle = v),
                     ),
+                  ),
                   const SizedBox(height: 8),
 
                   // ── Re-queue missed cards toggle (#214) ────────────────

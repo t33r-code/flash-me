@@ -318,7 +318,7 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 - [x] "Enforce card order" toggle on the set form
 - [x] Unit tests: `test/utils/set_ordering_test.dart`, `test/models/set_card_test.dart`, `test/models/card_set_test.dart`
 - [ ] Drag-to-reorder UI in the in-place set builder *(→ #245)*
-- [x] Study honours enforced order + disables learner randomize (#246): setup replaces the Shuffle toggle with a "Fixed card order" note and never shuffles when `enforceOrder` is on; sequence already follows `position` via `cardIdsInSetProvider`. Non-enforced and synthetic Review/Mistakes sets are unchanged.
+- [x] Study honours enforced order + disables learner randomize (#246): setup keeps the Shuffle toggle in place but shows it off + disabled with an explanatory subtitle, and never shuffles when `enforceOrder` is on; sequence already follows `position` via `cardIdsInSetProvider`. Non-enforced and synthetic Review/Mistakes sets are unchanged.
 
 **Deliverable**: Complete set management with card organization.
 

@@ -1087,6 +1087,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Show the question immediately without tapping \"More\" (single-question cards only)';
 
   @override
+  String get labelEnforceCardOrder => 'Enforce card order';
+
+  @override
+  String get messageEnforceCardOrderSubtitle =>
+      'Study cards in the order you arrange them; learners can\'t shuffle this set. Useful for sets that tell a story.';
+
+  @override
   String get titleNewWorkbookCard => 'New Workbook Card';
 
   @override

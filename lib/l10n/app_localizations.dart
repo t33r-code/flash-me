@@ -2002,6 +2002,18 @@ abstract class AppLocalizations {
   /// **'Show the question immediately without tapping \"More\" (single-question cards only)'**
   String get messageQuestionAsCardSubtitle;
 
+  /// No description provided for @labelEnforceCardOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Enforce card order'**
+  String get labelEnforceCardOrder;
+
+  /// No description provided for @messageEnforceCardOrderSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Study cards in the order you arrange them; learners can\'t shuffle this set. Useful for sets that tell a story.'**
+  String get messageEnforceCardOrderSubtitle;
+
   /// No description provided for @titleNewWorkbookCard.
   ///
   /// In en, this message translates to:

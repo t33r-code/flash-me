@@ -17,6 +17,10 @@ class SetCard {
   final DateTime addedAt;
   // AppConstants.cardTypeFlashcard | AppConstants.cardTypeWorkbook
   final String cardType;
+  // Author-controlled ordering key within the set (0-based). Null on legacy
+  // links created before ordering existed — those fall back to addedAt order
+  // (see sortSetCardsByPosition). New links are stamped with a position on add.
+  final int? position;
 
   const SetCard({
     required this.id,
@@ -25,6 +29,7 @@ class SetCard {
     required this.userId,
     required this.addedAt,
     this.cardType = AppConstants.cardTypeFlashcard,
+    this.position,
   });
 
   factory SetCard.fromFirestore(DocumentSnapshot doc) {
@@ -37,6 +42,8 @@ class SetCard {
       addedAt: (data['addedAt'] as Timestamp).toDate(),
       // Absent field on old documents defaults to flashcard.
       cardType: data['cardType'] as String? ?? AppConstants.cardTypeFlashcard,
+      // Absent on legacy links; sorting falls back to addedAt order.
+      position: data['position'] as int?,
     );
   }
 
@@ -49,5 +56,7 @@ class SetCard {
         'userId': userId,
         'addedAt': Timestamp.fromDate(addedAt),
         'cardType': cardType,
+        // Only written when assigned; keeps legacy docs untouched until reordered.
+        if (position != null) 'position': position,
       };
 }

@@ -7,6 +7,7 @@ import 'package:flash_me/models/set_card.dart';
 import 'package:flash_me/repositories/card_set_repository.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/exceptions.dart';
+import 'package:flash_me/utils/set_ordering.dart';
 
 // Firestore implementation of CardSetRepository.
 class FirebaseCardSetRepository implements CardSetRepository {
@@ -109,6 +110,7 @@ class FirebaseCardSetRepository implements CardSetRepository {
   // --- Card membership -------------------------------------------------------
 
   // Add one card; creates the setCards link and increments cardCount atomically.
+  // New links are appended: position = the set's current cardCount.
   @override
   Future<void> addCardToSet({
     required String setId,
@@ -119,6 +121,7 @@ class FirebaseCardSetRepository implements CardSetRepository {
     try {
       final linkRef =
           _firestore.collection(AppConstants.setCardsCollection).doc();
+      final position = await _nextPosition(setId);
       final link = SetCard(
         id: linkRef.id,
         setId: setId,
@@ -126,6 +129,7 @@ class FirebaseCardSetRepository implements CardSetRepository {
         userId: userId,
         addedAt: DateTime.now(),
         cardType: cardType,
+        position: position,
       );
       final batch = _firestore.batch();
       batch.set(linkRef, link.toFirestore());
@@ -140,6 +144,16 @@ class FirebaseCardSetRepository implements CardSetRepository {
       throw AppException('Failed to add card to set',
           code: 'add-card-to-set-failed');
     }
+  }
+
+  // The next append position for a set = its current cardCount (0-based end).
+  // Falls back to 0 if the set doc is missing.
+  Future<int> _nextPosition(String setId) async {
+    final setDoc = await _firestore
+        .collection(AppConstants.setsCollection)
+        .doc(setId)
+        .get();
+    return (setDoc.data()?['cardCount'] as int?) ?? 0;
   }
 
   @override
@@ -184,6 +198,9 @@ class FirebaseCardSetRepository implements CardSetRepository {
   }) async {
     if (cardIds.isEmpty) return;
     try {
+      // Append: positions run from the set's current cardCount upward, so the
+      // bulk-added cards preserve their given order at the end of the set.
+      var nextPosition = await _nextPosition(setId);
       const batchSize = 249;
       for (var i = 0; i < cardIds.length; i += batchSize) {
         final chunk = cardIds.sublist(i, min(i + batchSize, cardIds.length));
@@ -197,6 +214,7 @@ class FirebaseCardSetRepository implements CardSetRepository {
             'userId': userId,
             'addedAt': Timestamp.now(),
             'cardType': cardType,
+            'position': nextPosition++,
           });
         }
         batch.update(
@@ -216,6 +234,53 @@ class FirebaseCardSetRepository implements CardSetRepository {
     }
   }
 
+  // Stamp each link's `position` with its index in [orderedCardIds]. This also
+  // backfills any legacy links in the set (they gain a concrete position here).
+  // Cards not present in the set are skipped. Batched under Firestore's op limit.
+  @override
+  Future<void> reorderCards({
+    required String setId,
+    required String userId,
+    required List<String> orderedCardIds,
+  }) async {
+    if (orderedCardIds.isEmpty) return;
+    try {
+      final links = await _firestore
+          .collection(AppConstants.setCardsCollection)
+          .where('setId', isEqualTo: setId)
+          .where('userId', isEqualTo: userId)
+          .get();
+      // A card appears at most once per set, so cardId -> link ref is unique.
+      final refByCardId = {
+        for (final d in links.docs) d.data()['cardId'] as String: d.reference,
+      };
+
+      const batchSize = 249;
+      for (var i = 0; i < orderedCardIds.length; i += batchSize) {
+        final chunk = orderedCardIds.sublist(
+            i, min(i + batchSize, orderedCardIds.length));
+        final batch = _firestore.batch();
+        for (var j = 0; j < chunk.length; j++) {
+          final ref = refByCardId[chunk[j]];
+          if (ref == null) continue; // not a member of this set — skip
+          batch.update(ref, {'position': i + j});
+        }
+        batch.update(
+          _firestore.collection(AppConstants.setsCollection).doc(setId),
+          {'updatedAt': Timestamp.now()},
+        );
+        await batch.commit();
+      }
+      _logger.i('Reordered ${orderedCardIds.length} cards in set $setId');
+    } catch (e) {
+      _logger.e('Failed to reorder cards in set $setId: $e');
+      throw AppException('Failed to reorder cards',
+          code: 'reorder-cards-failed');
+    }
+  }
+
+  // Query by addedAt (indexed, returns every link incl. legacy ones with no
+  // position), then order by position client-side (see sortSetCardsByPosition).
   @override
   Stream<List<String>> watchCardIdsInSet(String setId, String userId) {
     return _firestore
@@ -224,8 +289,10 @@ class FirebaseCardSetRepository implements CardSetRepository {
         .where('userId', isEqualTo: userId)
         .orderBy('addedAt')
         .snapshots()
-        .map((s) =>
-            s.docs.map((d) => d.data()['cardId'] as String).toList());
+        .map((s) => sortSetCardsByPosition(
+                s.docs.map(SetCard.fromFirestore).toList())
+            .map((c) => c.cardId)
+            .toList());
   }
 
   // Stream full card objects; re-fetches cards whenever the setCards list changes.
@@ -239,8 +306,10 @@ class FirebaseCardSetRepository implements CardSetRepository {
         .snapshots()
         .asyncMap((snapshot) async {
       if (snapshot.docs.isEmpty) return <FlashCard>[];
-      final cardIds =
-          snapshot.docs.map((d) => d.data()['cardId'] as String).toList();
+      final cardIds = sortSetCardsByPosition(
+              snapshot.docs.map(SetCard.fromFirestore).toList())
+          .map((c) => c.cardId)
+          .toList();
       return _fetchCardsByIds(cardIds, userId);
     });
   }
@@ -284,7 +353,7 @@ class FirebaseCardSetRepository implements CardSetRepository {
     }
   }
 
-  // Stream all SetCard join documents for a set, preserving addedAt order.
+  // Stream all SetCard join documents for a set, ordered by position.
   // Includes cardType so callers can dispatch to the right card collection.
   @override
   Stream<List<SetCard>> watchSetCards(String setId, String userId) {
@@ -294,7 +363,8 @@ class FirebaseCardSetRepository implements CardSetRepository {
         .where('userId', isEqualTo: userId)
         .orderBy('addedAt')
         .snapshots()
-        .map((s) => s.docs.map(SetCard.fromFirestore).toList());
+        .map((s) => sortSetCardsByPosition(
+            s.docs.map(SetCard.fromFirestore).toList()));
   }
 
   // Stream all public sets ordered by creation date descending — the Market feed.

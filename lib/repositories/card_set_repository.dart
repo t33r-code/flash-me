@@ -43,6 +43,16 @@ abstract class CardSetRepository {
     String cardType = AppConstants.cardTypeFlashcard,
   });
 
+  // Persist a new card order for a set. [orderedCardIds] is the full desired
+  // sequence; each matching setCards link is stamped with its index as
+  // `position`. Links whose cardId is absent from the list are left untouched.
+  // userId is required so the setCards query satisfies Firestore list rules.
+  Future<void> reorderCards({
+    required String setId,
+    required String userId,
+    required List<String> orderedCardIds,
+  });
+
   // Stream the ordered card IDs in a set (lightweight — no card data).
   // userId is required so the setCards query satisfies Firestore list rules.
   Stream<List<String>> watchCardIdsInSet(String setId, String userId);

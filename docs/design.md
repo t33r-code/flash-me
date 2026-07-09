@@ -605,6 +605,7 @@ setCards/{linkId}                 ← many-to-many join collection
 - Delete the corresponding `setCards` join document(s)
 - Decrement the `cardCount` counter on the set document
 - Card itself is not deleted, just removed from this set
+- **Undo**: a snackbar offers to re-link the removed card at its original `position` (via `addCardToSet(..., position:)`), restoring the prior order
 
 **Reorder Cards in Set:**
 - Set detail renders a single `position`-ordered list across both card types (flash + workbook), driven by the `setCards` join docs (`setCardsInSetProvider`)

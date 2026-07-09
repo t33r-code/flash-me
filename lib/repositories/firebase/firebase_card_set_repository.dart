@@ -117,11 +117,13 @@ class FirebaseCardSetRepository implements CardSetRepository {
     required String cardId,
     required String userId,
     String cardType = AppConstants.cardTypeFlashcard,
+    int? position,
   }) async {
     try {
       final linkRef =
           _firestore.collection(AppConstants.setCardsCollection).doc();
-      final position = await _nextPosition(setId);
+      // Restore at the given position when provided (undo), else append.
+      final pos = position ?? await _nextPosition(setId);
       final link = SetCard(
         id: linkRef.id,
         setId: setId,
@@ -129,7 +131,7 @@ class FirebaseCardSetRepository implements CardSetRepository {
         userId: userId,
         addedAt: DateTime.now(),
         cardType: cardType,
-        position: position,
+        position: pos,
       );
       final batch = _firestore.batch();
       batch.set(linkRef, link.toFirestore());

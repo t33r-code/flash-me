@@ -20,11 +20,14 @@ abstract class CardSetRepository {
 
   // Add one card to a set; increments the set's cardCount.
   // cardType defaults to 'flashcard'; pass AppConstants.cardTypeWorkbook for workbook cards.
+  // position: when given, the link is stamped with this exact order key (used to
+  // restore a removed card at its prior spot); otherwise it is appended.
   Future<void> addCardToSet({
     required String setId,
     required String cardId,
     required String userId,
     String cardType = AppConstants.cardTypeFlashcard,
+    int? position,
   });
 
   // Remove one card from a set; decrements the set's cardCount.

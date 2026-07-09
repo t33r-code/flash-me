@@ -112,6 +112,7 @@ class MockCardSetRepository extends _i1.Mock implements _i6.CardSetRepository {
     required String? cardId,
     required String? userId,
     String? cardType = 'flashcard',
+    int? position,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#addCardToSet, [], {
@@ -119,6 +120,7 @@ class MockCardSetRepository extends _i1.Mock implements _i6.CardSetRepository {
               #cardId: cardId,
               #userId: userId,
               #cardType: cardType,
+              #position: position,
             }),
             returnValue: _i7.Future<void>.value(),
             returnValueForMissingStub: _i7.Future<void>.value(),
@@ -155,6 +157,23 @@ class MockCardSetRepository extends _i1.Mock implements _i6.CardSetRepository {
               #cardIds: cardIds,
               #userId: userId,
               #cardType: cardType,
+            }),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
+
+  @override
+  _i7.Future<void> reorderCards({
+    required String? setId,
+    required String? userId,
+    required List<String>? orderedCardIds,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#reorderCards, [], {
+              #setId: setId,
+              #userId: userId,
+              #orderedCardIds: orderedCardIds,
             }),
             returnValue: _i7.Future<void>.value(),
             returnValueForMissingStub: _i7.Future<void>.value(),

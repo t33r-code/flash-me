@@ -548,7 +548,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorFailedReorderCards => 'Couldn\'t save the new order.';
 
   @override
+  String get errorFailedAddCardToSet => 'Couldn\'t add the card back.';
+
+  @override
   String get tooltipDragToReorder => 'Drag to reorder';
+
+  @override
+  String get actionUndo => 'Undo';
+
+  @override
+  String get messageCardRemovedFromSet => 'Removed from set';
 
   @override
   String get messagePreparingExport => 'Preparing export…';

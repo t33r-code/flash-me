@@ -317,7 +317,7 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 - [x] `reorderCards()` repository method — rewrites the set's positions and backfills legacy links
 - [x] "Enforce card order" toggle on the set form
 - [x] Unit tests: `test/utils/set_ordering_test.dart`, `test/models/set_card_test.dart`, `test/models/card_set_test.dart`
-- [ ] Drag-to-reorder UI in the in-place set builder *(→ #245)*
+- [x] Drag-to-reorder UI (#245): Set Detail now renders a single position-ordered `ReorderableListView` across both card types (driven by `setCardsInSetProvider`), with a per-row drag handle that persists via `reorderCards()` (optimistic order until the stream catches up). Implemented on the current Set Detail screen rather than the not-yet-built #232 expandable list; this also fixes mixed sets previously showing flash-then-workbook instead of true `position` order.
 - [x] Study honours enforced order + disables learner randomize (#246): setup keeps the Shuffle toggle in place but shows it off + disabled with an explanatory subtitle, and never shuffles when `enforceOrder` is on; sequence already follows `position` via `cardIdsInSetProvider`. Non-enforced and synthetic Review/Mistakes sets are unchanged.
 
 **Deliverable**: Complete set management with card organization.

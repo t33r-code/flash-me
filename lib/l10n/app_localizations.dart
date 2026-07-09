@@ -1090,6 +1090,18 @@ abstract class AppLocalizations {
   /// **'Failed to remove card.'**
   String get errorFailedRemoveCard;
 
+  /// No description provided for @errorFailedReorderCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the new order.'**
+  String get errorFailedReorderCards;
+
+  /// No description provided for @tooltipDragToReorder.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to reorder'**
+  String get tooltipDragToReorder;
+
   /// No description provided for @messagePreparingExport.
   ///
   /// In en, this message translates to:

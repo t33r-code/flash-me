@@ -14,6 +14,7 @@ import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/providers/workbook_card_provider.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
+import 'package:flash_me/utils/set_ordering.dart';
 import 'package:flash_me/screens/sets/set_form_screen.dart';
 import 'package:flash_me/screens/study/study_setup_screen.dart';
 import 'package:flash_me/utils/constants.dart';
@@ -33,6 +34,64 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   bool _isDeleting = false;
   bool _isExporting = false;
   bool _isPublishing = false;
+  // Card order applied optimistically right after a drag, held until the
+  // position-ordered stream catches up. Null when not mid-reorder.
+  List<String>? _optimisticOrder;
+
+  // Drag ended: rebuild the full ordered id list and persist it via #244's
+  // reorderCards. [currentOrder] is the ids as currently displayed.
+  void _onReorder(List<String> currentOrder, int oldIndex, int newIndex) {
+    final ids = reorderedIds(currentOrder, oldIndex, newIndex);
+    if (_sameSequence(ids, currentOrder)) return; // dropped in place
+    setState(() => _optimisticOrder = ids);
+    _persistReorder(ids);
+  }
+
+  Future<void> _persistReorder(List<String> orderedCardIds) async {
+    final uid = ref.read(authStateProvider).asData?.value ?? '';
+    try {
+      await ref.read(cardSetRepositoryProvider).reorderCards(
+            setId: widget.cardSet.id,
+            userId: uid,
+            orderedCardIds: orderedCardIds,
+          );
+    } catch (_) {
+      if (mounted) {
+        // Drop the override so the list snaps back to the persisted order.
+        setState(() => _optimisticOrder = null);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.errorFailedReorderCards)),
+        );
+      }
+    }
+  }
+
+  // Order to render: the optimistic drag order while a write is in flight and
+  // membership is unchanged; otherwise the stream's position order. Clears the
+  // override once the write lands or a card is added/removed.
+  List<String> _displayOrder(List<String> streamOrder) {
+    final opt = _optimisticOrder;
+    if (opt == null) return streamOrder;
+    // Membership changed, or the stream now matches the override → use stream
+    // order (both cases mean the override is stale; clearing is a no-op visually
+    // in the match case, so it's safe to do during build).
+    if (!_sameContents(opt, streamOrder) || _sameSequence(opt, streamOrder)) {
+      _optimisticOrder = null;
+      return streamOrder;
+    }
+    return opt;
+  }
+
+  bool _sameSequence(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  bool _sameContents(List<String> a, List<String> b) =>
+      a.length == b.length && a.toSet().containsAll(b);
 
   Future<void> _confirmDelete() async {
     final confirmed = await showDialog<bool>(
@@ -267,58 +326,90 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     final liveSet =
         ref.watch(setByIdProvider(widget.cardSet.id)) ?? widget.cardSet;
 
-    // Flash cards already linked to this set (cardsInSetProvider queries cards/).
+    // Ordered join links (both card types) drive the display order + reorder.
+    final linksAsync = ref.watch(setCardsInSetProvider(widget.cardSet.id));
+    // Card content, resolved by id per type.
     final flashCardsAsync = ref.watch(cardsInSetProvider(widget.cardSet.id));
-    // All workbook cards owned by the user — filtered by cardIdsInSet below.
     final allWorkbookAsync = ref.watch(userWorkbookCardsProvider);
-    // All card IDs in the set (both types) from the setCards join collection.
-    final cardIdsInSet =
-        ref.watch(cardIdsInSetProvider(widget.cardSet.id)).asData?.value.toSet() ??
-            {};
 
-    // Workbook cards that belong to this set.
-    final workbookCardsInSet = (allWorkbookAsync.asData?.value ?? [])
-        .where((c) => cardIdsInSet.contains(c.id))
-        .toList();
+    final isLoading = linksAsync.isLoading ||
+        flashCardsAsync.isLoading ||
+        allWorkbookAsync.isLoading;
+    final hasError = linksAsync.hasError ||
+        flashCardsAsync.hasError ||
+        allWorkbookAsync.hasError;
 
-    final isLoading = flashCardsAsync.isLoading || allWorkbookAsync.isLoading;
-    final hasError = flashCardsAsync.hasError || allWorkbookAsync.hasError;
-    final flashCards = flashCardsAsync.asData?.value ?? [];
+    final links = linksAsync.asData?.value ?? [];
+    final flashById = {
+      for (final c in flashCardsAsync.asData?.value ?? <FlashCard>[]) c.id: c
+    };
+    final workbookById = {
+      for (final c in allWorkbookAsync.asData?.value ?? <WorkbookCard>[]) c.id: c
+    };
+    final typeById = {for (final l in links) l.cardId: l.cardType};
 
-    final totalCount = flashCards.length + workbookCardsInSet.length;
+    // Position order from the stream, then any in-flight optimistic drag order.
+    final order = _displayOrder([for (final l in links) l.cardId]);
+
+    // Resolve each ordered id to a renderable tile, skipping ids whose card
+    // content hasn't loaded (or was deleted). The join order is authoritative.
+    final entries = <({String cardId, FlashCard? flash, WorkbookCard? workbook})>[];
+    for (final id in order) {
+      if (typeById[id] == AppConstants.cardTypeWorkbook) {
+        final wb = workbookById[id];
+        if (wb != null) entries.add((cardId: id, flash: null, workbook: wb));
+      } else {
+        final fc = flashById[id];
+        if (fc != null) entries.add((cardId: id, flash: fc, workbook: null));
+      }
+    }
 
     Widget body;
     if (isLoading) {
       body = const Center(child: CircularProgressIndicator());
     } else if (hasError) {
       body = Center(child: Text(l10n.errorFailedLoadCards));
-    } else if (totalCount == 0) {
+    } else if (entries.isEmpty) {
       body = _EmptyState(onAddCards: _showCardPicker);
     } else {
-      // Combined list: flash cards first, then workbook cards.
-      body = ListView.builder(
+      // Single position-ordered list across both card types. Drag the handle to
+      // reorder (persists via reorderCards); swipe left to remove.
+      final orderedIds = [for (final e in entries) e.cardId];
+      body = ReorderableListView.builder(
         padding: const EdgeInsets.all(8),
-        itemCount: totalCount,
+        buildDefaultDragHandles: false,
+        itemCount: entries.length,
+        // onReorder is the cross-version-safe callback (onReorderItem is newer
+        // and absent on older stable Flutter). We adjust newIndex ourselves.
+        // ignore: deprecated_member_use
+        onReorder: (oldIndex, newIndex) =>
+            _onReorder(orderedIds, oldIndex, newIndex),
         itemBuilder: (ctx, i) {
-          final String cardId;
-          final Widget tile;
-
-          if (i < flashCards.length) {
-            final card = flashCards[i];
-            cardId = card.id;
-            tile = _FlashCardInSetTile(card: card);
-          } else {
-            final card = workbookCardsInSet[i - flashCards.length];
-            cardId = card.id;
-            tile = _WorkbookCardInSetTile(card: card);
-          }
+          final entry = entries[i];
+          final handle = ReorderableDragStartListener(
+            index: i,
+            child: Tooltip(
+              message: ctx.l10n.tooltipDragToReorder,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Icon(Icons.drag_handle,
+                    color: Theme.of(ctx).colorScheme.onSurfaceVariant),
+              ),
+            ),
+          );
+          final tile = entry.flash != null
+              ? _FlashCardInSetTile(card: entry.flash!, dragHandle: handle)
+              : _WorkbookCardInSetTile(
+                  card: entry.workbook!, dragHandle: handle);
 
           // Swipe left to remove the card from this set (works for both types).
+          // Key must sit on the outer widget for ReorderableListView.
           return Dismissible(
-            key: Key(cardId),
+            key: ValueKey(entry.cardId),
             direction: DismissDirection.endToStart,
             background: Container(
               alignment: Alignment.centerRight,
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               padding: const EdgeInsets.only(right: 20),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.errorContainer,
@@ -329,7 +420,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                 color: Theme.of(context).colorScheme.onErrorContainer,
               ),
             ),
-            confirmDismiss: (_) => _removeCard(cardId),
+            confirmDismiss: (_) => _removeCard(entry.cardId),
             child: tile,
           );
         },
@@ -443,25 +534,40 @@ class _EmptyState extends StatelessWidget {
 // ---------------------------------------------------------------------------
 class _FlashCardInSetTile extends StatelessWidget {
   final FlashCard card;
-  const _FlashCardInSetTile({required this.card});
+  // Optional reorder handle rendered at the trailing edge (set detail only).
+  final Widget? dragHandle;
+  const _FlashCardInSetTile({required this.card, this.dragHandle});
 
   @override
   Widget build(BuildContext context) {
+    final chip = card.tags.isNotEmpty
+        ? Chip(
+            label: Text(card.tags.first),
+            visualDensity: VisualDensity.compact,
+          )
+        : null;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
         leading: const Icon(Icons.style_outlined),
         title: Text(card.primaryWord),
         subtitle: Text(card.translation),
-        trailing: card.tags.isNotEmpty
-            ? Chip(
-                label: Text(card.tags.first),
-                visualDensity: VisualDensity.compact,
-              )
-            : null,
+        trailing: _tileTrailing(chip, dragHandle),
       ),
     );
   }
+}
+
+// Combines an optional tag chip with an optional drag handle for a tile's
+// trailing slot. Returns null when neither is present.
+Widget? _tileTrailing(Widget? chip, Widget? dragHandle) {
+  if (chip == null && dragHandle == null) return null;
+  if (dragHandle == null) return chip;
+  if (chip == null) return dragHandle;
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [chip, const SizedBox(width: 4), dragHandle],
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -469,10 +575,18 @@ class _FlashCardInSetTile extends StatelessWidget {
 // ---------------------------------------------------------------------------
 class _WorkbookCardInSetTile extends StatelessWidget {
   final WorkbookCard card;
-  const _WorkbookCardInSetTile({required this.card});
+  // Optional reorder handle rendered at the trailing edge (set detail only).
+  final Widget? dragHandle;
+  const _WorkbookCardInSetTile({required this.card, this.dragHandle});
 
   @override
   Widget build(BuildContext context) {
+    final chip = card.tags.isNotEmpty
+        ? Chip(
+            label: Text(card.tags.first),
+            visualDensity: VisualDensity.compact,
+          )
+        : null;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
@@ -483,12 +597,7 @@ class _WorkbookCardInSetTile extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(context.l10n.labelQuestionCount(card.questions.length)),
-        trailing: card.tags.isNotEmpty
-            ? Chip(
-                label: Text(card.tags.first),
-                visualDensity: VisualDensity.compact,
-              )
-            : null,
+        trailing: _tileTrailing(chip, dragHandle),
       ),
     );
   }

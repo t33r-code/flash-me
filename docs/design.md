@@ -606,6 +606,12 @@ setCards/{linkId}                 ← many-to-many join collection
 - Decrement the `cardCount` counter on the set document
 - Card itself is not deleted, just removed from this set
 
+**Reorder Cards in Set:**
+- Set detail renders a single `position`-ordered list across both card types (flash + workbook), driven by the `setCards` join docs (`setCardsInSetProvider`)
+- The user drags a card row by its handle; on drop the new full order is persisted via `reorderCards()` (stamps each link's `position` = its index; also backfills any legacy links)
+- Order is applied optimistically until the position-ordered stream catches up
+- This is the order study uses (and that `enforceOrder` locks — see [ordering](#card-set-data-model-firestore))
+
 **Delete Set:**
 - User confirms deletion
 - Hard delete: all `setCards` join documents for this set are removed first, then the set document is deleted

@@ -56,6 +56,14 @@ In the set detail screen, **swipe left** on any card row. A delete action appear
 
 ---
 
+## Reordering Cards { #reorder-cards }
+
+Cards in a set have an order that you control. In the set detail screen, **drag the handle** on the right of a card row and drop it where you want — the new order is saved automatically. Flash Cards and Workbook Cards share a single order, so you can interleave them however you like.
+
+This order is what learners follow when they study the set. If you've turned on [Enforce card order](#set-details), the set is always studied in exactly this order and can't be shuffled; otherwise it's the default order and learners can still choose to [shuffle](study.md#session-setup).
+
+---
+
 ## Studying a Set { #study-from-set }
 
 Tap the :material-play-circle-outline: **play icon** in the top-right corner of the set detail screen. This opens the study setup screen directly, bypassing the Study tab set picker.

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/flash_card.dart';
+import 'package:flash_me/models/set_card.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/repositories/card_set_repository.dart';
 import 'package:flash_me/repositories/firebase/firebase_card_set_repository.dart';
@@ -47,6 +48,16 @@ final cardsInSetProvider =
   final uid = ref.watch(authStateProvider).asData?.value;
   if (uid == null) return Stream.value([]);
   return ref.watch(cardSetRepositoryProvider).watchCardsInSet(setId, uid);
+});
+
+// Streams the SetCard join documents for a set, in author `position` order,
+// including cardType. Used by the set detail screen to render a single ordered
+// list across both card types and to drive drag-to-reorder.
+final setCardsInSetProvider =
+    StreamProvider.autoDispose.family<List<SetCard>, String>((ref, setId) {
+  final uid = ref.watch(authStateProvider).asData?.value;
+  if (uid == null) return Stream.value([]);
+  return ref.watch(cardSetRepositoryProvider).watchSetCards(setId, uid);
 });
 
 // Streams all public sets ordered by createdAt DESC — drives the Market tab.

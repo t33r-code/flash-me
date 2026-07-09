@@ -83,4 +83,31 @@ void main() {
       expect(ids(sortSetCardsByPosition(input)), ['a', 'b', 'c']);
     });
   });
+
+  group('reorderedIds (ReorderableListView semantics)', () {
+    final base = ['a', 'b', 'c', 'd'];
+
+    test('move an item down (framework passes an insertion slot past oldIndex)', () {
+      // Drag 'a' (0) to drop after 'b' → onReorder(0, 2).
+      expect(reorderedIds(base, 0, 2), ['b', 'a', 'c', 'd']);
+    });
+
+    test('move an item to the very end', () {
+      expect(reorderedIds(base, 0, 4), ['b', 'c', 'd', 'a']);
+    });
+
+    test('move an item up to the front', () {
+      expect(reorderedIds(base, 3, 0), ['d', 'a', 'b', 'c']);
+    });
+
+    test('dropping in place is a no-op', () {
+      expect(reorderedIds(base, 1, 1), base);
+      expect(reorderedIds(base, 1, 2), base); // slot just after itself
+    });
+
+    test('does not mutate the input list', () {
+      reorderedIds(base, 0, 3);
+      expect(base, ['a', 'b', 'c', 'd']);
+    });
+  });
 }

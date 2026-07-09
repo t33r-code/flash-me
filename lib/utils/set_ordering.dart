@@ -24,3 +24,14 @@ List<SetCard> sortSetCardsByPosition(List<SetCard> addedAtOrdered) {
   });
   return indexed.map((e) => e.value).toList();
 }
+
+// Applies a ReorderableListView drag to [ids], returning the new order.
+// [newIndex] is the raw insertion slot from ReorderableListView.onReorder,
+// which is off-by-one when moving an item downward — this adjusts for it.
+// Returns a new list; [ids] is not mutated.
+List<String> reorderedIds(List<String> ids, int oldIndex, int newIndex) {
+  if (newIndex > oldIndex) newIndex -= 1;
+  final out = List<String>.from(ids);
+  out.insert(newIndex, out.removeAt(oldIndex));
+  return out;
+}

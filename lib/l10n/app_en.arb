@@ -218,6 +218,8 @@
   },
   "errorFailedDeleteSet": "Failed to delete set. Please try again.",
   "errorFailedRemoveCard": "Failed to remove card.",
+  "errorFailedReorderCards": "Couldn't save the new order.",
+  "tooltipDragToReorder": "Drag to reorder",
   "messagePreparingExport": "Preparing export…",
   "messageSavedTo": "Saved to {path}",
   "@messageSavedTo": {

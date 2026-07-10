@@ -52,7 +52,7 @@ Sets work best with a single language pair. When you add cards, Agora checks the
 
 ## Removing Cards from a Set { #remove-cards }
 
-In the set detail screen, **swipe left** on any card row. A delete action appears — release to confirm. The card is removed from the set but is not deleted from your library.
+In the set detail screen, **swipe left** on any card row. A delete action appears — release to confirm. The card is removed from the set but is not deleted from your library. A brief **Undo** appears if you change your mind — it puts the card back in the same spot.
 
 ---
 

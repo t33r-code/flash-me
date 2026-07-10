@@ -219,7 +219,10 @@
   "errorFailedDeleteSet": "Failed to delete set. Please try again.",
   "errorFailedRemoveCard": "Failed to remove card.",
   "errorFailedReorderCards": "Couldn't save the new order.",
+  "errorFailedAddCardToSet": "Couldn't add the card back.",
   "tooltipDragToReorder": "Drag to reorder",
+  "actionUndo": "Undo",
+  "messageCardRemovedFromSet": "Removed from set",
   "messagePreparingExport": "Preparing export…",
   "messageSavedTo": "Saved to {path}",
   "@messageSavedTo": {

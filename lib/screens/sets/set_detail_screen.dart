@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/widgets/help_menu_button.dart';
 import 'package:flash_me/models/flash_card.dart';
+import 'package:flash_me/models/set_card.dart';
 import 'package:flash_me/models/workbook_card.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_provider.dart';
@@ -144,14 +145,27 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   // already updated before Dismissible completes its animation, avoiding
   // a race where both the stream and Dismissible try to remove the same
   // widget simultaneously, which causes a brief ErrorWidget flash.
-  Future<bool> _removeCard(String cardId) async {
+  Future<bool> _removeCard(SetCard link) async {
     final uid = ref.read(authStateProvider).asData?.value ?? '';
     try {
       await ref.read(cardSetRepositoryProvider).removeCardFromSet(
             setId: widget.cardSet.id,
-            cardId: cardId,
+            cardId: link.cardId,
             userId: uid,
           );
+      // Offer to undo — re-links the card at its prior position.
+      if (mounted) {
+        final messenger = ScaffoldMessenger.of(context)..clearSnackBars();
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(context.l10n.messageCardRemovedFromSet),
+            action: SnackBarAction(
+              label: context.l10n.actionUndo,
+              onPressed: () => _undoRemove(link),
+            ),
+          ),
+        );
+      }
       return true;
     } catch (_) {
       if (mounted) {
@@ -160,6 +174,26 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
         );
       }
       return false; // cancels the dismiss animation so the card stays visible
+    }
+  }
+
+  // Re-links a just-removed card at its original position (undo).
+  Future<void> _undoRemove(SetCard link) async {
+    final uid = ref.read(authStateProvider).asData?.value ?? '';
+    try {
+      await ref.read(cardSetRepositoryProvider).addCardToSet(
+            setId: widget.cardSet.id,
+            cardId: link.cardId,
+            userId: uid,
+            cardType: link.cardType,
+            position: link.position,
+          );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.errorFailedAddCardToSet)),
+        );
+      }
     }
   }
 
@@ -347,6 +381,8 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       for (final c in allWorkbookAsync.asData?.value ?? <WorkbookCard>[]) c.id: c
     };
     final typeById = {for (final l in links) l.cardId: l.cardType};
+    // cardId -> join doc, so removal can capture position/type for undo.
+    final linkById = {for (final l in links) l.cardId: l};
 
     // Position order from the stream, then any in-flight optimistic drag order.
     final order = _displayOrder([for (final l in links) l.cardId]);
@@ -420,7 +456,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                 color: Theme.of(context).colorScheme.onErrorContainer,
               ),
             ),
-            confirmDismiss: (_) => _removeCard(entry.cardId),
+            confirmDismiss: (_) => _removeCard(linkById[entry.cardId]!),
             child: tile,
           );
         },

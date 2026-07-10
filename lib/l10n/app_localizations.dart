@@ -1096,11 +1096,29 @@ abstract class AppLocalizations {
   /// **'Couldn\'t save the new order.'**
   String get errorFailedReorderCards;
 
+  /// No description provided for @errorFailedAddCardToSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t add the card back.'**
+  String get errorFailedAddCardToSet;
+
   /// No description provided for @tooltipDragToReorder.
   ///
   /// In en, this message translates to:
   /// **'Drag to reorder'**
   String get tooltipDragToReorder;
+
+  /// No description provided for @actionUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get actionUndo;
+
+  /// No description provided for @messageCardRemovedFromSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from set'**
+  String get messageCardRemovedFromSet;
 
   /// No description provided for @messagePreparingExport.
   ///

@@ -16,6 +16,8 @@ import 'package:flash_me/providers/workbook_card_provider.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/utils/set_ordering.dart';
+import 'package:flash_me/screens/cards/card_form_screen.dart';
+import 'package:flash_me/screens/cards/workbook_card_form_screen.dart';
 import 'package:flash_me/screens/sets/set_form_screen.dart';
 import 'package:flash_me/screens/study/study_setup_screen.dart';
 import 'package:flash_me/utils/constants.dart';
@@ -335,6 +337,67 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     ));
   }
 
+  // Bottom sheet: create a new card in this set (flash/workbook, seeded with the
+  // set so it links on save — #233) or add existing cards via the picker.
+  void _addToSet() {
+    final l10n = context.l10n;
+    final set = ref.read(setByIdProvider(widget.cardSet.id)) ?? widget.cardSet;
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Text(l10n.titleAddToSet,
+                  style: Theme.of(context).textTheme.titleMedium),
+            ),
+            ListTile(
+              leading: const Icon(Icons.style_outlined),
+              title: Text(l10n.labelFlashCard),
+              subtitle: Text(l10n.messageFlashCardSubtitle),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => CardFormScreen(parentSet: set)));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.book_outlined),
+              title: Text(l10n.labelWorkbookCard),
+              subtitle: Text(l10n.messageWorkbookCardSubtitle),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => WorkbookCardFormScreen(parentSet: set)));
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.library_add_outlined),
+              title: Text(l10n.actionAddExistingCards),
+              onTap: () {
+                Navigator.of(context).pop();
+                _showCardPicker();
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   // Opens the card picker bottom sheet.
   Future<void> _showCardPicker() async {
     final uid = ref.read(authStateProvider).asData?.value ?? '';
@@ -406,7 +469,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     } else if (hasError) {
       body = Center(child: Text(l10n.errorFailedLoadCards));
     } else if (entries.isEmpty) {
-      body = _EmptyState(onAddCards: _showCardPicker);
+      body = _EmptyState(onAddCards: _addToSet);
     } else {
       // Single position-ordered list across both card types. Drag the handle to
       // reorder (persists via reorderCards); swipe left to remove.
@@ -513,7 +576,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       body: body,
       floatingActionButton: FloatingActionButton(
         heroTag: 'addCards',
-        onPressed: _showCardPicker,
+        onPressed: _addToSet,
         tooltip: l10n.tooltipAddCards,
         child: const Icon(Icons.add),
       ),

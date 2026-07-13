@@ -28,10 +28,17 @@ These options are available on the create and edit screens:
 ## Adding Cards to a Set { #add-cards }
 
 1. Open the set by tapping it in the Sets list.
-2. Tap the **+** button at the bottom of the screen.
-3. The card picker shows all your cards — Flash Cards and Workbook Cards — grouped into sections. Cards already in the set appear greyed out at the bottom.
-4. Tap a card to select it (a tick appears). You can select as many as you like.
-5. Tap **Add** to add the selected cards to the set.
+2. Tap the **+** button at the bottom of the screen. A sheet offers three choices:
+    - **Flash Card** / **Workbook Card** — create a brand-new card right here. The editor opens seeded with the set's language pair, and when you save, the card is created **and** added to the set in one step.
+    - **Add existing cards** — pick cards already in your library (see below).
+
+### Adding existing cards { #add-existing }
+
+Choosing **Add existing cards** opens the card picker:
+
+1. The picker shows all your cards — Flash Cards and Workbook Cards — grouped into sections. Cards already in the set appear greyed out at the bottom.
+2. Tap a card to select it (a tick appears). You can select as many as you like.
+3. Tap **Add** to add the selected cards to the set.
 
 ### Finding cards in the picker { #picker-search }
 

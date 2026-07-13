@@ -777,6 +777,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get titleCreateCard => 'Create a card';
 
   @override
+  String get titleAddToSet => 'Add to set';
+
+  @override
+  String get actionAddExistingCards => 'Add existing cards';
+
+  @override
   String get labelFlashCard => 'Flash Card';
 
   @override

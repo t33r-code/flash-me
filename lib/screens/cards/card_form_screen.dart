@@ -9,6 +9,7 @@ import 'package:flash_me/models/card_template.dart';
 import 'package:flash_me/models/flash_card.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_provider.dart';
+import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/tag_provider.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
@@ -517,6 +518,16 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
                 createdBy: uid,
               ),
             );
+        // Link the new card into the set when created from a set's "New card"
+        // flow (parentSet is passed by the Set Detail "New card" action).
+        if (widget.parentSet != null) {
+          await ref.read(cardSetRepositoryProvider).addCardToSet(
+                setId: widget.parentSet!.id,
+                cardId: _pendingCardId,
+                userId: uid,
+                cardType: AppConstants.cardTypeFlashcard,
+              );
+        }
         // Remember the language pair for the next card created this session.
         ref.read(lastUsedLanguagesProvider.notifier).set(
               (native: _nativeLanguage, target: _targetLanguage),

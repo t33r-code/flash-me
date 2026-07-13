@@ -7,6 +7,7 @@ import 'package:flash_me/models/workbook_card.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/language_provider.dart';
 import 'package:flash_me/providers/tag_provider.dart';
+import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/workbook_card_provider.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
@@ -818,20 +819,31 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
 
       if (!_isEditing) {
         final now = DateTime.now();
-        await ref.read(workbookCardRepositoryProvider).createCard(
-              WorkbookCard(
-                id: '',
-                prompt: _promptController.text.trim(),
-                questions: questions,
-                questionAsCard: _questionAsCard,
-                tags: normalizedTags,
-                nativeLanguage: _nativeLanguage,
-                targetLanguage: _targetLanguage,
-                createdAt: now,
-                updatedAt: now,
-                createdBy: uid,
-              ),
-            );
+        final created =
+            await ref.read(workbookCardRepositoryProvider).createCard(
+                  WorkbookCard(
+                    id: '',
+                    prompt: _promptController.text.trim(),
+                    questions: questions,
+                    questionAsCard: _questionAsCard,
+                    tags: normalizedTags,
+                    nativeLanguage: _nativeLanguage,
+                    targetLanguage: _targetLanguage,
+                    createdAt: now,
+                    updatedAt: now,
+                    createdBy: uid,
+                  ),
+                );
+        // Link the new card into the set when created from a set's "New card"
+        // flow (parentSet is passed by the Set Detail "New card" action).
+        if (widget.parentSet != null) {
+          await ref.read(cardSetRepositoryProvider).addCardToSet(
+                setId: widget.parentSet!.id,
+                cardId: created.id,
+                userId: uid,
+                cardType: AppConstants.cardTypeWorkbook,
+              );
+        }
         ref.read(lastUsedLanguagesProvider.notifier).set(
               (native: _nativeLanguage, target: _targetLanguage),
             );

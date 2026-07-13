@@ -588,6 +588,11 @@ setCards/{linkId}                 ← many-to-many join collection
 - All metadata fields editable except userId and timestamps
 - UpdatedAt timestamp updated on save
 
+**Create Card in Set (in-place):**
+- From the set's **+** sheet, "Flash Card" / "Workbook Card" opens the full-screen editor (`CardEditorBody` / `WorkbookEditorBody`) seeded with the set (`parentSet`)
+- On save the editor creates the card **and** links it to the set (`addCardToSet`, appended at the end position) in one step — no separate "add" step
+- `parentSet` also seeds the editor's language pair from the set
+
 **Add Cards to Set:**
 - User selects one or more existing cards (Flash Cards and/or Workbook Cards)
 - Create a `setCards` join document for each card (`{setId, cardId, userId, cardType, addedAt, position}`)

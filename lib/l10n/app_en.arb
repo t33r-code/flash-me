@@ -328,6 +328,8 @@
 
   "titleMyCards": "My Cards",
   "titleCreateCard": "Create a card",
+  "titleAddToSet": "Add to set",
+  "actionAddExistingCards": "Add existing cards",
   "labelFlashCard": "Flash Card",
   "messageFlashCardSubtitle": "Word + translation with optional fields",
   "labelWorkbookCard": "Workbook Card",

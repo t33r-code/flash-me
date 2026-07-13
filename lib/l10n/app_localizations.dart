@@ -1462,6 +1462,18 @@ abstract class AppLocalizations {
   /// **'Create a card'**
   String get titleCreateCard;
 
+  /// No description provided for @titleAddToSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to set'**
+  String get titleAddToSet;
+
+  /// No description provided for @actionAddExistingCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Add existing cards'**
+  String get actionAddExistingCards;
+
   /// No description provided for @labelFlashCard.
   ///
   /// In en, this message translates to:

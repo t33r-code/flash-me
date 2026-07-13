@@ -183,20 +183,36 @@ class _QuestionState {
 }
 
 // ---------------------------------------------------------------------------
-// CardFormScreen — create or edit a FlashCard.
-// Pass [card] to pre-populate the form in edit mode; omit for create mode.
-// Pass [parentSet] when creating from inside a set — its language pair is used as default.
+// CardEditorBody — reusable FlashCard editor with NO Scaffold/AppBar, so it can
+// be hosted full-screen (CardFormScreen, below) or in a detail pane (#236).
+// Pass [card] to edit; omit to create. Pass [parentSet] when creating from a set
+// (its language pair seeds the form). Navigation is the host's job — the body
+// reports save/cancel/delete via callbacks and never pops itself.
 // ---------------------------------------------------------------------------
-class CardFormScreen extends ConsumerStatefulWidget {
+class CardEditorBody extends ConsumerStatefulWidget {
   final FlashCard? card;
   final CardSet? parentSet; // non-null when creating from a set's "add card" flow
-  const CardFormScreen({super.key, this.card, this.parentSet});
+  final VoidCallback? onSaved;
+  final VoidCallback? onCancel;
+  final VoidCallback? onDeleted;
+  // Fired when the in-flight save/delete flag flips, so a host AppBar can
+  // disable its own actions while work is running.
+  final ValueChanged<bool>? onSavingChanged;
+  const CardEditorBody({
+    super.key,
+    this.card,
+    this.parentSet,
+    this.onSaved,
+    this.onCancel,
+    this.onDeleted,
+    this.onSavingChanged,
+  });
 
   @override
-  ConsumerState<CardFormScreen> createState() => _CardFormScreenState();
+  ConsumerState<CardEditorBody> createState() => CardEditorBodyState();
 }
 
-class _CardFormScreenState extends ConsumerState<CardFormScreen> {
+class CardEditorBodyState extends ConsumerState<CardEditorBody> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _primaryWordController;
   late final TextEditingController _translationController;
@@ -222,6 +238,13 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
   bool _clearAudio = false;
 
   bool get _isEditing => widget.card != null;
+
+  // Flip the in-flight flag and let the host (if any) react — e.g. disable its
+  // AppBar actions while a save/delete runs.
+  void _setSaving(bool value) {
+    setState(() => _isSaving = value);
+    widget.onSavingChanged?.call(value);
+  }
 
   @override
   void initState() {
@@ -462,7 +485,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
     }
 
     FocusScope.of(context).unfocus();
-    setState(() => _isSaving = true);
+    _setSaving(true);
     try {
       final uid = ref.read(authStateProvider).asData?.value ?? '';
       final tagRepo = ref.read(tagRepositoryProvider);
@@ -523,12 +546,12 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
         for (final norm in toDecrement) { tagRepo.decrementTag(norm); }
       }
       if (mounted) {
-        setState(() => _isSaving = false);
-        Navigator.of(context).pop();
+        _setSaving(false);
+        widget.onSaved?.call();
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _isSaving = false);
+        _setSaving(false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.l10n.errorFailedSaveCard)),
         );
@@ -538,7 +561,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
 
   // Null out answer fields from the current card's questions so the template
   // stores structure and config (options, hints) but not answers.
-  void _saveAsTemplate() {
+  void saveAsTemplate() {
     final templateQuestions =
         _questions.map((q) => q.toTemplateQuestion()).toList();
 
@@ -549,7 +572,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
     );
   }
 
-  Future<void> _confirmDelete() async {
+  Future<void> confirmDelete() async {
     final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -572,7 +595,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
     );
 
     if (confirmed != true || !mounted) return;
-    setState(() => _isSaving = true);
+    _setSaving(true);
     try {
       // Capture tags before deleting — decrement fire-and-forget after.
       final tagsToDecrement = widget.card!.tags
@@ -585,12 +608,12 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
           .deleteCard(widget.card!.id);
       for (final norm in tagsToDecrement) { tagRepo.decrementTag(norm); }
       if (mounted) {
-        setState(() => _isSaving = false);
-        Navigator.of(context).pop();
+        _setSaving(false);
+        widget.onDeleted?.call();
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _isSaving = false);
+        _setSaving(false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.l10n.errorFailedDeleteCard)),
         );
@@ -912,34 +935,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing ? l10n.titleEditCard : l10n.titleNewCard),
-        actions: [
-          if (_isEditing)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              tooltip: l10n.tooltipDeleteCard,
-              onPressed: _isSaving ? null : _confirmDelete,
-            ),
-          PopupMenuButton<String>(
-            onSelected: (v) {
-              if (v == 'save_as_template') _saveAsTemplate();
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                value: 'save_as_template',
-                child: ListTile(
-                  leading: const Icon(Icons.copy_all_outlined),
-                  title: Text(l10n.actionSaveAsTemplate),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-      body: Form(
+    return Form(
         key: _formKey,
         child: IgnorePointer(
           ignoring: _isSaving,
@@ -1060,7 +1056,7 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
                     child: OutlinedButton(
                       onPressed: _isSaving
                           ? null
-                          : () => Navigator.of(context).pop(),
+                          : () => widget.onCancel?.call(),
                       child: Text(l10n.labelCancel),
                     ),
                   ),
@@ -1088,6 +1084,72 @@ class _CardFormScreenState extends ConsumerState<CardFormScreen> {
           ),
         ),
         ),
+      );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CardFormScreen — full-screen host for CardEditorBody. Provides the Scaffold
+// and AppBar chrome (title, delete, save-as-template) and owns navigation.
+// Pass [card] to edit; omit to create. Pass [parentSet] to seed from a set.
+// ---------------------------------------------------------------------------
+class CardFormScreen extends StatefulWidget {
+  final FlashCard? card;
+  final CardSet? parentSet;
+  const CardFormScreen({super.key, this.card, this.parentSet});
+
+  @override
+  State<CardFormScreen> createState() => _CardFormScreenState();
+}
+
+class _CardFormScreenState extends State<CardFormScreen> {
+  final GlobalKey<CardEditorBodyState> _bodyKey = GlobalKey();
+  // Mirrors the body's in-flight flag so the AppBar delete action can disable.
+  bool _saving = false;
+
+  bool get _isEditing => widget.card != null;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_isEditing ? l10n.titleEditCard : l10n.titleNewCard),
+        actions: [
+          if (_isEditing)
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: l10n.tooltipDeleteCard,
+              onPressed:
+                  _saving ? null : () => _bodyKey.currentState?.confirmDelete(),
+            ),
+          PopupMenuButton<String>(
+            onSelected: (v) {
+              if (v == 'save_as_template') {
+                _bodyKey.currentState?.saveAsTemplate();
+              }
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                value: 'save_as_template',
+                child: ListTile(
+                  leading: const Icon(Icons.copy_all_outlined),
+                  title: Text(l10n.actionSaveAsTemplate),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      body: CardEditorBody(
+        key: _bodyKey,
+        card: widget.card,
+        parentSet: widget.parentSet,
+        onSaved: () => Navigator.of(context).pop(),
+        onCancel: () => Navigator.of(context).pop(),
+        onDeleted: () => Navigator.of(context).pop(),
+        onSavingChanged: (v) => setState(() => _saving = v),
       ),
     );
   }

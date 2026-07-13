@@ -332,23 +332,36 @@ class _QuestionState {
 }
 
 // ---------------------------------------------------------------------------
-// WorkbookCardFormScreen — create or edit a WorkbookCard.
-// Pass [card] to pre-populate in edit mode; omit for create mode.
-// Pass [parentSet] when creating from inside a set — its language pair is
-// used as the default.
+// WorkbookEditorBody — reusable WorkbookCard editor with NO Scaffold/AppBar, so
+// it can be hosted full-screen (WorkbookCardFormScreen, below) or in a detail
+// pane (#236). Pass [card] to edit; omit to create. Pass [parentSet] to seed
+// from a set. Navigation is the host's job — the body reports save/cancel/
+// delete via callbacks and never pops itself.
 // ---------------------------------------------------------------------------
-class WorkbookCardFormScreen extends ConsumerStatefulWidget {
+class WorkbookEditorBody extends ConsumerStatefulWidget {
   final WorkbookCard? card;
   final CardSet? parentSet;
-  const WorkbookCardFormScreen({super.key, this.card, this.parentSet});
+  final VoidCallback? onSaved;
+  final VoidCallback? onCancel;
+  final VoidCallback? onDeleted;
+  // Fired when the in-flight save/delete flag flips, so a host AppBar can
+  // disable its own actions while work is running.
+  final ValueChanged<bool>? onSavingChanged;
+  const WorkbookEditorBody({
+    super.key,
+    this.card,
+    this.parentSet,
+    this.onSaved,
+    this.onCancel,
+    this.onDeleted,
+    this.onSavingChanged,
+  });
 
   @override
-  ConsumerState<WorkbookCardFormScreen> createState() =>
-      _WorkbookCardFormScreenState();
+  ConsumerState<WorkbookEditorBody> createState() => WorkbookEditorBodyState();
 }
 
-class _WorkbookCardFormScreenState
-    extends ConsumerState<WorkbookCardFormScreen> {
+class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _promptController;
 
@@ -360,6 +373,13 @@ class _WorkbookCardFormScreenState
   bool _isSaving = false;
 
   bool get _isEditing => widget.card != null;
+
+  // Flip the in-flight flag and let the host (if any) react — e.g. disable its
+  // AppBar actions while a save/delete runs.
+  void _setSaving(bool value) {
+    setState(() => _isSaving = value);
+    widget.onSavingChanged?.call(value);
+  }
 
   @override
   void initState() {
@@ -784,7 +804,7 @@ class _WorkbookCardFormScreenState
     }
 
     FocusScope.of(context).unfocus();
-    setState(() => _isSaving = true);
+    _setSaving(true);
     try {
       final uid = ref.read(authStateProvider).asData?.value ?? '';
       final tagRepo = ref.read(tagRepositoryProvider);
@@ -834,12 +854,12 @@ class _WorkbookCardFormScreenState
         for (final norm in toDecrement) { tagRepo.decrementTag(norm); }
       }
       if (mounted) {
-        setState(() => _isSaving = false);
-        Navigator.of(context).pop();
+        _setSaving(false);
+        widget.onSaved?.call();
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _isSaving = false);
+        _setSaving(false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.l10n.errorFailedSaveCard)),
         );
@@ -847,7 +867,7 @@ class _WorkbookCardFormScreenState
     }
   }
 
-  Future<void> _confirmDelete() async {
+  Future<void> confirmDelete() async {
     final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -869,7 +889,7 @@ class _WorkbookCardFormScreenState
       ),
     );
     if (confirmed != true || !mounted) return;
-    setState(() => _isSaving = true);
+    _setSaving(true);
     try {
       final tagsToDecrement = widget.card!.tags
           .map(AppHelpers.normalizeTag)
@@ -881,12 +901,12 @@ class _WorkbookCardFormScreenState
           .deleteCard(widget.card!.id);
       for (final norm in tagsToDecrement) { tagRepo.decrementTag(norm); }
       if (mounted) {
-        setState(() => _isSaving = false);
-        Navigator.of(context).pop();
+        _setSaving(false);
+        widget.onDeleted?.call();
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _isSaving = false);
+        _setSaving(false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.l10n.errorFailedDeleteCard)),
         );
@@ -1728,19 +1748,7 @@ class _WorkbookCardFormScreenState
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing ? l10n.titleEditWorkbookCard : l10n.titleNewWorkbookCard),
-        actions: [
-          if (_isEditing)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              tooltip: l10n.tooltipDeleteCard,
-              onPressed: _isSaving ? null : _confirmDelete,
-            ),
-        ],
-      ),
-      body: Form(
+    return Form(
         key: _formKey,
         child: IgnorePointer(
           ignoring: _isSaving,
@@ -1845,7 +1853,7 @@ class _WorkbookCardFormScreenState
                       child: OutlinedButton(
                         onPressed: _isSaving
                             ? null
-                            : () => Navigator.of(context).pop(),
+                            : () => widget.onCancel?.call(),
                         child: Text(l10n.labelCancel),
                       ),
                     ),
@@ -1872,6 +1880,57 @@ class _WorkbookCardFormScreenState
             ),
           ),
         ),
+      );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// WorkbookCardFormScreen — full-screen host for WorkbookEditorBody. Provides the
+// Scaffold + AppBar chrome (title, delete) and owns navigation.
+// Pass [card] to edit; omit to create. Pass [parentSet] to seed from a set.
+// ---------------------------------------------------------------------------
+class WorkbookCardFormScreen extends StatefulWidget {
+  final WorkbookCard? card;
+  final CardSet? parentSet;
+  const WorkbookCardFormScreen({super.key, this.card, this.parentSet});
+
+  @override
+  State<WorkbookCardFormScreen> createState() => _WorkbookCardFormScreenState();
+}
+
+class _WorkbookCardFormScreenState extends State<WorkbookCardFormScreen> {
+  final GlobalKey<WorkbookEditorBodyState> _bodyKey = GlobalKey();
+  // Mirrors the body's in-flight flag so the AppBar delete action can disable.
+  bool _saving = false;
+
+  bool get _isEditing => widget.card != null;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_isEditing
+            ? l10n.titleEditWorkbookCard
+            : l10n.titleNewWorkbookCard),
+        actions: [
+          if (_isEditing)
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: l10n.tooltipDeleteCard,
+              onPressed:
+                  _saving ? null : () => _bodyKey.currentState?.confirmDelete(),
+            ),
+        ],
+      ),
+      body: WorkbookEditorBody(
+        key: _bodyKey,
+        card: widget.card,
+        parentSet: widget.parentSet,
+        onSaved: () => Navigator.of(context).pop(),
+        onCancel: () => Navigator.of(context).pop(),
+        onDeleted: () => Navigator.of(context).pop(),
+        onSavingChanged: (v) => setState(() => _saving = v),
       ),
     );
   }

@@ -323,6 +323,12 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 
 **Deliverable**: Complete set management with card organization.
 
+##### Phase 4f — In-place set builder (Alpha 0.7, #232)
+- [x] Extract shared `CardEditorBody` / `WorkbookEditorBody` (#255): the flash + workbook editors now render without a Scaffold/AppBar so they can host full-screen (thin `CardFormScreen` / `WorkbookCardFormScreen` wrappers) or in a future detail pane (#236). Navigation/actions decoupled via `onSaved` / `onCancel` / `onDeleted` / `onSavingChanged` callbacks; wrappers drive delete + save-as-template through a `GlobalKey`. Pure refactor — no behaviour change (180 tests green).
+- [ ] #233 — create a card directly in a set (full-screen editor seeded with the set)
+- [ ] #236 — multi-pane = desktop detail-pane editing (hosts `CardEditorBody`)
+- [ ] #234 — library drawer (replaces the #210 picker)
+
 ---
 
 ### Phase 5: Study Mode - The Core Experience (Weeks 6-8)

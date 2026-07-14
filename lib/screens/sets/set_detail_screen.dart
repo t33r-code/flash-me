@@ -27,7 +27,11 @@ import 'package:flash_me/utils/constants.dart';
 // ---------------------------------------------------------------------------
 class SetDetailScreen extends ConsumerStatefulWidget {
   final CardSet cardSet; // initial value; AppBar title updates via setByIdProvider
-  const SetDetailScreen({super.key, required this.cardSet});
+  // When hosted in a pane (multi-pane #236) rather than pushed full-screen, the
+  // host provides onExit so deleting the set clears the pane selection instead
+  // of popping a route. Null in the pushed/full-screen case (pops as usual).
+  final VoidCallback? onExit;
+  const SetDetailScreen({super.key, required this.cardSet, this.onExit});
 
   @override
   ConsumerState<SetDetailScreen> createState() => _SetDetailScreenState();
@@ -130,7 +134,14 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
           .read(cardSetRepositoryProvider)
           .deleteSet(widget.cardSet.id, uid);
       for (final norm in tagsToDecrement) { tagRepo.decrementTag(norm); }
-      if (mounted) Navigator.of(context).pop();
+      // In a pane, clear the host's selection; full-screen, pop the route.
+      if (mounted) {
+        if (widget.onExit != null) {
+          widget.onExit!();
+        } else {
+          Navigator.of(context).pop();
+        }
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -358,6 +358,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get messageNoSetsMatchSearch => 'No sets match your search.';
 
   @override
+  String get messageSelectASet => 'Select a set to see its cards.';
+
+  @override
   String get errorFailedLoadSets => 'Failed to load sets.';
 
   @override

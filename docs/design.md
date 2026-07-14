@@ -1805,7 +1805,7 @@ A web-first, wide-layout screen presenting a spreadsheet-style editor where each
 
 #### Navigation Pattern
 
-Desktop and wide-tablet layouts will use a persistent `NavigationDrawer` (full-width sidebar with labels and optional metadata) rather than a `NavigationRail`. The `BottomNavigationBar` remains for mobile. The shell adapts based on a screen-width breakpoint, swapping between the two at runtime.
+Wide/landscape layouts use a persistent left `NavigationRail` (icons with labels beneath) for the five top-level destinations; narrow/portrait keeps the `BottomNavigationBar`. The root shell (`main_screen`) swaps between them at runtime via `LayoutBuilder` against the shared `kWideLayoutBreakpoint` (600dp, `utils/layout_breakpoints.dart`) — the same breakpoint the multi-pane set view (#236) reuses. Selected tab and per-tab state persist across the switch because they live in shell state. (Implemented in #230; a richer full-width `NavigationDrawer` remains a possible future evolution.)
 
 #### Relationship to Import/Export
 

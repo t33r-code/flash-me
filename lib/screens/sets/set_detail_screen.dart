@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flash_me/l10n/app_localizations.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/widgets/help_menu_button.dart';
 import 'package:flash_me/models/flash_card.dart';
@@ -23,6 +24,28 @@ import 'package:flash_me/screens/study/study_setup_screen.dart';
 import 'package:flash_me/utils/constants.dart';
 
 // ---------------------------------------------------------------------------
+// _PaneEdit — what the wide detail pane is showing instead of the card list
+// (#259). `card == null` means creating a new card of that type; non-null
+// means editing that existing card. Each variant owns its own GlobalKey so the
+// pane's toolbar Save button can invoke the embedded editor's save() directly.
+// ---------------------------------------------------------------------------
+sealed class _PaneEdit {
+  const _PaneEdit();
+}
+
+class _FlashPaneEdit extends _PaneEdit {
+  final FlashCard? card;
+  final GlobalKey<CardEditorBodyState> key = GlobalKey();
+  _FlashPaneEdit({this.card});
+}
+
+class _WorkbookPaneEdit extends _PaneEdit {
+  final WorkbookCard? card;
+  final GlobalKey<WorkbookEditorBodyState> key = GlobalKey();
+  _WorkbookPaneEdit({this.card});
+}
+
+// ---------------------------------------------------------------------------
 // SetDetailScreen — live card list for a set with add/remove membership.
 // ---------------------------------------------------------------------------
 class SetDetailScreen extends ConsumerStatefulWidget {
@@ -44,6 +67,52 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   // Card order applied optimistically right after a drag, held until the
   // position-ordered stream catches up. Null when not mid-reorder.
   List<String>? _optimisticOrder;
+
+  // What the wide detail pane is showing instead of the card list (#259).
+  // Only ever set when widget.onExit != null (i.e. hosted in the pane) —
+  // narrow/full-screen usage never touches this and always uses the pushed
+  // full-screen editor instead.
+  _PaneEdit? _paneEdit;
+  bool _isPaneSaving = false;
+
+  void _exitPaneEdit() {
+    if (mounted) setState(() => _paneEdit = null);
+  }
+
+  void _startNewCardInPane(String cardType) {
+    setState(() => _paneEdit = cardType == AppConstants.cardTypeWorkbook
+        ? _WorkbookPaneEdit()
+        : _FlashPaneEdit());
+  }
+
+  void _editFlashCardInPane(FlashCard card) {
+    setState(() => _paneEdit = _FlashPaneEdit(card: card));
+  }
+
+  void _editWorkbookCardInPane(WorkbookCard card) {
+    setState(() => _paneEdit = _WorkbookPaneEdit(card: card));
+  }
+
+  String _paneEditTitle(AppLocalizations l10n) => switch (_paneEdit) {
+        _FlashPaneEdit(card: null) => l10n.titleNewCard,
+        _FlashPaneEdit() => l10n.titleEditCard,
+        _WorkbookPaneEdit(card: null) => l10n.titleNewWorkbookCard,
+        _WorkbookPaneEdit() => l10n.titleEditWorkbookCard,
+        null => '',
+      };
+
+  // Invoked by the pane's toolbar Save button — dispatches to whichever
+  // embedded editor is currently showing.
+  void _savePaneEdit() {
+    switch (_paneEdit) {
+      case _FlashPaneEdit(:final key):
+        key.currentState?.save();
+      case _WorkbookPaneEdit(:final key):
+        key.currentState?.save();
+      case null:
+        break;
+    }
+  }
 
   // Drag ended: rebuild the full ordered id list and persist it via #244's
   // reorderCards. [currentOrder] is the ids as currently displayed.
@@ -379,8 +448,14 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
               subtitle: Text(l10n.messageFlashCardSubtitle),
               onTap: () {
                 Navigator.of(context).pop();
-                Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => CardFormScreen(parentSet: set)));
+                // Wide (hosted in the #236 pane): edit in place (#259).
+                // Narrow: full-screen editor, as before.
+                if (widget.onExit != null) {
+                  _startNewCardInPane(AppConstants.cardTypeFlashcard);
+                } else {
+                  Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => CardFormScreen(parentSet: set)));
+                }
               },
             ),
             ListTile(
@@ -389,8 +464,12 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
               subtitle: Text(l10n.messageWorkbookCardSubtitle),
               onTap: () {
                 Navigator.of(context).pop();
-                Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => WorkbookCardFormScreen(parentSet: set)));
+                if (widget.onExit != null) {
+                  _startNewCardInPane(AppConstants.cardTypeWorkbook);
+                } else {
+                  Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => WorkbookCardFormScreen(parentSet: set)));
+                }
               },
             ),
             const Divider(),
@@ -512,6 +591,17 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
               : _WorkbookCardInSetTile(
                   card: entry.workbook!, dragHandle: handle);
 
+          // Double-click a row to edit it in the pane (#259) — pointer/wide
+          // only; narrow has no in-place editing surface to open.
+          final rowContent = widget.onExit != null
+              ? GestureDetector(
+                  onDoubleTap: () => entry.flash != null
+                      ? _editFlashCardInPane(entry.flash!)
+                      : _editWorkbookCardInPane(entry.workbook!),
+                  child: tile,
+                )
+              : tile;
+
           // Swipe left to remove the card from this set (works for both types).
           // Key must sit on the outer widget for ReorderableListView.
           return Dismissible(
@@ -531,66 +621,144 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
               ),
             ),
             confirmDismiss: (_) => _removeCard(linkById[entry.cardId]!),
-            child: tile,
+            child: rowContent,
           );
         },
       );
     }
 
-    return Scaffold(
+    // Pane mode (#259): when the wide detail pane is editing a card, the whole
+    // toolbar + body morph — set actions swap for Cancel/Save, and the card
+    // list is replaced by the embedded editor. Only reachable when
+    // widget.onExit != null (see _startNewCardInPane / _editFlashCardInPane).
+    final paneEdit = _paneEdit;
+    if (paneEdit != null) {
+      body = switch (paneEdit) {
+        _FlashPaneEdit(:final card, :final key) => CardEditorBody(
+            key: key,
+            card: card,
+            parentSet: liveSet,
+            showFooterActions: false,
+            onSaved: _exitPaneEdit,
+            onCancel: _exitPaneEdit,
+            onSavingChanged: (v) =>
+                mounted ? setState(() => _isPaneSaving = v) : null,
+          ),
+        _WorkbookPaneEdit(:final card, :final key) => WorkbookEditorBody(
+            key: key,
+            card: card,
+            parentSet: liveSet,
+            showFooterActions: false,
+            onSaved: _exitPaneEdit,
+            onCancel: _exitPaneEdit,
+            onSavingChanged: (v) =>
+                mounted ? setState(() => _isPaneSaving = v) : null,
+          ),
+      };
+    }
+
+    final scaffold = Scaffold(
       appBar: AppBar(
-        title: Text(liveSet.name),
-        actions: [
-          // Market publish/unpublish toggle.
-          // Outlined = private; filled + primary colour = currently in Market.
-          IconButton(
-            icon: liveSet.isPublic
-                ? const Icon(Icons.unpublished_outlined)
-                : const Icon(Icons.storefront_outlined),
-            tooltip: liveSet.isPublic
-                ? l10n.tooltipRemoveFromMarket
-                : l10n.tooltipOfferInMarket,
-            onPressed: _isPublishing
-                ? null
-                : () => liveSet.isPublic
-                    ? _removeFromMarket(liveSet)
-                    : _offerInMarket(liveSet),
-          ),
-          IconButton(
-            icon: const Icon(Icons.download_outlined),
-            tooltip: l10n.tooltipExportSet,
-            onPressed: _isExporting ? null : () => _exportSet(liveSet),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline),
-            tooltip: l10n.tooltipDeleteSet,
-            onPressed: _isDeleting ? null : _confirmDelete,
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            tooltip: l10n.tooltipEditSet,
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => SetFormScreen(cardSet: liveSet),
-              ),
-            ),
-          ),
-          // Quick-study shortcut — bypasses the Study tab set picker for this set.
-          IconButton(
-            icon: const Icon(Icons.play_circle_outline),
-            tooltip: l10n.tooltipStudyThisSet,
-            onPressed: _study,
-          ),
-          const HelpMenuButton(HelpContext.sets),
-        ],
+        title: Text(paneEdit == null ? liveSet.name : _paneEditTitle(l10n)),
+        automaticallyImplyLeading: paneEdit == null,
+        actions: paneEdit != null
+            ? [
+                // Card mode: only Cancel / Save. No delete here — card
+                // deletion is only available from the Cards tab editor.
+                TextButton(
+                  onPressed: _isPaneSaving ? null : _exitPaneEdit,
+                  child: Text(l10n.labelCancel),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: FilledButton(
+                    onPressed: _isPaneSaving ? null : _savePaneEdit,
+                    child: _isPaneSaving
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(l10n.actionSaveChanges),
+                  ),
+                ),
+              ]
+            : [
+                // Add card — pane mode only; the FAB (mobile idiom) is
+                // hidden when hosted in the wide pane (widget.onExit != null).
+                if (widget.onExit != null)
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    tooltip: l10n.tooltipAddCards,
+                    onPressed: _addToSet,
+                  ),
+                // Market publish/unpublish toggle.
+                // Outlined = private; filled + primary colour = currently in Market.
+                IconButton(
+                  icon: liveSet.isPublic
+                      ? const Icon(Icons.unpublished_outlined)
+                      : const Icon(Icons.storefront_outlined),
+                  tooltip: liveSet.isPublic
+                      ? l10n.tooltipRemoveFromMarket
+                      : l10n.tooltipOfferInMarket,
+                  onPressed: _isPublishing
+                      ? null
+                      : () => liveSet.isPublic
+                          ? _removeFromMarket(liveSet)
+                          : _offerInMarket(liveSet),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.download_outlined),
+                  tooltip: l10n.tooltipExportSet,
+                  onPressed: _isExporting ? null : () => _exportSet(liveSet),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  tooltip: l10n.tooltipDeleteSet,
+                  onPressed: _isDeleting ? null : _confirmDelete,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: l10n.tooltipEditSet,
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => SetFormScreen(cardSet: liveSet),
+                    ),
+                  ),
+                ),
+                // Quick-study shortcut — bypasses the Study tab set picker.
+                IconButton(
+                  icon: const Icon(Icons.play_circle_outline),
+                  tooltip: l10n.tooltipStudyThisSet,
+                  onPressed: _study,
+                ),
+                const HelpMenuButton(HelpContext.sets),
+              ],
       ),
       body: body,
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'addCards',
-        onPressed: _addToSet,
-        tooltip: l10n.tooltipAddCards,
-        child: const Icon(Icons.add),
-      ),
+      // Mobile-only affordance — hidden in the wide pane, where "Add card" is
+      // a toolbar action instead (see actions above).
+      floatingActionButton: (paneEdit == null && widget.onExit == null)
+          ? FloatingActionButton(
+              heroTag: 'addCards',
+              onPressed: _addToSet,
+              tooltip: l10n.tooltipAddCards,
+              child: const Icon(Icons.add),
+            )
+          : null,
+    );
+
+    // Only the pane hosts a card editor that should intercept back navigation
+    // (narrow/full-screen editing already has its own pushed route to pop).
+    // Known limitation: since MainScreen keeps every tab mounted, this can
+    // still apply while the Sets tab isn't the visible one; acceptable for v1.
+    if (widget.onExit == null) return scaffold;
+    return PopScope(
+      canPop: paneEdit == null,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _exitPaneEdit();
+      },
+      child: scaffold,
     );
   }
 }

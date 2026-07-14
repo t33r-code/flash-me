@@ -1805,7 +1805,9 @@ A web-first, wide-layout screen presenting a spreadsheet-style editor where each
 
 #### Navigation Pattern
 
-Wide/landscape layouts use a persistent left `NavigationRail` (icons with labels beneath) for the five top-level destinations; narrow/portrait keeps the `BottomNavigationBar`. The root shell (`main_screen`) swaps between them at runtime via `LayoutBuilder` against the shared `kWideLayoutBreakpoint` (600dp, `utils/layout_breakpoints.dart`) — the same breakpoint the multi-pane set view (#236) reuses. Selected tab and per-tab state persist across the switch because they live in shell state. (Implemented in #230; a richer full-width `NavigationDrawer` remains a possible future evolution.)
+Wide/landscape layouts use a persistent left `NavigationRail` (icons with labels beneath) for the five top-level destinations; narrow/portrait keeps the `BottomNavigationBar`. The root shell (`main_screen`) swaps between them at runtime via `LayoutBuilder` against the shared `kWideLayoutBreakpoint` (600dp, `utils/layout_breakpoints.dart`) — the same breakpoint the multi-pane set view reuses. Selected tab and per-tab state persist across the switch because they live in shell state. (Implemented in #230; a richer full-width `NavigationDrawer` remains a possible future evolution.)
+
+On wide layouts the **My Sets** tab is a **master-detail** view (#236): the set list stays in a left column and the selected set's `SetDetailScreen` renders in a right pane (empty placeholder until a set is chosen). Selecting a set updates the pane in place; narrow/portrait keeps push navigation. `SetDetailScreen` takes an optional `onExit` callback so deleting the set in the pane clears the selection instead of popping a route. The Market tab stays full-width. In-pane card *editing* (the editor appearing in the pane, via a nested `Navigator`) is a follow-up (#259).
 
 #### Relationship to Import/Export
 

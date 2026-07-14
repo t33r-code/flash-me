@@ -9,6 +9,7 @@ import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/set_acquisition_provider.dart';
 import 'package:flash_me/screens/sets/clone_confirmation_screen.dart';
 import 'package:flash_me/screens/sets/set_detail_screen.dart';
+import 'package:flash_me/utils/layout_breakpoints.dart';
 import 'package:flash_me/screens/sets/set_form_screen.dart';
 
 enum _SortOrder { updated, name, cardCount }
@@ -98,6 +99,8 @@ class _SetsScreenState extends ConsumerState<SetsScreen>
           ],
         ),
       ),
+      // The create-set FAB lives inside the My Sets list column
+      // (_MySetsTab) so it stays clear of the detail pane's FAB on wide.
       body: TabBarView(
         controller: _tabController,
         children: [
@@ -105,17 +108,6 @@ class _SetsScreenState extends ConsumerState<SetsScreen>
           const _MarketTab(),
         ],
       ),
-      // FAB is only shown on the My Sets tab.
-      floatingActionButton: _onMySets
-          ? FloatingActionButton(
-              heroTag: null,
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SetFormScreen()),
-              ),
-              tooltip: l10n.tooltipCreateSet,
-              child: const Icon(Icons.add),
-            )
-          : null,
     );
   }
 
@@ -155,6 +147,19 @@ class _MySetsTabState extends ConsumerState<_MySetsTab> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
   String? _selectedTag;
+  // Set shown in the wide detail pane (#236); null = nothing selected.
+  String? _selectedSetId;
+
+  // Tapping a set: open its detail in the pane (wide) or push it (narrow).
+  void _onSetTap(CardSet set, bool wide) {
+    if (wide) {
+      setState(() => _selectedSetId = set.id);
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => SetDetailScreen(cardSet: set)),
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -206,55 +211,162 @@ class _MySetsTabState extends ConsumerState<_MySetsTab> {
       _SortOrder.cardCount => l10n.labelSortCardCount,
     };
 
-    return Column(
-      children: [
-        _SetsSearchAndFilter(
-          controller: _searchController,
-          searchQuery: _searchQuery,
-          hintText: l10n.hintSearchSets,
-          allTags: allTags,
-          selectedTag: _selectedTag,
-          onSearch: (v) => setState(() => _searchQuery = v.trim()),
-          onClearSearch: () => setState(() {
-            _searchController.clear();
-            _searchQuery = '';
-          }),
-          onTagSelected: (tag) => setState(() => _selectedTag = tag),
-          // Sort indicator only shown when there are sets to sort.
-          sortLabel: allSets.isNotEmpty ? sortLabel : null,
-        ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = isWideWidth(constraints.maxWidth);
+        final list = _buildListColumn(
+            context, wide, setsAsync, allSets, displaySets, allTags, sortLabel);
 
-        Expanded(
-          child: setsAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, _) =>
-                Center(child: Text(l10n.errorFailedLoadSets)),
-            data: (_) {
-              if (allSets.isEmpty) return const _MySetsEmptyState();
-              if (displaySets.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Text(
-                      l10n.messageNoSetsMatchSearch,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                );
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.all(8),
-                itemCount: displaySets.length,
-                itemBuilder: (ctx, i) => _SetTile(cardSet: displaySets[i]),
-              );
-            },
+        if (!wide) return list;
+
+        // Wide: master-detail — set list on the left, detail pane on the right.
+        return Row(
+          children: [
+            SizedBox(width: 340, child: list),
+            const VerticalDivider(width: 1, thickness: 1),
+            Expanded(child: _buildDetailPane(context, allSets)),
+          ],
+        );
+      },
+    );
+  }
+
+  // The set list (search + tiles) with a create-set FAB pinned to its corner.
+  // Full-width on narrow; the left column on wide.
+  Widget _buildListColumn(
+    BuildContext context,
+    bool wide,
+    AsyncValue<List<CardSet>> setsAsync,
+    List<CardSet> allSets,
+    List<CardSet> displaySets,
+    List<String> allTags,
+    String sortLabel,
+  ) {
+    final l10n = context.l10n;
+    return Stack(
+      children: [
+        Column(
+          children: [
+            _SetsSearchAndFilter(
+              controller: _searchController,
+              searchQuery: _searchQuery,
+              hintText: l10n.hintSearchSets,
+              allTags: allTags,
+              selectedTag: _selectedTag,
+              onSearch: (v) => setState(() => _searchQuery = v.trim()),
+              onClearSearch: () => setState(() {
+                _searchController.clear();
+                _searchQuery = '';
+              }),
+              onTagSelected: (tag) => setState(() => _selectedTag = tag),
+              // Sort indicator only shown when there are sets to sort.
+              sortLabel: allSets.isNotEmpty ? sortLabel : null,
+            ),
+            Expanded(
+              child: setsAsync.when(
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (_, _) => Center(child: Text(l10n.errorFailedLoadSets)),
+                data: (_) {
+                  if (allSets.isEmpty) return const _MySetsEmptyState();
+                  if (displaySets.isEmpty) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Text(
+                          l10n.messageNoSetsMatchSearch,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    );
+                  }
+                  return ListView.builder(
+                    // Bottom padding so the FAB doesn't cover the last tile.
+                    padding: const EdgeInsets.fromLTRB(8, 8, 8, 88),
+                    itemCount: displaySets.length,
+                    itemBuilder: (ctx, i) {
+                      final set = displaySets[i];
+                      return _SetTile(
+                        cardSet: set,
+                        selected: wide && set.id == _selectedSetId,
+                        onTap: () => _onSetTap(set, wide),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+        // Create-set FAB lives with the list (both layouts) so on wide it stays
+        // clear of the detail pane's own FAB.
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: FloatingActionButton(
+            heroTag: 'createSet',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SetFormScreen()),
+            ),
+            tooltip: l10n.tooltipCreateSet,
+            child: const Icon(Icons.add),
           ),
         ),
       ],
+    );
+  }
+
+  // The wide detail pane: the selected set's detail, or a placeholder.
+  Widget _buildDetailPane(BuildContext context, List<CardSet> allSets) {
+    final id = _selectedSetId;
+    if (id != null) {
+      final match = allSets.where((s) => s.id == id);
+      if (match.isNotEmpty) {
+        return SetDetailScreen(
+          key: ValueKey(id),
+          cardSet: match.first,
+          onExit: () => setState(() => _selectedSetId = null),
+        );
+      }
+    }
+    return const _SetDetailPlaceholder();
+  }
+}
+
+// Shown in the wide detail pane when no set is selected.
+class _SetDetailPlaceholder extends StatelessWidget {
+  const _SetDetailPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.library_books_outlined,
+                size: 48, color: onSurfaceVariant),
+            const SizedBox(height: 12),
+            Text(
+              context.l10n.messageSelectASet,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: onSurfaceVariant),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -299,7 +411,11 @@ class _MySetsEmptyState extends StatelessWidget {
 // ---------------------------------------------------------------------------
 class _SetTile extends StatelessWidget {
   final CardSet cardSet;
-  const _SetTile({required this.cardSet});
+  final VoidCallback onTap;
+  // Highlighted when this set is the one shown in the wide detail pane (#236).
+  final bool selected;
+  const _SetTile(
+      {required this.cardSet, required this.onTap, this.selected = false});
 
   @override
   Widget build(BuildContext context) {
@@ -314,12 +430,9 @@ class _SetTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       clipBehavior: Clip.antiAlias,
+      color: selected ? scheme.secondaryContainer : null,
       child: InkWell(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => SetDetailScreen(cardSet: cardSet),
-          ),
-        ),
+        onTap: onTap,
         child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,

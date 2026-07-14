@@ -2,6 +2,8 @@
 
 Sets are collections of cards that you study together. A card can belong to multiple sets, and removing a card from a set never deletes the card itself.
 
+On a **wide window** (desktop, or a tablet/phone in landscape), the **My Sets** list and the set you pick appear **side by side** — choose a set on the left and its cards show in a pane on the right. On a phone, tapping a set opens it full-screen as before.
+
 ---
 
 ## Creating a Set { #create-set }

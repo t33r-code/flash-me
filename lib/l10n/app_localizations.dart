@@ -766,6 +766,12 @@ abstract class AppLocalizations {
   /// **'No sets match your search.'**
   String get messageNoSetsMatchSearch;
 
+  /// No description provided for @messageSelectASet.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a set to see its cards.'**
+  String get messageSelectASet;
+
   /// No description provided for @errorFailedLoadSets.
   ///
   /// In en, this message translates to:

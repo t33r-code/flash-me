@@ -16,6 +16,46 @@ class _Destination {
   const _Destination(this.icon, this.activeIcon, this.label);
 }
 
+// Bottom-pinned Profile control for the wide navigation rail. Kept out of the
+// NavigationRail's destinations so it can sit at the bottom; mirrors the rail's
+// icon-over-label look and tints to the primary colour when active.
+class _RailProfileButton extends StatelessWidget {
+  final _Destination destination;
+  final bool selected;
+  final VoidCallback onTap;
+  const _RailProfileButton({
+    required this.destination,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final color = selected ? scheme.primary : scheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(selected ? destination.activeIcon : destination.icon,
+                  color: color),
+              const SizedBox(height: 4),
+              Text(destination.label,
+                  style: TextStyle(fontSize: 12, color: color)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // Root shell — switches between the five tabs and adapts its navigation chrome:
 // a left NavigationRail on wide/landscape layouts, a BottomNavigationBar on
 // narrow ones (breakpoint from layout_breakpoints.dart). The opacity Stack keeps
@@ -74,22 +114,42 @@ class _MainScreenState extends State<MainScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Wide/landscape: a persistent left navigation rail beside the content.
+        // Profile (the last destination) is pinned to the bottom of the rail —
+        // a common desktop pattern — so it sits apart from the main destinations.
         if (isWideWidth(constraints.maxWidth)) {
+          final profileIndex = _tabs.length - 1;
           return Scaffold(
             body: Row(
               children: [
                 SafeArea(
-                  child: NavigationRail(
-                    selectedIndex: _selectedIndex,
-                    onDestinationSelected: _onSelect,
-                    labelType: NavigationRailLabelType.all,
-                    destinations: [
-                      for (final d in destinations)
-                        NavigationRailDestination(
-                          icon: Icon(d.icon),
-                          selectedIcon: Icon(d.activeIcon),
-                          label: Text(d.label),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: NavigationRail(
+                          // null when Profile is active — its destination isn't
+                          // in this rail (it's the bottom control below).
+                          selectedIndex: _selectedIndex < profileIndex
+                              ? _selectedIndex
+                              : null,
+                          onDestinationSelected: _onSelect,
+                          labelType: NavigationRailLabelType.all,
+                          destinations: [
+                            for (final d
+                                in destinations.sublist(0, profileIndex))
+                              NavigationRailDestination(
+                                icon: Icon(d.icon),
+                                selectedIcon: Icon(d.activeIcon),
+                                label: Text(d.label),
+                              ),
+                          ],
                         ),
+                      ),
+                      _RailProfileButton(
+                        destination: destinations[profileIndex],
+                        selected: _selectedIndex == profileIndex,
+                        onTap: () => _onSelect(profileIndex),
+                      ),
+                      const SizedBox(height: 8),
                     ],
                   ),
                 ),

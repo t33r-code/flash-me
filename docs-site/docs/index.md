@@ -30,7 +30,7 @@ Prefer to use your Google account instead?
 
 ## Finding Your Way Around { #nav-overview }
 
-After signing in you'll see five tabs at the bottom of the screen:
+After signing in you'll see five tabs. On a phone they sit at the **bottom** of the screen; on a wide window (desktop, or a tablet/phone in landscape) they move to a **navigation rail** down the **left-hand side** — the same tabs, just placed to suit the wider layout.
 
 | Tab | Icon | What it's for |
 |---|---|---|

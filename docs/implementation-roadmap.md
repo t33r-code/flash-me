@@ -332,7 +332,7 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 ##### Phase 4g — Desktop experience (Alpha 0.7)
 - [x] Side navigation rail (#230): the root shell (`main_screen`) now adapts via `LayoutBuilder` — a left `NavigationRail` (labels under icons) on wide/landscape layouts, the original `BottomNavigationBar` on narrow. Same five destinations, shared list; **Profile is pinned to the bottom of the rail** (via an `Expanded` rail + a separate bottom control) matching common desktop apps. Selected tab (and all tab state) survives breakpoint crossings since it lives in shell state. Establishes the shared width breakpoint `kWideLayoutBreakpoint` (600dp) in `utils/layout_breakpoints.dart`, reused by #236.
 - [ ] #236 — multi-pane set view: master-detail (My Sets tab splits into set list + detail pane on wide; reuses `kWideLayoutBreakpoint`). Card editing stays full-screen for now.
-- [ ] #259 — in-pane card editing: nested `Navigator` in the detail pane (Option A) so New card + tap-to-edit land in the pane; `NavigatorPopHandler` for Android system-back. Follows #236.
+- [x] #259 — in-pane card editing (Option B, morphing pane): `SetDetailScreen`'s pane toolbar/body swap in place — set actions ↔ Cancel/Save, card list ↔ embedded `CardEditorBody`/`WorkbookEditorBody` (`showFooterActions: false`, saved via a `GlobalKey`). Add card is a toolbar button (FAB hidden on wide); double-clicking a row opens it for editing. No card-delete in the pane (Cards tab only). `PopScope` cancels the pane edit on Android system-back. Per-row Edit/Remove/Clone quick-action buttons are the follow-up (#260). Follows #236.
 - [ ] #235 — app-wide keyboard support (+#87)
 - [ ] #237 — hover states & right-click context menus
 

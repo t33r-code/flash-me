@@ -4,6 +4,8 @@ Sets are collections of cards that you study together. A card can belong to mult
 
 On a **wide window** (desktop, or a tablet/phone in landscape), the **My Sets** list and the set you pick appear **side by side** — choose a set on the left and its cards show in a pane on the right. On a phone, tapping a set opens it full-screen as before.
 
+On a wide window, creating or editing a card also happens right in that pane: tap **Add card** in the toolbar, or **double-click** an existing card, and the pane switches to an editor with **Cancel** / **Save** in place of the usual set actions. Saving or cancelling returns you to the card list. (Deleting a card entirely is only available from the **Cards** tab — the set pane can only add or remove-from-set.)
+
 ---
 
 ## Creating a Set { #create-set }

@@ -199,6 +199,10 @@ class CardEditorBody extends ConsumerStatefulWidget {
   // Fired when the in-flight save/delete flag flips, so a host AppBar can
   // disable its own actions while work is running.
   final ValueChanged<bool>? onSavingChanged;
+  // When false, hides the body's own bottom Cancel/Save row — for hosts (e.g.
+  // the set-builder detail pane, #259) that drive save/cancel from their own
+  // toolbar via CardEditorBodyState.save() / widget.onCancel instead.
+  final bool showFooterActions;
   const CardEditorBody({
     super.key,
     this.card,
@@ -207,6 +211,7 @@ class CardEditorBody extends ConsumerStatefulWidget {
     this.onCancel,
     this.onDeleted,
     this.onSavingChanged,
+    this.showFooterActions = true,
   });
 
   @override
@@ -464,6 +469,10 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
 
     return (imageUrl: imageUrl, audioUrl: audioUrl);
   }
+
+  // Public entry point for hosts driving save from their own toolbar (e.g. the
+  // set-builder detail pane, #259) via a GlobalKey<CardEditorBodyState>.
+  Future<void> save() => _save();
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
@@ -1060,35 +1069,38 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
               if (_isEditing) _buildMetadata(context),
 
               // --- Save / Cancel ---
-              const SizedBox(height: 32),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _isSaving
-                          ? null
-                          : () => widget.onCancel?.call(),
-                      child: Text(l10n.labelCancel),
+              // Hidden when a host drives these from its own toolbar (#259).
+              if (widget.showFooterActions) ...[
+                const SizedBox(height: 32),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _isSaving
+                            ? null
+                            : () => widget.onCancel?.call(),
+                        child: Text(l10n.labelCancel),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: _isSaving ? null : _save,
-                      child: _isSaving
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
-                            )
-                          : Text(_isEditing
-                              ? l10n.actionSaveChanges
-                              : l10n.actionCreateCard),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: _isSaving ? null : _save,
+                        child: _isSaving
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            : Text(_isEditing
+                                ? l10n.actionSaveChanges
+                                : l10n.actionCreateCard),
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
 
               const SizedBox(height: 16),
             ],

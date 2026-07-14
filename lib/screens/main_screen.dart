@@ -126,7 +126,7 @@ class _MainScreenState extends State<MainScreen> {
                     children: [
                       // Breathing room from the top edge, mirroring the space
                       // below the pinned Profile control.
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       Expanded(
                         child: NavigationRail(
                           // null when Profile is active — its destination isn't

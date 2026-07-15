@@ -752,6 +752,9 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     if (widget.onExit != null && _libraryOpen && paneEdit == null) {
       final scheme = Theme.of(context).colorScheme;
       final uid = ref.read(authStateProvider).asData?.value ?? '';
+      // Capture the card list before reassigning `body`; the DragTarget builder
+      // closure must not reference the (about-to-be-Row) `body` or it recurses.
+      final listBody = body;
       body = Row(
         children: [
           Expanded(
@@ -762,7 +765,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                 color: candidate.isNotEmpty
                     ? scheme.primaryContainer.withValues(alpha: 0.18)
                     : Colors.transparent,
-                child: body,
+                child: listBody,
               ),
             ),
           ),

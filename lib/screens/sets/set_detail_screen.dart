@@ -80,6 +80,34 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   // touch/narrow layouts show the actions unconditionally (no hover concept).
   String? _hoveredCardId;
 
+  // Wide only (#234): whether the right-side library drawer is open. Cards are
+  // dragged from it onto the card list, or added via its own button.
+  bool _libraryOpen = false;
+
+  // Drop handler for cards dragged from the library drawer onto the set list.
+  // Appends them (addCardsToSet) after the shared #210 language checks.
+  Future<void> _dropCards(Map<String, String> idToType) async {
+    final live = ref.read(setByIdProvider(widget.cardSet.id)) ?? widget.cardSet;
+    final uid = ref.read(authStateProvider).asData?.value ?? '';
+    try {
+      await _addCardsWithLanguageCheck(
+        context,
+        ref,
+        setId: widget.cardSet.id,
+        userId: uid,
+        setTarget: live.targetLanguage,
+        setNative: live.nativeLanguage,
+        idToType: idToType,
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.errorFailedAddCardToSet)),
+        );
+      }
+    }
+  }
+
   void _exitPaneEdit() {
     if (mounted) setState(() => _paneEdit = null);
   }
@@ -504,7 +532,13 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
               title: Text(l10n.actionAddExistingCards),
               onTap: () {
                 Navigator.of(context).pop();
-                _showCardPicker();
+                // Wide (pane): open the inline library drawer (#234, drag-in).
+                // Narrow: the card-library bottom sheet (tap-to-add).
+                if (widget.onExit != null) {
+                  setState(() => _libraryOpen = true);
+                } else {
+                  _showCardPicker();
+                }
               },
             ),
             const SizedBox(height: 8),
@@ -514,7 +548,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     );
   }
 
-  // Opens the card picker bottom sheet.
+  // Opens the card library as a bottom sheet (narrow / full-screen).
   Future<void> _showCardPicker() async {
     final uid = ref.read(authStateProvider).asData?.value ?? '';
     // Use the live set so a just-edited language pair is reflected immediately.
@@ -523,11 +557,12 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _CardPickerSheet(
+      builder: (_) => _CardLibrary(
         setId: widget.cardSet.id,
         userId: uid,
         targetLanguage: currentSet.targetLanguage,
         nativeLanguage: currentSet.nativeLanguage,
+        onClose: () => Navigator.of(context).pop(),
       ),
     );
   }
@@ -709,6 +744,42 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                 mounted ? setState(() => _isPaneSaving = v) : null,
           ),
       };
+    }
+
+    // Wide layout + library open: show the card list beside an inline library
+    // drawer. The list is a DragTarget so cards can be dropped in to add them.
+    // Suppressed while the pane is showing a card editor (paneEdit != null).
+    if (widget.onExit != null && _libraryOpen && paneEdit == null) {
+      final scheme = Theme.of(context).colorScheme;
+      final uid = ref.read(authStateProvider).asData?.value ?? '';
+      body = Row(
+        children: [
+          Expanded(
+            child: DragTarget<Map<String, String>>(
+              onAcceptWithDetails: (details) => _dropCards(details.data),
+              builder: (ctx, candidate, rejected) => ColoredBox(
+                // Tint the drop zone while a drag hovers over it.
+                color: candidate.isNotEmpty
+                    ? scheme.primaryContainer.withValues(alpha: 0.18)
+                    : Colors.transparent,
+                child: body,
+              ),
+            ),
+          ),
+          const VerticalDivider(width: 1, thickness: 1),
+          SizedBox(
+            width: 320,
+            child: _CardLibrary(
+              setId: widget.cardSet.id,
+              userId: uid,
+              targetLanguage: liveSet.targetLanguage,
+              nativeLanguage: liveSet.nativeLanguage,
+              asDrawer: true,
+              onClose: () => setState(() => _libraryOpen = false),
+            ),
+          ),
+        ],
+      );
     }
 
     final scaffold = Scaffold(
@@ -991,6 +1062,163 @@ class _WorkbookCardInSetTile extends StatelessWidget {
 // Three-way result for the "set language?" dialog in _CardPickerSheet.
 enum _LangChoice { setAndAdd, addOnly, cancel }
 
+// Runs the language-consistency dialog(s) for [idToType] against the set, then
+// performs the batched add (one addCardsToSet per card type). Returns true if
+// cards were added, false if the user cancelled. Shared by the card library's
+// Add button (bottom sheet / drawer, #210) and drag-drop into the set list
+// (#234) so both honour the same #210 checks and batched semantics.
+Future<bool> _addCardsWithLanguageCheck(
+  BuildContext context,
+  WidgetRef ref, {
+  required String setId,
+  required String userId,
+  required String? setTarget,
+  required String? setNative,
+  required Map<String, String> idToType, // cardId -> cardType
+}) async {
+  if (idToType.isEmpty) return false;
+  final l10n = context.l10n;
+  final ids = idToType.keys.toSet();
+
+  final allFlash = ref.read(userCardsProvider).asData?.value ?? <FlashCard>[];
+  final allWorkbook =
+      ref.read(userWorkbookCardsProvider).asData?.value ?? <WorkbookCard>[];
+
+  // Distinct language pairs among the cards being added; neutral = no language.
+  final selectedPairs = <(String, String)>{};
+  var neutralCount = 0;
+  for (final c in allFlash) {
+    if (ids.contains(c.id)) {
+      if (c.targetLanguage != null && c.nativeLanguage != null) {
+        selectedPairs.add((c.targetLanguage!, c.nativeLanguage!));
+      } else {
+        neutralCount++;
+      }
+    }
+  }
+  for (final c in allWorkbook) {
+    if (ids.contains(c.id)) {
+      if (c.targetLanguage != null && c.nativeLanguage != null) {
+        selectedPairs.add((c.targetLanguage!, c.nativeLanguage!));
+      } else {
+        neutralCount++;
+      }
+    }
+  }
+
+  Future<bool> commit() async {
+    final repo = ref.read(cardSetRepositoryProvider);
+    final flashIds = ids
+        .where((id) => idToType[id] == AppConstants.cardTypeFlashcard)
+        .toList();
+    final workbookIds = ids
+        .where((id) => idToType[id] == AppConstants.cardTypeWorkbook)
+        .toList();
+    if (flashIds.isNotEmpty) {
+      await repo.addCardsToSet(
+          setId: setId,
+          cardIds: flashIds,
+          userId: userId,
+          cardType: AppConstants.cardTypeFlashcard);
+    }
+    if (workbookIds.isNotEmpty) {
+      await repo.addCardsToSet(
+          setId: setId,
+          cardIds: workbookIds,
+          userId: userId,
+          cardType: AppConstants.cardTypeWorkbook);
+    }
+    return true;
+  }
+
+  // No language metadata on any card being added — nothing to check.
+  if (selectedPairs.isEmpty) return commit();
+
+  final (String, String)? setLang =
+      (setTarget != null && setNative != null) ? (setTarget, setNative) : null;
+
+  if (setLang == null) {
+    if (selectedPairs.length == 1) {
+      // All share one pair — offer to adopt it as the set's language.
+      final pair = selectedPairs.first;
+      final label = '${pair.$1.toUpperCase()} → ${pair.$2.toUpperCase()}';
+      final choice = await showDialog<_LangChoice>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.titleSetLanguage),
+          content: Text(l10n.messageSetLanguagePrompt(neutralCount, label)),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(ctx).pop(_LangChoice.cancel),
+                child: Text(l10n.labelCancel)),
+            TextButton(
+                onPressed: () => Navigator.of(ctx).pop(_LangChoice.addOnly),
+                child: Text(l10n.actionAddOnly)),
+            FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(_LangChoice.setAndAdd),
+                child: Text(l10n.actionSetLanguageAndAdd)),
+          ],
+        ),
+      );
+      if (!context.mounted || choice == null || choice == _LangChoice.cancel) {
+        return false;
+      }
+      if (choice == _LangChoice.setAndAdd) {
+        final currentSet = ref.read(setByIdProvider(setId));
+        if (currentSet != null) {
+          await ref.read(cardSetRepositoryProvider).updateSet(
+                currentSet.copyWith(
+                    targetLanguage: pair.$1, nativeLanguage: pair.$2),
+              );
+        }
+      }
+    } else {
+      // Spans multiple pairs — warn.
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.titleMixedLanguages),
+          content: Text(l10n.messageMixedLanguages),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(l10n.labelCancel)),
+            FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text(l10n.actionAddAnyway)),
+          ],
+        ),
+      );
+      if (!context.mounted || proceed != true) return false;
+    }
+  } else {
+    // Set has a language — warn on conflict.
+    final hasConflict = selectedPairs.any((p) => p != setLang);
+    if (hasConflict) {
+      final setLabel =
+          '${setLang.$1.toUpperCase()} → ${setLang.$2.toUpperCase()}';
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.titleDifferentLanguage),
+          content: Text(l10n.messageDifferentLanguage(setLabel)),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(l10n.labelCancel)),
+            FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text(l10n.actionAddAnyway)),
+          ],
+        ),
+      );
+      if (!context.mounted || proceed != true) return false;
+    }
+  }
+
+  return commit();
+}
+
 // ---------------------------------------------------------------------------
 // _CardPickerSheet — bottom sheet for adding cards to a set.
 //
@@ -998,25 +1226,34 @@ enum _LangChoice { setAndAdd, addOnly, cancel }
 // selectable / word-conflict / already-in-set sub-sections as applicable).
 // Flash cards track word conflicts; workbook cards do not have a primaryWord.
 // ---------------------------------------------------------------------------
-class _CardPickerSheet extends ConsumerStatefulWidget {
+class _CardLibrary extends ConsumerStatefulWidget {
   final String setId;
   final String userId;
-  // If the set has a language pair, these are pre-populated so the picker
+  // If the set has a language pair, these are pre-populated so the library
   // defaults to showing only cards in the same language.
   final String? targetLanguage;
   final String? nativeLanguage;
-  const _CardPickerSheet({
+  // Wide (#234): render as an inline side drawer (no bottom-sheet chrome) and
+  // make selectable rows draggable into the set list. Narrow: a bottom sheet.
+  final bool asDrawer;
+  // Dismiss the library. The bottom sheet calls this after a successful add
+  // (to pop); the drawer calls it from its close button (a successful add
+  // instead just clears the selection and stays open so you can keep adding).
+  final VoidCallback onClose;
+  const _CardLibrary({
     required this.setId,
     required this.userId,
+    required this.onClose,
     this.targetLanguage,
     this.nativeLanguage,
+    this.asDrawer = false,
   });
 
   @override
-  ConsumerState<_CardPickerSheet> createState() => _CardPickerSheetState();
+  ConsumerState<_CardLibrary> createState() => _CardLibraryState();
 }
 
-class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
+class _CardLibraryState extends ConsumerState<_CardLibrary> {
   // Selected card IDs and their types — needed to batch addCardsToSet by type.
   final Set<String> _selected = {};
   final Map<String, String> _idToType = {};
@@ -1042,189 +1279,45 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
     super.dispose();
   }
 
-  // Checks language consistency before adding, showing a warning or
-  // "set language?" dialog as needed, then delegates to _addSelected().
-  Future<void> _checkLanguageAndAdd() async {
-    if (_selected.isEmpty) return;
-    final l10n = context.l10n;
-
-    // Use already-loaded Riverpod values — ref.read is sync here.
-    final allFlash =
-        ref.read(userCardsProvider).asData?.value ?? <FlashCard>[];
-    final allWorkbook =
-        ref.read(userWorkbookCardsProvider).asData?.value ?? <WorkbookCard>[];
-
-    // Collect distinct language pairs from the selection.
-    // Cards with no language metadata are neutral — counted separately so the
-    // dialog can be transparent about mixed language/no-language selections.
-    final selectedPairs = <(String, String)>{};
-    int neutralCount = 0;
-    for (final c in allFlash) {
-      if (_selected.contains(c.id)) {
-        if (c.targetLanguage != null && c.nativeLanguage != null) {
-          selectedPairs.add((c.targetLanguage!, c.nativeLanguage!));
-        } else {
-          neutralCount++;
-        }
-      }
-    }
-    for (final c in allWorkbook) {
-      if (_selected.contains(c.id)) {
-        if (c.targetLanguage != null && c.nativeLanguage != null) {
-          selectedPairs.add((c.targetLanguage!, c.nativeLanguage!));
-        } else {
-          neutralCount++;
-        }
-      }
-    }
-
-    // No language metadata on any selected card — nothing to check.
-    if (selectedPairs.isEmpty) {
-      await _addSelected();
-      return;
-    }
-
-    // Effective language of the set: the declared pair only.
-    // A set with no declared pair always goes to the "offer / warn" path below,
-    // even if it already contains cards with language metadata.
-    final (String, String)? setLang =
-        (widget.targetLanguage != null && widget.nativeLanguage != null)
-            ? (widget.targetLanguage!, widget.nativeLanguage!)
-            : null;
-
-    if (setLang == null) {
-      // Set has no effective language yet.
-      if (selectedPairs.length == 1) {
-        // All selected cards share one pair — offer to adopt it as the set's language.
-        final pair = selectedPairs.first;
-        final label =
-            '${pair.$1.toUpperCase()} → ${pair.$2.toUpperCase()}';
-        final choice = await showDialog<_LangChoice>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: Text(l10n.titleSetLanguage),
-            content: Text(l10n.messageSetLanguagePrompt(neutralCount, label)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(_LangChoice.cancel),
-                child: Text(l10n.labelCancel),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(_LangChoice.addOnly),
-                child: Text(l10n.actionAddOnly),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(_LangChoice.setAndAdd),
-                child: Text(l10n.actionSetLanguageAndAdd),
-              ),
-            ],
-          ),
-        );
-        if (!mounted) return;
-        if (choice == null || choice == _LangChoice.cancel) return;
-        if (choice == _LangChoice.setAndAdd) {
-          final currentSet = ref.read(setByIdProvider(widget.setId));
-          if (currentSet != null) {
-            await ref.read(cardSetRepositoryProvider).updateSet(
-                  currentSet.copyWith(
-                    targetLanguage: pair.$1,
-                    nativeLanguage: pair.$2,
-                  ),
-                );
-          }
-        }
-      } else {
-        // Selected cards span multiple pairs — warn.
-        final proceed = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: Text(l10n.titleMixedLanguages),
-            content: Text(l10n.messageMixedLanguages),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: Text(l10n.labelCancel),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: Text(l10n.actionAddAnyway),
-              ),
-            ],
-          ),
-        );
-        if (!mounted || proceed != true) return;
-      }
-    } else {
-      // Set has an effective language — warn if any selected card conflicts.
-      final hasConflict = selectedPairs.any((p) => p != setLang);
-      if (hasConflict) {
-        final setLabel =
-            '${setLang.$1.toUpperCase()} → ${setLang.$2.toUpperCase()}';
-        final proceed = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: Text(l10n.titleDifferentLanguage),
-            content: Text(l10n.messageDifferentLanguage(setLabel)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: Text(l10n.labelCancel),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: Text(l10n.actionAddAnyway),
-              ),
-            ],
-          ),
-        );
-        if (!mounted || proceed != true) return;
-      }
-    }
-
-    await _addSelected();
-  }
-
-  Future<void> _addSelected() async {
+  // Add the current selection, running the shared #210 language checks. On
+  // success the host decides what happens next via onAdded (bottom sheet pops;
+  // drawer clears the selection and stays open).
+  Future<void> _commit() async {
     if (_selected.isEmpty) return;
     setState(() => _isAdding = true);
     try {
-      final repo = ref.read(cardSetRepositoryProvider);
-
-      // Batch by type — addCardsToSet takes a single cardType per call.
-      final flashIds = _selected
-          .where((id) => _idToType[id] == AppConstants.cardTypeFlashcard)
-          .toList();
-      final workbookIds = _selected
-          .where((id) => _idToType[id] == AppConstants.cardTypeWorkbook)
-          .toList();
-
-      if (flashIds.isNotEmpty) {
-        await repo.addCardsToSet(
-          setId: widget.setId,
-          cardIds: flashIds,
-          userId: widget.userId,
-          cardType: AppConstants.cardTypeFlashcard,
-        );
+      final added = await _addCardsWithLanguageCheck(
+        context,
+        ref,
+        setId: widget.setId,
+        userId: widget.userId,
+        setTarget: widget.targetLanguage,
+        setNative: widget.nativeLanguage,
+        idToType: {for (final id in _selected) id: _idToType[id]!},
+      );
+      if (!mounted) return;
+      if (added) {
+        if (widget.asDrawer) {
+          // Stay open; clear the selection so the author can keep adding.
+          setState(() {
+            _selected.clear();
+            _idToType.clear();
+            _isAdding = false;
+          });
+        } else {
+          widget.onClose();
+          // Don't reset _isAdding: the sheet is animating out, and resetting
+          // briefly flips to the "all cards added" state.
+        }
+      } else {
+        setState(() => _isAdding = false);
       }
-      if (workbookIds.isNotEmpty) {
-        await repo.addCardsToSet(
-          setId: widget.setId,
-          cardIds: workbookIds,
-          userId: widget.userId,
-          cardType: AppConstants.cardTypeWorkbook,
-        );
-      }
-
-      if (mounted) Navigator.of(context).pop();
-      // Do NOT reset _isAdding on success: the widget is still mounted
-      // during the exit animation and resetting it would briefly flip the
-      // picker back to the "all cards already in this set" state.
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.l10n.errorFailedLoadCards)),
         );
-        setState(() => _isAdding = false); // re-enable button for retry
+        setState(() => _isAdding = false);
       }
     }
   }
@@ -1241,8 +1334,50 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
     });
   }
 
+  // In drawer mode (#234), makes a selectable row draggable into the set list.
+  // The drag payload is the whole checkbox selection if this card is part of it,
+  // otherwise just this card — so you can drag one card without selecting first.
+  Widget _selectableTile(Widget tile, String cardId, String cardType) {
+    if (!widget.asDrawer) return tile;
+    final payload = _selected.contains(cardId)
+        ? {for (final id in _selected) id: _idToType[id]!}
+        : {cardId: cardType};
+    return Draggable<Map<String, String>>(
+      data: payload,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      feedback: _DragFeedback(count: payload.length),
+      childWhenDragging: Opacity(opacity: 0.4, child: tile),
+      child: tile,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Drawer: the inner content directly (its Column fills the drawer height).
+    if (widget.asDrawer) return _buildInner(context, null);
+    // Bottom sheet: a draggable, resizable sheet with a grab handle on top.
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.7,
+      maxChildSize: 0.95,
+      builder: (ctx, scrollController) => Column(
+        children: [
+          const SizedBox(height: 8),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Theme.of(ctx).colorScheme.outlineVariant,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Expanded(child: _buildInner(ctx, scrollController)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInner(BuildContext context, ScrollController? scrollController) {
     final l10n = context.l10n;
     final allFlashAsync = ref.watch(userCardsProvider);
     final allWorkbookAsync = ref.watch(userWorkbookCardsProvider);
@@ -1289,35 +1424,29 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
             ? _langFilter
             : null;
 
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.7,
-      maxChildSize: 0.95,
-      builder: (ctx, scrollController) => Column(
-        children: [
-          // Drag handle.
-          const SizedBox(height: 8),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.outlineVariant,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-
-          // Header row with title and Add button.
+    return Column(
+      children: [
+          // Header row: (drawer) close button, title, and Add button.
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Row(
               children: [
+                if (widget.asDrawer)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: IconButton(
+                      icon: const Icon(Icons.close),
+                      tooltip: l10n.labelCancel,
+                      onPressed: widget.onClose,
+                    ),
+                  ),
                 Text(l10n.actionAddCards,
                     style: Theme.of(context).textTheme.titleMedium),
                 const Spacer(),
                 FilledButton(
                   onPressed: _selected.isEmpty || _isAdding
                       ? null
-                      : _checkLanguageAndAdd,
+                      : _commit,
                   child: _isAdding
                       ? const SizedBox(
                           width: 16,
@@ -1411,13 +1540,12 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
                       ),
           ),
         ],
-      ),
     );
   }
 
   Widget _buildList(
     BuildContext context,
-    ScrollController scrollController,
+    ScrollController? scrollController,
     List<FlashCard> allFlash,
     List<WorkbookCard> allWorkbook,
     Set<String> cardIdsInSet,
@@ -1539,13 +1667,17 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
         if (flashNotInSet.isNotEmpty) ...[
           _SectionHeader(label: l10n.labelSectionFlashCards, icon: Icons.style_outlined),
           ...flashNotInSet.map(
-            (card) => CheckboxListTile(
-              value: _selected.contains(card.id),
-              onChanged: (v) =>
-                  _toggle(card.id, AppConstants.cardTypeFlashcard, v),
-              secondary: const Icon(Icons.style_outlined),
-              title: Text(card.primaryWord),
-              subtitle: Text(card.translation),
+            (card) => _selectableTile(
+              CheckboxListTile(
+                value: _selected.contains(card.id),
+                onChanged: (v) =>
+                    _toggle(card.id, AppConstants.cardTypeFlashcard, v),
+                secondary: const Icon(Icons.style_outlined),
+                title: Text(card.primaryWord),
+                subtitle: Text(card.translation),
+              ),
+              card.id,
+              AppConstants.cardTypeFlashcard,
             ),
           ),
         ],
@@ -1604,17 +1736,22 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
             const Divider(),
           _SectionHeader(label: l10n.labelSectionWorkbookCards, icon: Icons.book_outlined),
           ...workbookNotInSet.map(
-            (card) => CheckboxListTile(
-              value: _selected.contains(card.id),
-              onChanged: (v) =>
-                  _toggle(card.id, AppConstants.cardTypeWorkbook, v),
-              secondary: const Icon(Icons.book_outlined),
-              title: Text(
-                card.prompt,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+            (card) => _selectableTile(
+              CheckboxListTile(
+                value: _selected.contains(card.id),
+                onChanged: (v) =>
+                    _toggle(card.id, AppConstants.cardTypeWorkbook, v),
+                secondary: const Icon(Icons.book_outlined),
+                title: Text(
+                  card.prompt,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle:
+                    Text(l10n.labelQuestionCount(card.questions.length)),
               ),
-              subtitle: Text(l10n.labelQuestionCount(card.questions.length)),
+              card.id,
+              AppConstants.cardTypeWorkbook,
             ),
           ),
         ],
@@ -1647,6 +1784,43 @@ class _CardPickerSheetState extends ConsumerState<_CardPickerSheet> {
           ),
         ],
       ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Floating pill shown under the pointer while dragging cards from the library
+// drawer into the set list (#234): a card icon + the number being dragged.
+// ---------------------------------------------------------------------------
+class _DragFeedback extends StatelessWidget {
+  final int count;
+  const _DragFeedback({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: scheme.primaryContainer,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8)],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.playlist_add,
+                size: 18, color: scheme.onPrimaryContainer),
+            const SizedBox(width: 6),
+            Text('$count',
+                style: TextStyle(
+                    color: scheme.onPrimaryContainer,
+                    fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
     );
   }
 }

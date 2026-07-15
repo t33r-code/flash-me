@@ -38,11 +38,13 @@ These options are available on the create and edit screens:
 
 ### Adding existing cards { #add-existing }
 
-Choosing **Add existing cards** opens the card picker:
+Choosing **Add existing cards** opens the card library:
 
-1. The picker shows all your cards — Flash Cards and Workbook Cards — grouped into sections. Cards already in the set appear greyed out at the bottom.
+1. The library shows all your cards — Flash Cards and Workbook Cards — grouped into sections. Cards already in the set appear greyed out at the bottom.
 2. Tap a card to select it (a tick appears). You can select as many as you like.
 3. Tap **Add** to add the selected cards to the set.
+
+On a **wide window** the library opens as a panel docked beside the card list rather than a bottom sheet, and it stays open so you can add several batches in a row (tap the **✕** to close it). As well as selecting cards and tapping **Add**, you can **drag** a card — or a whole selection — from the library and **drop** it onto the card list to add it. The list highlights while a card is hovering over it.
 
 ### Finding cards in the picker { #picker-search }
 

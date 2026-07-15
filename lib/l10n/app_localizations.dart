@@ -1114,6 +1114,18 @@ abstract class AppLocalizations {
   /// **'Drag to reorder'**
   String get tooltipDragToReorder;
 
+  /// No description provided for @tooltipEditCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit card'**
+  String get tooltipEditCard;
+
+  /// No description provided for @tooltipRemoveFromSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from set'**
+  String get tooltipRemoveFromSet;
+
   /// No description provided for @actionUndo.
   ///
   /// In en, this message translates to:

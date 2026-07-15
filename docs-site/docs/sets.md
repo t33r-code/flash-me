@@ -4,7 +4,7 @@ Sets are collections of cards that you study together. A card can belong to mult
 
 On a **wide window** (desktop, or a tablet/phone in landscape), the **My Sets** list and the set you pick appear **side by side** — choose a set on the left and its cards show in a pane on the right. On a phone, tapping a set opens it full-screen as before.
 
-On a wide window, creating or editing a card also happens right in that pane: tap **Add card** in the toolbar, or **double-click** an existing card, and the pane switches to an editor with **Cancel** / **Save** in place of the usual set actions. Saving or cancelling returns you to the card list. (Deleting a card entirely is only available from the **Cards** tab — the set pane can only add or remove-from-set.)
+On a wide window, creating or editing a card also happens right in that pane: tap **Add card** in the toolbar, or open an existing card by **double-clicking** its row (or hovering it and tapping the **edit icon** next to the reorder handle), and the pane switches to an editor with **Cancel** / **Save** in place of the usual set actions. Saving or cancelling returns you to the card list. On a phone, tapping the same edit icon opens the card in the full-screen editor instead. (Deleting a card entirely is only available from the **Cards** tab — the set pane can only add or remove-from-set.)
 
 ---
 
@@ -63,7 +63,7 @@ Sets work best with a single language pair. When you add cards, Agora checks the
 
 ## Removing Cards from a Set { #remove-cards }
 
-In the set detail screen, **swipe left** on any card row. A delete action appears — release to confirm. The card is removed from the set but is not deleted from your library. A brief **Undo** appears if you change your mind — it puts the card back in the same spot.
+In the set detail screen, **swipe left** on any card row (or, on a wide window, tap the **remove icon** that appears next to the reorder handle when you hover the row). Either way the card is removed from the set but is not deleted from your library. A brief **Undo** appears if you change your mind — it puts the card back in the same spot.
 
 ---
 

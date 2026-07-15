@@ -75,6 +75,11 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   _PaneEdit? _paneEdit;
   bool _isPaneSaving = false;
 
+  // cardId of the row currently hovered by a mouse pointer, driving
+  // hover-reveal of the row quick-actions (#260). Only tracked in pane mode —
+  // touch/narrow layouts show the actions unconditionally (no hover concept).
+  String? _hoveredCardId;
+
   void _exitPaneEdit() {
     if (mounted) setState(() => _paneEdit = null);
   }
@@ -91,6 +96,27 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
 
   void _editWorkbookCardInPane(WorkbookCard card) {
     setState(() => _paneEdit = _WorkbookPaneEdit(card: card));
+  }
+
+  // Edit entry point shared by the row's Edit quick-action (#260) and
+  // double-tap (#259): wide (hosted in the pane) edits in place; narrow has no
+  // in-place editing surface, so it pushes the full-screen editor instead —
+  // the same split used throughout this screen (see _addToSet).
+  void _editCardRow(
+      ({String cardId, FlashCard? flash, WorkbookCard? workbook}) entry) {
+    if (widget.onExit != null) {
+      if (entry.flash != null) {
+        _editFlashCardInPane(entry.flash!);
+      } else {
+        _editWorkbookCardInPane(entry.workbook!);
+      }
+    } else if (entry.flash != null) {
+      Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => CardFormScreen(card: entry.flash)));
+    } else {
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => WorkbookCardFormScreen(card: entry.workbook)));
+    }
   }
 
   String _paneEditTitle(AppLocalizations l10n) => switch (_paneEdit) {
@@ -586,21 +612,49 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
               ),
             ),
           );
+
+          // Edit + Remove-from-set quick-actions (#260). On wide/pane layouts
+          // they hover-reveal; on narrow/touch they're always visible (no
+          // hover concept, and no other way to reach Edit there).
+          final actionsVisible =
+              widget.onExit == null || _hoveredCardId == entry.cardId;
+          final actions = _rowQuickActions(
+            visible: actionsVisible,
+            editTooltip: ctx.l10n.tooltipEditCard,
+            removeTooltip: ctx.l10n.tooltipRemoveFromSet,
+            onEdit: () => _editCardRow(entry),
+            onRemove: () => _removeCard(linkById[entry.cardId]!),
+          );
+
           final tile = entry.flash != null
-              ? _FlashCardInSetTile(card: entry.flash!, dragHandle: handle)
+              ? _FlashCardInSetTile(
+                  card: entry.flash!, dragHandle: handle, actions: actions)
               : _WorkbookCardInSetTile(
-                  card: entry.workbook!, dragHandle: handle);
+                  card: entry.workbook!, dragHandle: handle, actions: actions);
 
           // Double-click a row to edit it in the pane (#259) — pointer/wide
           // only; narrow has no in-place editing surface to open.
-          final rowContent = widget.onExit != null
+          final tappable = widget.onExit != null
               ? GestureDetector(
-                  onDoubleTap: () => entry.flash != null
-                      ? _editFlashCardInPane(entry.flash!)
-                      : _editWorkbookCardInPane(entry.workbook!),
+                  onDoubleTap: () => _editCardRow(entry),
                   child: tile,
                 )
               : tile;
+
+          // Tracks hover for the actions above — wide/pane layouts only;
+          // narrow/touch has no hover concept.
+          final rowContent = widget.onExit != null
+              ? MouseRegion(
+                  onEnter: (_) =>
+                      setState(() => _hoveredCardId = entry.cardId),
+                  onExit: (_) => setState(() {
+                    if (_hoveredCardId == entry.cardId) {
+                      _hoveredCardId = null;
+                    }
+                  }),
+                  child: tappable,
+                )
+              : tappable;
 
           // Swipe left to remove the card from this set (works for both types).
           // Key must sit on the outer widget for ReorderableListView.
@@ -814,7 +868,10 @@ class _FlashCardInSetTile extends StatelessWidget {
   final FlashCard card;
   // Optional reorder handle rendered at the trailing edge (set detail only).
   final Widget? dragHandle;
-  const _FlashCardInSetTile({required this.card, this.dragHandle});
+  // Optional Edit / Remove-from-set quick-actions (#260), already
+  // opacity/hit-test-gated by the caller for hover-reveal.
+  final Widget? actions;
+  const _FlashCardInSetTile({required this.card, this.dragHandle, this.actions});
 
   @override
   Widget build(BuildContext context) {
@@ -830,21 +887,67 @@ class _FlashCardInSetTile extends StatelessWidget {
         leading: const Icon(Icons.style_outlined),
         title: Text(card.primaryWord),
         subtitle: Text(card.translation),
-        trailing: _tileTrailing(chip, dragHandle),
+        trailing: _tileTrailing(chip, actions, dragHandle),
       ),
     );
   }
 }
 
-// Combines an optional tag chip with an optional drag handle for a tile's
-// trailing slot. Returns null when neither is present.
-Widget? _tileTrailing(Widget? chip, Widget? dragHandle) {
-  if (chip == null && dragHandle == null) return null;
-  if (dragHandle == null) return chip;
-  if (chip == null) return dragHandle;
+// Combines an optional tag chip, quick-actions, and drag handle for a tile's
+// trailing slot. Returns null when none are present.
+Widget? _tileTrailing(Widget? chip, Widget? actions, Widget? dragHandle) {
+  final parts = [chip, actions, dragHandle].whereType<Widget>().toList();
+  if (parts.isEmpty) return null;
+  if (parts.length == 1) return parts.first;
   return Row(
     mainAxisSize: MainAxisSize.min,
-    children: [chip, const SizedBox(width: 4), dragHandle],
+    children: [
+      for (var i = 0; i < parts.length; i++) ...[
+        if (i > 0) const SizedBox(width: 4),
+        parts[i],
+      ],
+    ],
+  );
+}
+
+// Row of Edit / Remove-from-set quick-actions (#260). When [visible] is
+// false (hover-reveal, wide layouts only) the row is faded out AND excluded
+// from hit-testing so it can't intercept taps meant for the row underneath.
+Widget _rowQuickActions({
+  required bool visible,
+  required String editTooltip,
+  required String removeTooltip,
+  required VoidCallback onEdit,
+  required VoidCallback onRemove,
+}) {
+  return IgnorePointer(
+    ignoring: !visible,
+    child: AnimatedOpacity(
+      opacity: visible ? 1 : 0,
+      duration: const Duration(milliseconds: 120),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, size: 20),
+            tooltip: editTooltip,
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: onEdit,
+          ),
+          const SizedBox(width: 12),
+          IconButton(
+            icon: const Icon(Icons.remove_circle_outline, size: 20),
+            tooltip: removeTooltip,
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: onRemove,
+          ),
+        ],
+      ),
+    ),
   );
 }
 
@@ -855,7 +958,11 @@ class _WorkbookCardInSetTile extends StatelessWidget {
   final WorkbookCard card;
   // Optional reorder handle rendered at the trailing edge (set detail only).
   final Widget? dragHandle;
-  const _WorkbookCardInSetTile({required this.card, this.dragHandle});
+  // Optional Edit / Remove-from-set quick-actions (#260), already
+  // opacity/hit-test-gated by the caller for hover-reveal.
+  final Widget? actions;
+  const _WorkbookCardInSetTile(
+      {required this.card, this.dragHandle, this.actions});
 
   @override
   Widget build(BuildContext context) {
@@ -875,7 +982,7 @@ class _WorkbookCardInSetTile extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(context.l10n.labelQuestionCount(card.questions.length)),
-        trailing: _tileTrailing(chip, dragHandle),
+        trailing: _tileTrailing(chip, actions, dragHandle),
       ),
     );
   }

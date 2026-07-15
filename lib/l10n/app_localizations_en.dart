@@ -557,6 +557,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tooltipDragToReorder => 'Drag to reorder';
 
   @override
+  String get tooltipEditCard => 'Edit card';
+
+  @override
+  String get tooltipRemoveFromSet => 'Remove from set';
+
+  @override
   String get actionUndo => 'Undo';
 
   @override

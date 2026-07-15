@@ -820,6 +820,18 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                     tooltip: l10n.tooltipAddCards,
                     onPressed: _addToSet,
                   ),
+                // Toggle the inline existing-cards library panel directly,
+                // skipping the +-menu. Pane mode only (the panel needs the
+                // wide layout); acts as a close button when already open.
+                if (widget.onExit != null)
+                  IconButton(
+                    isSelected: _libraryOpen,
+                    icon: const Icon(Icons.library_add_outlined),
+                    selectedIcon: const Icon(Icons.library_add),
+                    tooltip: l10n.actionAddExistingCards,
+                    onPressed: () =>
+                        setState(() => _libraryOpen = !_libraryOpen),
+                  ),
                 // Market publish/unpublish toggle.
                 // Outlined = private; filled + primary colour = currently in Market.
                 IconButton(

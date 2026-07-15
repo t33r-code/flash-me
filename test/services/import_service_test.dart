@@ -45,7 +45,7 @@ void main() {
     final jsonBytes = utf8.encode(jsonEncode(root));
     final archive = Archive()
       ..addFile(ArchiveFile('cards.json', jsonBytes.length, jsonBytes));
-    return Uint8List.fromList(ZipEncoder().encode(archive)!);
+    return Uint8List.fromList(ZipEncoder().encode(archive));
   }
 
   // Minimal valid raw card map for use in cards.json.

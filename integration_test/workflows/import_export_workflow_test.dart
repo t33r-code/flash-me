@@ -79,7 +79,7 @@ void main() {
     final jsonBytes = utf8.encode(jsonEncode(jsonMap));
     final archive = Archive()
       ..addFile(ArchiveFile('cards.json', jsonBytes.length, jsonBytes));
-    return Uint8List.fromList(ZipEncoder().encode(archive)!);
+    return Uint8List.fromList(ZipEncoder().encode(archive));
   }
 
   // Build a ZIP from existing FlashCard objects, serialising questions the same
@@ -112,7 +112,7 @@ void main() {
     final jsonBytes = utf8.encode(jsonEncode(jsonMap));
     final archive = Archive()
       ..addFile(ArchiveFile('cards.json', jsonBytes.length, jsonBytes));
-    return Uint8List.fromList(ZipEncoder().encode(archive)!);
+    return Uint8List.fromList(ZipEncoder().encode(archive));
   }
 
   // Convenience wrapper: analyze + execute with default options.

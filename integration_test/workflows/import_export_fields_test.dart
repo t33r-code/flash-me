@@ -57,7 +57,7 @@ void main() {
     final jsonBytes = utf8.encode(jsonEncode(cardsJson));
     final archive = Archive()
       ..addFile(ArchiveFile('cards.json', jsonBytes.length, jsonBytes));
-    return Uint8List.fromList(ZipEncoder().encode(archive)!);
+    return Uint8List.fromList(ZipEncoder().encode(archive));
   }
 
   // Serialise a FlashCard to the ExportService wire format (toJson minus

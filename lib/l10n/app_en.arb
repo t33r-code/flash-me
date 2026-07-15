@@ -222,6 +222,8 @@
   "errorFailedReorderCards": "Couldn't save the new order.",
   "errorFailedAddCardToSet": "Couldn't add the card back.",
   "tooltipDragToReorder": "Drag to reorder",
+  "tooltipEditCard": "Edit card",
+  "tooltipRemoveFromSet": "Remove from set",
   "actionUndo": "Undo",
   "messageCardRemovedFromSet": "Removed from set",
   "messagePreparingExport": "Preparing export…",

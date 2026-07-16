@@ -820,6 +820,8 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.add),
                     tooltip: l10n.tooltipAddCards,
+                    // Open below the button, not over it (default is `over`).
+                    position: PopupMenuPosition.under,
                     onSelected: _startNewCardInPane,
                     itemBuilder: (context) => [
                       PopupMenuItem(

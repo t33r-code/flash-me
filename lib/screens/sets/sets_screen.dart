@@ -213,16 +213,23 @@ class _MySetsTabState extends ConsumerState<_MySetsTab> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = isWideWidth(constraints.maxWidth);
+        // Decide master-detail from the *window* width, matching MainScreen's
+        // nav-rail breakpoint, so the two flip together — no middle state where
+        // the rail is present but the set list has collapsed to single-column.
+        final wide = isWideWidth(MediaQuery.sizeOf(context).width);
         final list = _buildListColumn(
             context, wide, setsAsync, allSets, displaySets, allTags, sortLabel);
 
         if (!wide) return list;
 
         // Wide: master-detail — set list on the left, detail pane on the right.
+        // The list gives width up to the pane's floor before it stops shrinking,
+        // so even a just-wide layout keeps the pane usable (avoids overflow).
+        final listWidth = (constraints.maxWidth - kMinDetailPaneWidth)
+            .clamp(kMinSetListWidth, kSetListWidth);
         return Row(
           children: [
-            SizedBox(width: 340, child: list),
+            SizedBox(width: listWidth, child: list),
             const VerticalDivider(width: 1, thickness: 1),
             Expanded(child: _buildDetailPane(context, allSets)),
           ],

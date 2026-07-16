@@ -32,17 +32,20 @@ These options are available on the create and edit screens:
 ## Adding Cards to a Set { #add-cards }
 
 1. Open the set by tapping it in the Sets list.
-2. Tap the **+** button at the bottom of the screen. A sheet offers three choices:
-    - **Flash Card** / **Workbook Card** — create a brand-new card right here. The editor opens seeded with the set's language pair, and when you save, the card is created **and** added to the set in one step.
-    - **Add existing cards** — pick cards already in your library (see below).
+2. Add a card:
+    - On a **phone**, tap the **+** button at the bottom of the screen. A sheet offers **Flash Card**, **Workbook Card**, or **Add existing cards**.
+    - On a **wide window**, tap the **+** in the set's toolbar for a small menu with **Flash Card** / **Workbook Card**; adding cards you already have is the separate :material-library-plus-outline: **library button** next to it (see [Adding existing cards](#add-existing)).
+3. Choosing **Flash Card** or **Workbook Card** creates a brand-new card right here. The editor opens seeded with the set's language pair, and when you save, the card is created **and** added to the set in one step.
 
 ### Adding existing cards { #add-existing }
 
-Choosing **Add existing cards** opens the card picker:
+Choosing **Add existing cards** opens the card library:
 
-1. The picker shows all your cards — Flash Cards and Workbook Cards — grouped into sections. Cards already in the set appear greyed out at the bottom.
+1. The library shows all your cards — Flash Cards and Workbook Cards — grouped into sections. Cards already in the set appear greyed out at the bottom.
 2. Tap a card to select it (a tick appears). You can select as many as you like.
 3. Tap **Add** to add the selected cards to the set.
+
+On a **wide window** the library opens as a panel docked beside the card list rather than a bottom sheet, and it stays open so you can add several batches in a row. You can open it directly with the :material-library-plus-outline: **library button** in the set's toolbar (no need to go through the **+** menu) — the same button closes it again, as does the **✕** in the panel. As well as selecting cards and tapping **Add**, you can **drag** a card — or a whole selection — from the library and **drop** it onto the card list to add it. The list highlights while a card is hovering over it. On a narrower (roughly square) window there isn't room to show the list and the panel side by side, so opening the library covers the card list entirely — you can still multi-select and tap **Add**, but drag-and-drop isn't available until you widen the window.
 
 ### Finding cards in the picker { #picker-search }
 

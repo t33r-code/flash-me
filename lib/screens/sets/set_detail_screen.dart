@@ -796,144 +796,219 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       );
     }
 
-    final scaffold = Scaffold(
-      appBar: AppBar(
-        title: Text(paneEdit == null ? liveSet.name : _paneEditTitle(l10n)),
-        automaticallyImplyLeading: paneEdit == null,
-        actions: paneEdit != null
-            ? [
-                // Card mode: only Cancel / Save. No delete here — card
-                // deletion is only available from the Cards tab editor.
-                TextButton(
-                  onPressed: _isPaneSaving ? null : _exitPaneEdit,
-                  child: Text(l10n.labelCancel),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: FilledButton(
-                    onPressed: _isPaneSaving ? null : _savePaneEdit,
-                    child: _isPaneSaving
-                        ? const SizedBox(
-                            height: 16,
-                            width: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(l10n.actionSaveChanges),
-                  ),
-                ),
-              ]
-            : [
-                // Add card — pane mode only; the FAB (mobile idiom) is hidden
-                // when hosted in the wide pane (widget.onExit != null). A local
-                // popup menu (not the bottom sheet) picks the card type; adding
-                // existing cards is the separate library toggle button below.
-                if (widget.onExit != null)
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.add),
-                    tooltip: l10n.tooltipAddCards,
-                    // Open below the button, not over it (default is `over`).
-                    position: PopupMenuPosition.under,
-                    onSelected: _startNewCardInPane,
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: AppConstants.cardTypeFlashcard,
-                        child: Row(children: [
-                          const Icon(Icons.style_outlined),
-                          const SizedBox(width: 12),
-                          Text(l10n.labelFlashCard),
-                        ]),
-                      ),
-                      PopupMenuItem(
-                        value: AppConstants.cardTypeWorkbook,
-                        child: Row(children: [
-                          const Icon(Icons.book_outlined),
-                          const SizedBox(width: 12),
-                          Text(l10n.labelWorkbookCard),
-                        ]),
-                      ),
-                    ],
-                  ),
-                // Toggle the inline existing-cards library panel directly,
-                // skipping the +-menu. Pane mode only (the panel needs the
-                // wide layout); acts as a close button when already open.
-                if (widget.onExit != null)
-                  IconButton(
-                    isSelected: _libraryOpen,
-                    icon: const Icon(Icons.library_add_outlined),
-                    selectedIcon: const Icon(Icons.library_add),
-                    tooltip: l10n.actionAddExistingCards,
-                    onPressed: () =>
-                        setState(() => _libraryOpen = !_libraryOpen),
-                  ),
-                // Market publish/unpublish toggle.
-                // Outlined = private; filled + primary colour = currently in Market.
-                IconButton(
-                  icon: liveSet.isPublic
-                      ? const Icon(Icons.unpublished_outlined)
-                      : const Icon(Icons.storefront_outlined),
-                  tooltip: liveSet.isPublic
-                      ? l10n.tooltipRemoveFromMarket
-                      : l10n.tooltipOfferInMarket,
-                  onPressed: _isPublishing
-                      ? null
-                      : () => liveSet.isPublic
-                          ? _removeFromMarket(liveSet)
-                          : _offerInMarket(liveSet),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.download_outlined),
-                  tooltip: l10n.tooltipExportSet,
-                  onPressed: _isExporting ? null : () => _exportSet(liveSet),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  tooltip: l10n.tooltipDeleteSet,
-                  onPressed: _isDeleting ? null : _confirmDelete,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  tooltip: l10n.tooltipEditSet,
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => SetFormScreen(cardSet: liveSet),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Narrow pane: collapse the set-management actions into a ⋮ menu so the
+        // AppBar action row can't overflow (only relevant in the wide pane).
+        final narrowPane = widget.onExit != null &&
+            constraints.maxWidth < kSetToolbarOverflowWidth;
+        final scaffold = Scaffold(
+          appBar: AppBar(
+            title: Text(paneEdit == null ? liveSet.name : _paneEditTitle(l10n)),
+            automaticallyImplyLeading: paneEdit == null,
+            actions: paneEdit != null
+                ? [
+                    // Card mode: only Cancel / Save. No delete here — card
+                    // deletion is only available from the Cards tab editor.
+                    TextButton(
+                      onPressed: _isPaneSaving ? null : _exitPaneEdit,
+                      child: Text(l10n.labelCancel),
                     ),
-                  ),
-                ),
-                // Quick-study shortcut — bypasses the Study tab set picker.
-                IconButton(
-                  icon: const Icon(Icons.play_circle_outline),
-                  tooltip: l10n.tooltipStudyThisSet,
-                  onPressed: _study,
-                ),
-                const HelpMenuButton(HelpContext.sets),
-              ],
-      ),
-      body: body,
-      // Mobile-only affordance — hidden in the wide pane, where "Add card" is
-      // a toolbar action instead (see actions above).
-      floatingActionButton: (paneEdit == null && widget.onExit == null)
-          ? FloatingActionButton(
-              heroTag: 'addCards',
-              onPressed: _addToSet,
-              tooltip: l10n.tooltipAddCards,
-              child: const Icon(Icons.add),
-            )
-          : null,
-    );
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: FilledButton(
+                        onPressed: _isPaneSaving ? null : _savePaneEdit,
+                        child: _isPaneSaving
+                            ? const SizedBox(
+                                height: 16,
+                                width: 16,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Text(l10n.actionSaveChanges),
+                      ),
+                    ),
+                  ]
+                : _setModeActions(l10n, liveSet, narrowPane),
+          ),
+          body: body,
+          // Mobile-only affordance — hidden in the wide pane, where "Add card"
+          // is a toolbar action instead (see actions above).
+          floatingActionButton: (paneEdit == null && widget.onExit == null)
+              ? FloatingActionButton(
+                  heroTag: 'addCards',
+                  onPressed: _addToSet,
+                  tooltip: l10n.tooltipAddCards,
+                  child: const Icon(Icons.add),
+                )
+              : null,
+        );
 
-    // Only the pane hosts a card editor that should intercept back navigation
-    // (narrow/full-screen editing already has its own pushed route to pop).
-    // Known limitation: since MainScreen keeps every tab mounted, this can
-    // still apply while the Sets tab isn't the visible one; acceptable for v1.
-    if (widget.onExit == null) return scaffold;
-    return PopScope(
-      canPop: paneEdit == null,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) _exitPaneEdit();
+        // Only the pane hosts a card editor that should intercept back
+        // navigation (narrow/full-screen editing already has its own pushed
+        // route to pop). Known limitation: since MainScreen keeps every tab
+        // mounted, this can still apply while the Sets tab isn't the visible
+        // one; acceptable for v1.
+        if (widget.onExit == null) return scaffold;
+        return PopScope(
+          canPop: paneEdit == null,
+          onPopInvokedWithResult: (didPop, result) {
+            if (!didPop) _exitPaneEdit();
+          },
+          child: scaffold,
+        );
       },
-      child: scaffold,
     );
   }
+
+  // Set-mode toolbar actions. When [narrowPane], the set-management actions
+  // (market/export/delete/edit) collapse into a ⋮ overflow menu so the AppBar
+  // action row can't overflow; the builder actions (+, library, study) stay.
+  List<Widget> _setModeActions(
+      AppLocalizations l10n, CardSet liveSet, bool narrowPane) {
+    // Set-management actions as inline IconButtons (shown when there's room).
+    final management = <Widget>[
+      IconButton(
+        // Market publish/unpublish toggle. Outlined = private; filled = live.
+        icon: liveSet.isPublic
+            ? const Icon(Icons.unpublished_outlined)
+            : const Icon(Icons.storefront_outlined),
+        tooltip: liveSet.isPublic
+            ? l10n.tooltipRemoveFromMarket
+            : l10n.tooltipOfferInMarket,
+        onPressed: _isPublishing
+            ? null
+            : () => liveSet.isPublic
+                ? _removeFromMarket(liveSet)
+                : _offerInMarket(liveSet),
+      ),
+      IconButton(
+        icon: const Icon(Icons.download_outlined),
+        tooltip: l10n.tooltipExportSet,
+        onPressed: _isExporting ? null : () => _exportSet(liveSet),
+      ),
+      IconButton(
+        icon: const Icon(Icons.delete_outline),
+        tooltip: l10n.tooltipDeleteSet,
+        onPressed: _isDeleting ? null : _confirmDelete,
+      ),
+      IconButton(
+        icon: const Icon(Icons.edit_outlined),
+        tooltip: l10n.tooltipEditSet,
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => SetFormScreen(cardSet: liveSet)),
+        ),
+      ),
+    ];
+
+    return [
+      // Add card — pane mode only (the FAB covers narrow). A local popup menu
+      // picks the card type; existing cards are the library toggle beside it.
+      if (widget.onExit != null)
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.add),
+          tooltip: l10n.tooltipAddCards,
+          // Open below the button, not over it (default is `over`).
+          position: PopupMenuPosition.under,
+          onSelected: _startNewCardInPane,
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              value: AppConstants.cardTypeFlashcard,
+              child: _menuRow(Icons.style_outlined, l10n.labelFlashCard),
+            ),
+            PopupMenuItem(
+              value: AppConstants.cardTypeWorkbook,
+              child: _menuRow(Icons.book_outlined, l10n.labelWorkbookCard),
+            ),
+          ],
+        ),
+      // Toggle the inline existing-cards library panel; acts as close too.
+      if (widget.onExit != null)
+        IconButton(
+          isSelected: _libraryOpen,
+          icon: const Icon(Icons.library_add_outlined),
+          selectedIcon: const Icon(Icons.library_add),
+          tooltip: l10n.actionAddExistingCards,
+          onPressed: () => setState(() => _libraryOpen = !_libraryOpen),
+        ),
+      if (!narrowPane) ...management,
+      // Quick-study shortcut — bypasses the Study tab set picker.
+      IconButton(
+        icon: const Icon(Icons.play_circle_outline),
+        tooltip: l10n.tooltipStudyThisSet,
+        onPressed: _study,
+      ),
+      const HelpMenuButton(HelpContext.sets),
+      if (narrowPane) _setManagementOverflow(l10n, liveSet),
+    ];
+  }
+
+  // Overflow (⋮) menu holding the set-management actions on a narrow pane.
+  Widget _setManagementOverflow(AppLocalizations l10n, CardSet liveSet) {
+    return PopupMenuButton<_SetAction>(
+      icon: const Icon(Icons.more_vert),
+      tooltip: l10n.actionMore,
+      position: PopupMenuPosition.under,
+      onSelected: (a) => _runSetAction(a, liveSet),
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: _SetAction.market,
+          enabled: !_isPublishing,
+          child: _menuRow(
+            liveSet.isPublic
+                ? Icons.unpublished_outlined
+                : Icons.storefront_outlined,
+            liveSet.isPublic
+                ? l10n.tooltipRemoveFromMarket
+                : l10n.tooltipOfferInMarket,
+          ),
+        ),
+        PopupMenuItem(
+          value: _SetAction.export,
+          enabled: !_isExporting,
+          child: _menuRow(Icons.download_outlined, l10n.tooltipExportSet),
+        ),
+        PopupMenuItem(
+          value: _SetAction.edit,
+          child: _menuRow(Icons.edit_outlined, l10n.tooltipEditSet),
+        ),
+        PopupMenuItem(
+          value: _SetAction.delete,
+          enabled: !_isDeleting,
+          child: _menuRow(Icons.delete_outline, l10n.tooltipDeleteSet),
+        ),
+      ],
+    );
+  }
+
+  // Runs an action chosen from the ⋮ overflow menu.
+  void _runSetAction(_SetAction action, CardSet liveSet) {
+    switch (action) {
+      case _SetAction.market:
+        if (liveSet.isPublic) {
+          _removeFromMarket(liveSet);
+        } else {
+          _offerInMarket(liveSet);
+        }
+      case _SetAction.export:
+        _exportSet(liveSet);
+      case _SetAction.edit:
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => SetFormScreen(cardSet: liveSet)),
+        );
+      case _SetAction.delete:
+        _confirmDelete();
+    }
+  }
+
+  // Icon + label row for a popup-menu item.
+  Widget _menuRow(IconData icon, String label) => Row(
+        children: [
+          Icon(icon),
+          const SizedBox(width: 12),
+          Text(label),
+        ],
+      );
 }
 
 // ---------------------------------------------------------------------------
@@ -1109,6 +1184,9 @@ class _WorkbookCardInSetTile extends StatelessWidget {
 
 // Three-way result for the "set language?" dialog in _CardPickerSheet.
 enum _LangChoice { setAndAdd, addOnly, cancel }
+
+// Set-management actions that collapse into the ⋮ overflow menu on a narrow pane.
+enum _SetAction { market, export, edit, delete }
 
 // Runs the language-consistency dialog(s) for [idToType] against the set, then
 // performs the batched add (one addCardsToSet per card type). Returns true if

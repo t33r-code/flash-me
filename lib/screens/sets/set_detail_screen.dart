@@ -756,13 +756,24 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       // Capture the card list before reassigning `body`; the DragTarget builder
       // closure must not reference the (about-to-be-Row) `body` or it recurses.
       final listBody = body;
+      // The library covering the whole pane — used when there isn't room to dock
+      // it beside the list (drag-and-drop isn't possible, but multi-select + Add
+      // still works). Also the exit target when the list itself is hidden.
+      final fullPaneLibrary = _CardLibrary(
+        setId: widget.cardSet.id,
+        userId: uid,
+        targetLanguage: liveSet.targetLanguage,
+        nativeLanguage: liveSet.nativeLanguage,
+        asDrawer: true,
+        onClose: () => setState(() => _libraryOpen = false),
+      );
       body = LayoutBuilder(
         builder: (context, constraints) {
-          // Too narrow for both the drawer and a usable card list: show the list
-          // full-width (the drawer returns when the pane widens). Prevents the
-          // squeezed card rows from overflowing their tiles.
+          // Too narrow to dock the drawer beside a usable card list (the roughly
+          // square window case): show the library over the whole pane instead of
+          // a squeezed side-by-side that would overflow the card rows.
           if (constraints.maxWidth < kLibraryDrawerMinPaneWidth) {
-            return listBody;
+            return fullPaneLibrary;
           }
           return Row(
             children: [
@@ -779,17 +790,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                 ),
               ),
               const VerticalDivider(width: 1, thickness: 1),
-              SizedBox(
-                width: 320,
-                child: _CardLibrary(
-                  setId: widget.cardSet.id,
-                  userId: uid,
-                  targetLanguage: liveSet.targetLanguage,
-                  nativeLanguage: liveSet.nativeLanguage,
-                  asDrawer: true,
-                  onClose: () => setState(() => _libraryOpen = false),
-                ),
-              ),
+              SizedBox(width: 320, child: fullPaneLibrary),
             ],
           );
         },
@@ -862,44 +863,11 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   }
 
   // Set-mode toolbar actions. When [narrowPane], the set-management actions
-  // (market/export/delete/edit) collapse into a ⋮ overflow menu so the AppBar
-  // action row can't overflow; the builder actions (+, library, study) stay.
+  // (market/export/edit/delete) fold into the top of the existing ⋮ Help menu
+  // so the AppBar can't overflow; the builder actions (+, library, study) stay.
   List<Widget> _setModeActions(
       AppLocalizations l10n, CardSet liveSet, bool narrowPane) {
-    // Set-management actions as inline IconButtons (shown when there's room).
-    final management = <Widget>[
-      IconButton(
-        // Market publish/unpublish toggle. Outlined = private; filled = live.
-        icon: liveSet.isPublic
-            ? const Icon(Icons.unpublished_outlined)
-            : const Icon(Icons.storefront_outlined),
-        tooltip: liveSet.isPublic
-            ? l10n.tooltipRemoveFromMarket
-            : l10n.tooltipOfferInMarket,
-        onPressed: _isPublishing
-            ? null
-            : () => liveSet.isPublic
-                ? _removeFromMarket(liveSet)
-                : _offerInMarket(liveSet),
-      ),
-      IconButton(
-        icon: const Icon(Icons.download_outlined),
-        tooltip: l10n.tooltipExportSet,
-        onPressed: _isExporting ? null : () => _exportSet(liveSet),
-      ),
-      IconButton(
-        icon: const Icon(Icons.delete_outline),
-        tooltip: l10n.tooltipDeleteSet,
-        onPressed: _isDeleting ? null : _confirmDelete,
-      ),
-      IconButton(
-        icon: const Icon(Icons.edit_outlined),
-        tooltip: l10n.tooltipEditSet,
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => SetFormScreen(cardSet: liveSet)),
-        ),
-      ),
-    ];
+    final management = _setManagementActions(l10n, liveSet);
 
     return [
       // Add card — pane mode only (the FAB covers narrow). A local popup menu
@@ -931,74 +899,69 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
           tooltip: l10n.actionAddExistingCards,
           onPressed: () => setState(() => _libraryOpen = !_libraryOpen),
         ),
-      if (!narrowPane) ...management,
+      // Roomy pane: management actions inline. Narrow: they move into the ⋮ menu.
+      if (!narrowPane)
+        for (final a in management)
+          IconButton(
+            icon: Icon(a.icon),
+            tooltip: a.label,
+            onPressed: a.enabled ? a.onSelected : null,
+          ),
       // Quick-study shortcut — bypasses the Study tab set picker.
       IconButton(
         icon: const Icon(Icons.play_circle_outline),
         tooltip: l10n.tooltipStudyThisSet,
         onPressed: _study,
       ),
-      const HelpMenuButton(HelpContext.sets),
-      if (narrowPane) _setManagementOverflow(l10n, liveSet),
+      HelpMenuButton(
+        HelpContext.sets,
+        extraActions: narrowPane ? management : const [],
+      ),
     ];
   }
 
-  // Overflow (⋮) menu holding the set-management actions on a narrow pane.
-  Widget _setManagementOverflow(AppLocalizations l10n, CardSet liveSet) {
-    return PopupMenuButton<_SetAction>(
-      icon: const Icon(Icons.more_vert),
-      tooltip: l10n.actionMore,
-      position: PopupMenuPosition.under,
-      onSelected: (a) => _runSetAction(a, liveSet),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: _SetAction.market,
-          enabled: !_isPublishing,
-          child: _menuRow(
-            liveSet.isPublic
-                ? Icons.unpublished_outlined
-                : Icons.storefront_outlined,
-            liveSet.isPublic
-                ? l10n.tooltipRemoveFromMarket
-                : l10n.tooltipOfferInMarket,
-          ),
-        ),
-        PopupMenuItem(
-          value: _SetAction.export,
-          enabled: !_isExporting,
-          child: _menuRow(Icons.download_outlined, l10n.tooltipExportSet),
-        ),
-        PopupMenuItem(
-          value: _SetAction.edit,
-          child: _menuRow(Icons.edit_outlined, l10n.tooltipEditSet),
-        ),
-        PopupMenuItem(
-          value: _SetAction.delete,
-          enabled: !_isDeleting,
-          child: _menuRow(Icons.delete_outline, l10n.tooltipDeleteSet),
-        ),
-      ],
-    );
-  }
-
-  // Runs an action chosen from the ⋮ overflow menu.
-  void _runSetAction(_SetAction action, CardSet liveSet) {
-    switch (action) {
-      case _SetAction.market:
-        if (liveSet.isPublic) {
-          _removeFromMarket(liveSet);
-        } else {
-          _offerInMarket(liveSet);
-        }
-      case _SetAction.export:
-        _exportSet(liveSet);
-      case _SetAction.edit:
-        Navigator.of(context).push(
+  // Set-management actions (market/export/edit/delete), rendered either as
+  // inline toolbar IconButtons or as ⋮ menu items depending on pane width.
+  List<HelpMenuAction> _setManagementActions(
+      AppLocalizations l10n, CardSet liveSet) {
+    return [
+      HelpMenuAction(
+        // Market publish/unpublish toggle.
+        icon: liveSet.isPublic
+            ? Icons.unpublished_outlined
+            : Icons.storefront_outlined,
+        label: liveSet.isPublic
+            ? l10n.tooltipRemoveFromMarket
+            : l10n.tooltipOfferInMarket,
+        enabled: !_isPublishing,
+        onSelected: () {
+          if (liveSet.isPublic) {
+            _removeFromMarket(liveSet);
+          } else {
+            _offerInMarket(liveSet);
+          }
+        },
+      ),
+      HelpMenuAction(
+        icon: Icons.download_outlined,
+        label: l10n.tooltipExportSet,
+        enabled: !_isExporting,
+        onSelected: () => _exportSet(liveSet),
+      ),
+      HelpMenuAction(
+        icon: Icons.edit_outlined,
+        label: l10n.tooltipEditSet,
+        onSelected: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => SetFormScreen(cardSet: liveSet)),
-        );
-      case _SetAction.delete:
-        _confirmDelete();
-    }
+        ),
+      ),
+      HelpMenuAction(
+        icon: Icons.delete_outline,
+        label: l10n.tooltipDeleteSet,
+        enabled: !_isDeleting,
+        onSelected: _confirmDelete,
+      ),
+    ];
   }
 
   // Icon + label row for a popup-menu item.
@@ -1184,9 +1147,6 @@ class _WorkbookCardInSetTile extends StatelessWidget {
 
 // Three-way result for the "set language?" dialog in _CardPickerSheet.
 enum _LangChoice { setAndAdd, addOnly, cancel }
-
-// Set-management actions that collapse into the ⋮ overflow menu on a narrow pane.
-enum _SetAction { market, export, edit, delete }
 
 // Runs the language-consistency dialog(s) for [idToType] against the set, then
 // performs the batched add (one addCardsToSet per card type). Returns true if

@@ -16,6 +16,7 @@ import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/providers/workbook_card_provider.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
+import 'package:flash_me/utils/layout_breakpoints.dart';
 import 'package:flash_me/utils/set_ordering.dart';
 import 'package:flash_me/screens/cards/card_form_screen.dart';
 import 'package:flash_me/screens/cards/workbook_card_form_screen.dart';
@@ -755,33 +756,43 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       // Capture the card list before reassigning `body`; the DragTarget builder
       // closure must not reference the (about-to-be-Row) `body` or it recurses.
       final listBody = body;
-      body = Row(
-        children: [
-          Expanded(
-            child: DragTarget<Map<String, String>>(
-              onAcceptWithDetails: (details) => _dropCards(details.data),
-              builder: (ctx, candidate, rejected) => ColoredBox(
-                // Tint the drop zone while a drag hovers over it.
-                color: candidate.isNotEmpty
-                    ? scheme.primaryContainer.withValues(alpha: 0.18)
-                    : Colors.transparent,
-                child: listBody,
+      body = LayoutBuilder(
+        builder: (context, constraints) {
+          // Too narrow for both the drawer and a usable card list: show the list
+          // full-width (the drawer returns when the pane widens). Prevents the
+          // squeezed card rows from overflowing their tiles.
+          if (constraints.maxWidth < kLibraryDrawerMinPaneWidth) {
+            return listBody;
+          }
+          return Row(
+            children: [
+              Expanded(
+                child: DragTarget<Map<String, String>>(
+                  onAcceptWithDetails: (details) => _dropCards(details.data),
+                  builder: (ctx, candidate, rejected) => ColoredBox(
+                    // Tint the drop zone while a drag hovers over it.
+                    color: candidate.isNotEmpty
+                        ? scheme.primaryContainer.withValues(alpha: 0.18)
+                        : Colors.transparent,
+                    child: listBody,
+                  ),
+                ),
               ),
-            ),
-          ),
-          const VerticalDivider(width: 1, thickness: 1),
-          SizedBox(
-            width: 320,
-            child: _CardLibrary(
-              setId: widget.cardSet.id,
-              userId: uid,
-              targetLanguage: liveSet.targetLanguage,
-              nativeLanguage: liveSet.nativeLanguage,
-              asDrawer: true,
-              onClose: () => setState(() => _libraryOpen = false),
-            ),
-          ),
-        ],
+              const VerticalDivider(width: 1, thickness: 1),
+              SizedBox(
+                width: 320,
+                child: _CardLibrary(
+                  setId: widget.cardSet.id,
+                  userId: uid,
+                  targetLanguage: liveSet.targetLanguage,
+                  nativeLanguage: liveSet.nativeLanguage,
+                  asDrawer: true,
+                  onClose: () => setState(() => _libraryOpen = false),
+                ),
+              ),
+            ],
+          );
+        },
       );
     }
 

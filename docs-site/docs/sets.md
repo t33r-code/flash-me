@@ -45,7 +45,7 @@ Choosing **Add existing cards** opens the card library:
 2. Tap a card to select it (a tick appears). You can select as many as you like.
 3. Tap **Add** to add the selected cards to the set.
 
-On a **wide window** the library opens as a panel docked beside the card list rather than a bottom sheet, and it stays open so you can add several batches in a row. You can open it directly with the :material-library-plus-outline: **library button** in the set's toolbar (no need to go through the **+** menu) — the same button closes it again, as does the **✕** in the panel. As well as selecting cards and tapping **Add**, you can **drag** a card — or a whole selection — from the library and **drop** it onto the card list to add it. The list highlights while a card is hovering over it.
+On a **wide window** the library opens as a panel docked beside the card list rather than a bottom sheet, and it stays open so you can add several batches in a row. You can open it directly with the :material-library-plus-outline: **library button** in the set's toolbar (no need to go through the **+** menu) — the same button closes it again, as does the **✕** in the panel. As well as selecting cards and tapping **Add**, you can **drag** a card — or a whole selection — from the library and **drop** it onto the card list to add it. The list highlights while a card is hovering over it. If you shrink the window until there isn't room for both, the panel tucks itself away and the card list fills the width again; widen the window and it reappears.
 
 ### Finding cards in the picker { #picker-search }
 

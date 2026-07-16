@@ -812,13 +812,33 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                 ),
               ]
             : [
-                // Add card — pane mode only; the FAB (mobile idiom) is
-                // hidden when hosted in the wide pane (widget.onExit != null).
+                // Add card — pane mode only; the FAB (mobile idiom) is hidden
+                // when hosted in the wide pane (widget.onExit != null). A local
+                // popup menu (not the bottom sheet) picks the card type; adding
+                // existing cards is the separate library toggle button below.
                 if (widget.onExit != null)
-                  IconButton(
+                  PopupMenuButton<String>(
                     icon: const Icon(Icons.add),
                     tooltip: l10n.tooltipAddCards,
-                    onPressed: _addToSet,
+                    onSelected: _startNewCardInPane,
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: AppConstants.cardTypeFlashcard,
+                        child: Row(children: [
+                          const Icon(Icons.style_outlined),
+                          const SizedBox(width: 12),
+                          Text(l10n.labelFlashCard),
+                        ]),
+                      ),
+                      PopupMenuItem(
+                        value: AppConstants.cardTypeWorkbook,
+                        child: Row(children: [
+                          const Icon(Icons.book_outlined),
+                          const SizedBox(width: 12),
+                          Text(l10n.labelWorkbookCard),
+                        ]),
+                      ),
+                    ],
                   ),
                 // Toggle the inline existing-cards library panel directly,
                 // skipping the +-menu. Pane mode only (the panel needs the

@@ -36,6 +36,13 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
   String? _anchorId; // last plain-toggled row — the origin for Shift+click
   bool _isBusy = false; // a bulk action is running; actions are disabled
 
+  // Cards hidden optimistically while their background delete runs, so the
+  // list doesn't dissolve row-by-row as each Firestore delete lands. Ids stay
+  // here after a successful delete — the card is gone, so filtering on a dead
+  // id is harmless, and it avoids a flash if the stream hasn't caught up yet.
+  // Failed ids are removed so those rows come back.
+  final Set<String> _pendingDelete = {};
+
   // Card ids in display order (flash then workbook), rebuilt each build so
   // Shift+click ranges follow exactly what the user sees.
   List<String> _orderedIds = [];
@@ -230,25 +237,33 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
     );
     if (confirmed != true || !mounted) return;
 
-    setState(() => _isBusy = true);
-    try {
-      final cardRepo = ref.read(cardRepositoryProvider);
-      final workbookRepo = ref.read(workbookCardRepositoryProvider);
-      for (final entry in idToType.entries) {
+    // Hide the rows and leave selection mode straight away, then delete in the
+    // background. Each card is deleted individually (that's what clears its set
+    // links and media), so without this the list would visibly dissolve a row
+    // at a time as each delete came back through the Firestore stream.
+    setState(() => _pendingDelete.addAll(idToType.keys));
+    _exitSelection();
+
+    final cardRepo = ref.read(cardRepositoryProvider);
+    final workbookRepo = ref.read(workbookCardRepositoryProvider);
+    final failed = <String>[];
+    for (final entry in idToType.entries) {
+      try {
         if (entry.value == AppConstants.cardTypeFlashcard) {
           await cardRepo.deleteCard(entry.key);
         } else {
           await workbookRepo.deleteCard(entry.key);
         }
+      } catch (_) {
+        failed.add(entry.key);
       }
-      if (!mounted) return;
-      setState(() => _isBusy = false);
-      _exitSelection();
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _isBusy = false);
-      _snack(l10n.errorFailedDeleteCards);
     }
+    // Deletes are allowed to finish even if the user navigated away; only the
+    // UI feedback below needs the screen to still be mounted.
+    if (!mounted || failed.isEmpty) return;
+    // Bring back only the rows we couldn't delete.
+    setState(() => _pendingDelete.removeAll(failed));
+    _snack(l10n.errorFailedDeleteCards);
   }
 
   // Shows a bottom sheet letting the user choose Flash Card or Workbook Card.
@@ -315,7 +330,8 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
   }
 
   List<FlashCard> _filterFlash(List<FlashCard> cards) {
-    var result = cards;
+    // Drop cards whose delete is still in flight (see _pendingDelete).
+    var result = cards.where((c) => !_pendingDelete.contains(c.id)).toList();
     if (_selectedTag != null) {
       result = result.where((c) => c.tags.contains(_selectedTag)).toList();
     }
@@ -331,7 +347,8 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
   }
 
   List<WorkbookCard> _filterWorkbook(List<WorkbookCard> cards) {
-    var result = cards;
+    // Drop cards whose delete is still in flight (see _pendingDelete).
+    var result = cards.where((c) => !_pendingDelete.contains(c.id)).toList();
     if (_selectedTag != null) {
       result = result.where((c) => c.tags.contains(_selectedTag)).toList();
     }

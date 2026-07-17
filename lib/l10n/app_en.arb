@@ -342,6 +342,33 @@
   "messageNoCardsYetCreate": "No cards yet. Tap + to create your first card.",
   "tooltipCreateCard": "Create card",
 
+  "actionSelect": "Select",
+  "tooltipExitSelection": "Exit selection",
+  "actionDelete": "Delete",
+  "tooltipDeleteSelected": "Delete selected",
+  "labelSelectedCount": "{count, plural, =1{1 selected} other{{count} selected}}",
+  "@labelSelectedCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "titleDeleteCards": "Delete Cards",
+  "messageDeleteCardsConfirm": "{count, plural, =1{Delete 1 card? It will be removed from all sets and cannot be undone.} other{Delete {count} cards? They will be removed from all sets and cannot be undone.}}",
+  "@messageDeleteCardsConfirm": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "errorFailedDeleteCards": "Failed to delete cards. Please try again.",
+  "messageCardsAddedToSet": "{count, plural, =1{1 card added to {setName}} other{{count} cards added to {setName}}}",
+  "@messageCardsAddedToSet": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "setName": {"type": "String"}
+    }
+  },
+  "errorFailedAddCardsToSet": "Failed to add cards to the set. Please try again.",
+
   "titleNewCard": "New Card",
   "titleEditCard": "Edit Card",
   "titleDeleteCard": "Delete Card",

@@ -75,6 +75,30 @@ The **My Cards** screen has a search bar and tag filter row at the top.
 
 Search and tag filter work together — you can, for example, search for "hab" while filtered to "spanish-verbs".
 
+### Selecting Several Cards at Once { #card-multi-select }
+
+When you want to do the same thing to a lot of cards, use selection mode on the **My Cards** screen.
+
+**To start selecting:**
+
+- Tap the :material-checkbox-multiple-marked-outline: **Select** button in the top-right corner, or
+- **Long-press** any card (on a phone or tablet), or
+- **Ctrl+click** a card (**⌘+click** on a Mac).
+
+**While selecting**, a checkbox appears on every card and the toolbar shows how many you've picked:
+
+- **Tap** a card to select or deselect it.
+- **Shift+click** a card to select everything between it and the last card you tapped. This adds to what you already had selected, so you can build up a selection in several passes without losing your earlier picks.
+- **Select all** picks everything currently shown — if you've searched or filtered first, that means just the matching cards.
+- Tap the **✕** to leave selection mode.
+
+If you change the search or tag filter while selecting, any cards that are no longer shown drop out of the selection, so the count always matches what you can see.
+
+**What you can do with a selection:**
+
+- :material-playlist-plus: **Add to set** — choose a set and all the selected cards are added to it in one go. The same [language checks](sets.md#picker-language-check) apply as when adding cards from within a set.
+- :material-delete-outline: **Delete** — removes all the selected cards after a single confirmation. As with deleting one card, they're removed from every set they belonged to, along with any images or audio. This can't be undone.
+
 ### Editing a Flash Card { #edit-card }
 
 Tap any card in the **Cards** list to open it in the editor. All fields, languages, and tags can be changed. Tap **Save** to confirm.

@@ -819,6 +819,64 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tooltipCreateCard => 'Create card';
 
   @override
+  String get actionSelect => 'Select';
+
+  @override
+  String get tooltipExitSelection => 'Exit selection';
+
+  @override
+  String get actionDelete => 'Delete';
+
+  @override
+  String get tooltipDeleteSelected => 'Delete selected';
+
+  @override
+  String labelSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count selected',
+      one: '1 selected',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get titleDeleteCards => 'Delete Cards';
+
+  @override
+  String messageDeleteCardsConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Delete $count cards? They will be removed from all sets and cannot be undone.',
+      one:
+          'Delete 1 card? It will be removed from all sets and cannot be undone.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get errorFailedDeleteCards =>
+      'Failed to delete cards. Please try again.';
+
+  @override
+  String messageCardsAddedToSet(int count, String setName) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cards added to $setName',
+      one: '1 card added to $setName',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get errorFailedAddCardsToSet =>
+      'Failed to add cards to the set. Please try again.';
+
+  @override
   String get titleNewCard => 'New Card';
 
   @override

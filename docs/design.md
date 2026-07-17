@@ -251,6 +251,17 @@ Alternatively, user taps "Use Template" → Question Templates tab to append one
 - Hard delete: Storage files (image, audio) are fetched and deleted first, then all `setCards` join documents are removed and the card document itself is deleted in a Firestore batch
 - Deletion errors on Storage files are logged as warnings and do not block the Firestore deletion
 
+#### Bulk Operations — multi-select in the card library (#238)
+
+The card library (**My Cards**) supports an explicit **selection mode** so one action can be applied to many cards — the main bulk-authoring lever for Alpha 0.7.
+
+- **Entering/leaving** — a **Select** toolbar button, long-press (touch), or Ctrl/⌘+click (desktop) enters the mode. Mode is explicit and only the **✕** leaves it: emptying the selection keeps the mode active, so entering via **Select** with nothing picked doesn't immediately bounce the user out.
+- **Selecting** — in mode a plain tap toggles a row; **Shift+click unions** the anchor→target span into the current selection rather than replacing it, so extending a selection never silently discards earlier picks. The anchor is the last plain-toggled row. Ranges follow the *display* order (flash cards then workbook cards, as filtered).
+- **Contextual `AppBar`** — replaces the normal one while selecting: **✕**, the selected count, then **Select all** / **Add to set** / **Delete**. (Tag / language / remove-from-set join it in #238 part 2.)
+- **Bulk add-to-set** — picks a target set (`_SetPickerDialog`), then runs the shared `addCardsWithLanguageCheck`, so the #210 language-consistency checks and the type-batched `addCardsToSet` are identical to the set builder's. That helper was promoted out of `set_detail_screen` into `widgets/add_cards_to_set.dart` for this.
+- **Bulk delete** — one confirmation covering the count, then the existing per-card `deleteCard` per selected card, so `setCards` links, `cardCount` decrements, and Storage media cleanup all reuse the single-card semantics above rather than a parallel batch path.
+- **Selection maths** is pure and unit-tested in `utils/selection.dart` (`idsInRange` / `toggleId` / `pruneSelection`). Changing the search or tag filter **prunes** the selection to what's still visible, so the count never claims cards the user can't see.
+
 ### Implementation Notes
 - Field type icon/visual indicator on card display during study
 - Consider rich text support for answers (bold, italic, etc.) - for future consideration

@@ -1540,6 +1540,66 @@ abstract class AppLocalizations {
   /// **'Create card'**
   String get tooltipCreateCard;
 
+  /// No description provided for @actionSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get actionSelect;
+
+  /// No description provided for @tooltipExitSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit selection'**
+  String get tooltipExitSelection;
+
+  /// No description provided for @actionDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get actionDelete;
+
+  /// No description provided for @tooltipDeleteSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete selected'**
+  String get tooltipDeleteSelected;
+
+  /// No description provided for @labelSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 selected} other{{count} selected}}'**
+  String labelSelectedCount(int count);
+
+  /// No description provided for @titleDeleteCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Cards'**
+  String get titleDeleteCards;
+
+  /// No description provided for @messageDeleteCardsConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Delete 1 card? It will be removed from all sets and cannot be undone.} other{Delete {count} cards? They will be removed from all sets and cannot be undone.}}'**
+  String messageDeleteCardsConfirm(int count);
+
+  /// No description provided for @errorFailedDeleteCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete cards. Please try again.'**
+  String get errorFailedDeleteCards;
+
+  /// No description provided for @messageCardsAddedToSet.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 card added to {setName}} other{{count} cards added to {setName}}}'**
+  String messageCardsAddedToSet(int count, String setName);
+
+  /// No description provided for @errorFailedAddCardsToSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to add cards to the set. Please try again.'**
+  String get errorFailedAddCardsToSet;
+
   /// No description provided for @titleNewCard.
   ///
   /// In en, this message translates to:

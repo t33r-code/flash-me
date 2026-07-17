@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/l10n/app_localizations.dart';
 import 'package:flash_me/models/card_set.dart';
@@ -17,7 +18,9 @@ import 'package:flash_me/providers/workbook_card_provider.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/utils/layout_breakpoints.dart';
+import 'package:flash_me/utils/selection.dart';
 import 'package:flash_me/widgets/add_cards_to_set.dart';
+import 'package:flash_me/widgets/bulk_card_actions.dart';
 import 'package:flash_me/utils/set_ordering.dart';
 import 'package:flash_me/screens/cards/card_form_screen.dart';
 import 'package:flash_me/screens/cards/workbook_card_form_screen.dart';
@@ -51,7 +54,8 @@ class _WorkbookPaneEdit extends _PaneEdit {
 // SetDetailScreen — live card list for a set with add/remove membership.
 // ---------------------------------------------------------------------------
 class SetDetailScreen extends ConsumerStatefulWidget {
-  final CardSet cardSet; // initial value; AppBar title updates via setByIdProvider
+  final CardSet
+  cardSet; // initial value; AppBar title updates via setByIdProvider
   // When hosted in a pane (multi-pane #236) rather than pushed full-screen, the
   // host provides onExit so deleting the set clears the pane selection instead
   // of popping a route. Null in the pushed/full-screen case (pops as usual).
@@ -86,6 +90,176 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   // dragged from it onto the card list, or added via its own button.
   bool _libraryOpen = false;
 
+  // Multi-select over the set's cards (#238 part 2). Same model as the card
+  // library. While selecting, drag-to-reorder and swipe-to-remove come off the
+  // rows (see the itemBuilder) so gestures can't fight a checkbox tap.
+  final _selection = SelectionModel();
+  bool _isBulkBusy = false;
+  // Card ids in display order + their types, refreshed each build so Shift
+  // ranges and Select all follow what's on screen.
+  List<String> _orderedIds = [];
+  Map<String, String> _typeById = {};
+
+  void _exitSelection() => setState(_selection.exit);
+
+  Map<String, String> _selectedIdToType() => {
+    for (final id in _selection.selected)
+      if (_typeById[id] != null) id: _typeById[id]!,
+  };
+
+  // Row tap: modifier-click starts a selection while browsing; in selection
+  // mode taps toggle and Shift extends the range.
+  void _onTapRow(String cardId) {
+    final keys = HardwareKeyboard.instance;
+    final multi = keys.isControlPressed || keys.isMetaPressed;
+    final range = keys.isShiftPressed;
+
+    if (!_selection.mode) {
+      // A plain tap outside selection mode stays a no-op — rows are opened by
+      // double-click (#259) or the row's Edit action (#260).
+      if (multi || range) setState(() => _selection.enterWith(cardId));
+      return;
+    }
+    setState(() {
+      if (range) {
+        _selection.extendTo(cardId, _orderedIds);
+      } else {
+        _selection.toggle(cardId);
+      }
+    });
+  }
+
+  void _onLongPressRow(String cardId) {
+    if (_selection.mode) return;
+    setState(() => _selection.enterWith(cardId));
+  }
+
+  // Bulk remove-from-set: one confirmation, then drop each join doc. The cards
+  // themselves are untouched — deletion stays a Cards-tab capability (#260).
+  Future<void> _bulkRemoveFromSet() async {
+    final l10n = context.l10n;
+    final ids = _selection.selected.toList();
+    if (ids.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.titleRemoveFromSet),
+        content: Text(l10n.messageRemoveFromSetConfirm(ids.length)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.labelCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.actionRemove),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final uid = ref.read(authStateProvider).asData?.value ?? '';
+    final repo = ref.read(cardSetRepositoryProvider);
+    setState(() => _isBulkBusy = true);
+    try {
+      for (final id in ids) {
+        await repo.removeCardFromSet(
+          setId: widget.cardSet.id,
+          cardId: id,
+          userId: uid,
+        );
+      }
+      if (!mounted) return;
+      setState(() => _isBulkBusy = false);
+      _exitSelection();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.messageCardsRemovedFromSet(ids.length))),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isBulkBusy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorFailedRemoveCardsFromSet)),
+      );
+    }
+  }
+
+  // Bulk tag / language reuse the same shared dialogs as the card library.
+  Future<void> _bulkTag() => _runBulkEdit(bulkEditTags);
+  Future<void> _bulkLanguage() => _runBulkEdit(bulkEditLanguage);
+
+  Future<void> _runBulkEdit(
+    Future<bool> Function(
+      BuildContext,
+      WidgetRef, {
+      required Map<String, String> idToType,
+    })
+    action,
+  ) async {
+    final l10n = context.l10n;
+    final idToType = _selectedIdToType();
+    if (idToType.isEmpty) return;
+    setState(() => _isBulkBusy = true);
+    try {
+      final applied = await action(context, ref, idToType: idToType);
+      if (!mounted) return;
+      setState(() => _isBulkBusy = false);
+      if (applied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.messageCardsUpdated(idToType.length))),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isBulkBusy = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorFailedUpdateCards)));
+    }
+  }
+
+  // Contextual toolbar while selecting: count + the set-scoped bulk actions.
+  // No Delete (Cards tab only, #260) and no Add-to-set (the library's job).
+  AppBar _selectionAppBar(AppLocalizations l10n) {
+    final enabled = _selection.isNotEmpty && !_isBulkBusy;
+    final allSelected =
+        _orderedIds.isNotEmpty && _selection.selected.containsAll(_orderedIds);
+    return AppBar(
+      leading: IconButton(
+        icon: const Icon(Icons.close),
+        tooltip: l10n.tooltipExitSelection,
+        onPressed: _isBulkBusy ? null : _exitSelection,
+      ),
+      title: Text(l10n.labelSelectedCount(_selection.length)),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.select_all),
+          tooltip: allSelected ? l10n.actionDeselectAll : l10n.actionSelectAll,
+          onPressed: _isBulkBusy
+              ? null
+              : () => setState(() => _selection.toggleSelectAll(_orderedIds)),
+        ),
+        IconButton(
+          icon: const Icon(Icons.label_outline),
+          tooltip: l10n.tooltipTagSelected,
+          onPressed: enabled ? _bulkTag : null,
+        ),
+        IconButton(
+          icon: const Icon(Icons.translate),
+          tooltip: l10n.tooltipSetLanguageSelected,
+          onPressed: enabled ? _bulkLanguage : null,
+        ),
+        IconButton(
+          icon: const Icon(Icons.remove_circle_outline),
+          tooltip: l10n.tooltipRemoveFromSet,
+          onPressed: enabled ? _bulkRemoveFromSet : null,
+        ),
+      ],
+    );
+  }
+
   // Drop handler for cards dragged from the library drawer onto the set list.
   // Appends them (addCardsToSet) after the shared #210 language checks.
   Future<void> _dropCards(Map<String, String> idToType) async {
@@ -115,9 +289,11 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   }
 
   void _startNewCardInPane(String cardType) {
-    setState(() => _paneEdit = cardType == AppConstants.cardTypeWorkbook
-        ? _WorkbookPaneEdit()
-        : _FlashPaneEdit());
+    setState(
+      () => _paneEdit = cardType == AppConstants.cardTypeWorkbook
+          ? _WorkbookPaneEdit()
+          : _FlashPaneEdit(),
+    );
   }
 
   void _editFlashCardInPane(FlashCard card) {
@@ -133,7 +309,8 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   // in-place editing surface, so it pushes the full-screen editor instead —
   // the same split used throughout this screen (see _addToSet).
   void _editCardRow(
-      ({String cardId, FlashCard? flash, WorkbookCard? workbook}) entry) {
+    ({String cardId, FlashCard? flash, WorkbookCard? workbook}) entry,
+  ) {
     if (widget.onExit != null) {
       if (entry.flash != null) {
         _editFlashCardInPane(entry.flash!);
@@ -142,20 +319,24 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       }
     } else if (entry.flash != null) {
       Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => CardFormScreen(card: entry.flash)));
+        MaterialPageRoute(builder: (_) => CardFormScreen(card: entry.flash)),
+      );
     } else {
-      Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => WorkbookCardFormScreen(card: entry.workbook)));
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => WorkbookCardFormScreen(card: entry.workbook),
+        ),
+      );
     }
   }
 
   String _paneEditTitle(AppLocalizations l10n) => switch (_paneEdit) {
-        _FlashPaneEdit(card: null) => l10n.titleNewCard,
-        _FlashPaneEdit() => l10n.titleEditCard,
-        _WorkbookPaneEdit(card: null) => l10n.titleNewWorkbookCard,
-        _WorkbookPaneEdit() => l10n.titleEditWorkbookCard,
-        null => '',
-      };
+    _FlashPaneEdit(card: null) => l10n.titleNewCard,
+    _FlashPaneEdit() => l10n.titleEditCard,
+    _WorkbookPaneEdit(card: null) => l10n.titleNewWorkbookCard,
+    _WorkbookPaneEdit() => l10n.titleEditWorkbookCard,
+    null => '',
+  };
 
   // Invoked by the pane's toolbar Save button — dispatches to whichever
   // embedded editor is currently showing.
@@ -182,7 +363,9 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   Future<void> _persistReorder(List<String> orderedCardIds) async {
     final uid = ref.read(authStateProvider).asData?.value ?? '';
     try {
-      await ref.read(cardSetRepositoryProvider).reorderCards(
+      await ref
+          .read(cardSetRepositoryProvider)
+          .reorderCards(
             setId: widget.cardSet.id,
             userId: uid,
             orderedCardIds: orderedCardIds,
@@ -230,7 +413,9 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(context.l10n.titleDeleteSet),
-        content: Text(context.l10n.messageDeleteSetConfirm(widget.cardSet.name)),
+        content: Text(
+          context.l10n.messageDeleteSetConfirm(widget.cardSet.name),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -239,7 +424,8 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error),
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
             child: Text(context.l10n.labelDelete),
           ),
         ],
@@ -258,7 +444,9 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       await ref
           .read(cardSetRepositoryProvider)
           .deleteSet(widget.cardSet.id, uid);
-      for (final norm in tagsToDecrement) { tagRepo.decrementTag(norm); }
+      for (final norm in tagsToDecrement) {
+        tagRepo.decrementTag(norm);
+      }
       // In a pane, clear the host's selection; full-screen, pop the route.
       if (mounted) {
         if (widget.onExit != null) {
@@ -286,7 +474,9 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   Future<bool> _removeCard(SetCard link) async {
     final uid = ref.read(authStateProvider).asData?.value ?? '';
     try {
-      await ref.read(cardSetRepositoryProvider).removeCardFromSet(
+      await ref
+          .read(cardSetRepositoryProvider)
+          .removeCardFromSet(
             setId: widget.cardSet.id,
             cardId: link.cardId,
             userId: uid,
@@ -319,7 +509,9 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   Future<void> _undoRemove(SetCard link) async {
     final uid = ref.read(authStateProvider).asData?.value ?? '';
     try {
-      await ref.read(cardSetRepositoryProvider).addCardToSet(
+      await ref
+          .read(cardSetRepositoryProvider)
+          .addCardToSet(
             setId: widget.cardSet.id,
             cardId: link.cardId,
             userId: uid,
@@ -388,9 +580,9 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     } catch (e) {
       if (mounted) {
         Navigator.of(context).pop(); // dismiss progress dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.errorExportFailed)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(context.l10n.errorExportFailed)));
       }
     } finally {
       if (mounted) setState(() => _isExporting = false);
@@ -430,8 +622,13 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
         title: Text(context.l10n.titleRemoveFromMarket),
         content: Text(
           count > 0
-              ? context.l10n.messageRemoveFromMarketAcquired(liveSet.name, count)
-              : context.l10n.messageRemoveFromMarketNoAcquisitions(liveSet.name),
+              ? context.l10n.messageRemoveFromMarketAcquired(
+                  liveSet.name,
+                  count,
+                )
+              : context.l10n.messageRemoveFromMarketNoAcquisitions(
+                  liveSet.name,
+                ),
         ),
         actions: [
           TextButton(
@@ -441,7 +638,8 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error),
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
             child: Text(context.l10n.labelDelete),
           ),
         ],
@@ -468,9 +666,9 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   void _study() {
     final currentSet =
         ref.read(setByIdProvider(widget.cardSet.id)) ?? widget.cardSet;
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => StudySetupScreen(cardSet: currentSet),
-    ));
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => StudySetupScreen(cardSet: currentSet)),
+    );
   }
 
   // Bottom sheet: create a new card in this set (flash/workbook, seeded with the
@@ -495,8 +693,10 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Text(l10n.titleAddToSet,
-                  style: Theme.of(context).textTheme.titleMedium),
+              child: Text(
+                l10n.titleAddToSet,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ),
             ListTile(
               leading: const Icon(Icons.style_outlined),
@@ -509,8 +709,11 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                 if (widget.onExit != null) {
                   _startNewCardInPane(AppConstants.cardTypeFlashcard);
                 } else {
-                  Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => CardFormScreen(parentSet: set)));
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => CardFormScreen(parentSet: set),
+                    ),
+                  );
                 }
               },
             ),
@@ -523,8 +726,11 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                 if (widget.onExit != null) {
                   _startNewCardInPane(AppConstants.cardTypeWorkbook);
                 } else {
-                  Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => WorkbookCardFormScreen(parentSet: set)));
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => WorkbookCardFormScreen(parentSet: set),
+                    ),
+                  );
                 }
               },
             ),
@@ -582,19 +788,22 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     final flashCardsAsync = ref.watch(cardsInSetProvider(widget.cardSet.id));
     final allWorkbookAsync = ref.watch(userWorkbookCardsProvider);
 
-    final isLoading = linksAsync.isLoading ||
+    final isLoading =
+        linksAsync.isLoading ||
         flashCardsAsync.isLoading ||
         allWorkbookAsync.isLoading;
-    final hasError = linksAsync.hasError ||
+    final hasError =
+        linksAsync.hasError ||
         flashCardsAsync.hasError ||
         allWorkbookAsync.hasError;
 
     final links = linksAsync.asData?.value ?? [];
     final flashById = {
-      for (final c in flashCardsAsync.asData?.value ?? <FlashCard>[]) c.id: c
+      for (final c in flashCardsAsync.asData?.value ?? <FlashCard>[]) c.id: c,
     };
     final workbookById = {
-      for (final c in allWorkbookAsync.asData?.value ?? <WorkbookCard>[]) c.id: c
+      for (final c in allWorkbookAsync.asData?.value ?? <WorkbookCard>[])
+        c.id: c,
     };
     final typeById = {for (final l in links) l.cardId: l.cardType};
     // cardId -> join doc, so removal can capture position/type for undo.
@@ -605,7 +814,8 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
 
     // Resolve each ordered id to a renderable tile, skipping ids whose card
     // content hasn't loaded (or was deleted). The join order is authoritative.
-    final entries = <({String cardId, FlashCard? flash, WorkbookCard? workbook})>[];
+    final entries =
+        <({String cardId, FlashCard? flash, WorkbookCard? workbook})>[];
     for (final id in order) {
       if (typeById[id] == AppConstants.cardTypeWorkbook) {
         final wb = workbookById[id];
@@ -615,6 +825,15 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
         if (fc != null) entries.add((cardId: id, flash: fc, workbook: null));
       }
     }
+    // Feeds the selection model: display order for Shift ranges / Select all,
+    // and the type map so bulk actions can resolve each id's repository.
+    _orderedIds = [for (final e in entries) e.cardId];
+    _typeById = {
+      for (final e in entries)
+        e.cardId: e.flash != null
+            ? AppConstants.cardTypeFlashcard
+            : AppConstants.cardTypeWorkbook,
+    };
 
     Widget body;
     if (isLoading) {
@@ -638,52 +857,79 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
             _onReorder(orderedIds, oldIndex, newIndex),
         itemBuilder: (ctx, i) {
           final entry = entries[i];
-          final handle = ReorderableDragStartListener(
-            index: i,
-            child: Tooltip(
-              message: ctx.l10n.tooltipDragToReorder,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 4),
-                child: Icon(Icons.drag_handle,
-                    color: Theme.of(ctx).colorScheme.onSurfaceVariant),
-              ),
-            ),
-          );
+          final selecting = _selection.mode;
+
+          // While selecting, the drag handle and quick-actions come off the row
+          // and the Dismissible is skipped (below), so reorder/swipe gestures
+          // can't fight a checkbox tap. Both return when selection mode ends.
+          final handle = selecting
+              ? null
+              : ReorderableDragStartListener(
+                  index: i,
+                  child: Tooltip(
+                    message: ctx.l10n.tooltipDragToReorder,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: Icon(
+                        Icons.drag_handle,
+                        color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                );
 
           // Edit + Remove-from-set quick-actions (#260). On wide/pane layouts
           // they hover-reveal; on narrow/touch they're always visible (no
           // hover concept, and no other way to reach Edit there).
           final actionsVisible =
               widget.onExit == null || _hoveredCardId == entry.cardId;
-          final actions = _rowQuickActions(
-            visible: actionsVisible,
-            editTooltip: ctx.l10n.tooltipEditCard,
-            removeTooltip: ctx.l10n.tooltipRemoveFromSet,
-            onEdit: () => _editCardRow(entry),
-            onRemove: () => _removeCard(linkById[entry.cardId]!),
-          );
+          final actions = selecting
+              ? null
+              : _rowQuickActions(
+                  visible: actionsVisible,
+                  editTooltip: ctx.l10n.tooltipEditCard,
+                  removeTooltip: ctx.l10n.tooltipRemoveFromSet,
+                  onEdit: () => _editCardRow(entry),
+                  onRemove: () => _removeCard(linkById[entry.cardId]!),
+                );
 
           final tile = entry.flash != null
               ? _FlashCardInSetTile(
-                  card: entry.flash!, dragHandle: handle, actions: actions)
-              : _WorkbookCardInSetTile(
-                  card: entry.workbook!, dragHandle: handle, actions: actions);
-
-          // Double-click a row to edit it in the pane (#259) — pointer/wide
-          // only; narrow has no in-place editing surface to open.
-          final tappable = widget.onExit != null
-              ? GestureDetector(
-                  onDoubleTap: () => _editCardRow(entry),
-                  child: tile,
+                  card: entry.flash!,
+                  dragHandle: handle,
+                  actions: actions,
+                  selectionMode: selecting,
+                  selected: _selection.contains(entry.cardId),
+                  onToggle: () => _onTapRow(entry.cardId),
                 )
-              : tile;
+              : _WorkbookCardInSetTile(
+                  card: entry.workbook!,
+                  dragHandle: handle,
+                  actions: actions,
+                  selectionMode: selecting,
+                  selected: _selection.contains(entry.cardId),
+                  onToggle: () => _onTapRow(entry.cardId),
+                );
+
+          // Taps live here rather than on the ListTile so the row keeps its
+          // no-ripple feel and double-click-to-edit (#259) isn't disturbed.
+          // Double-tap is dropped while selecting so taps toggle immediately
+          // (with onDoubleTap set, onTap waits out the double-tap timeout).
+          final tappable = GestureDetector(
+            onTap: () => _onTapRow(entry.cardId),
+            onLongPress: () => _onLongPressRow(entry.cardId),
+            onDoubleTap: (!selecting && widget.onExit != null)
+                ? () => _editCardRow(entry)
+                : null,
+            child: tile,
+          );
 
           // Tracks hover for the actions above — wide/pane layouts only;
-          // narrow/touch has no hover concept.
-          final rowContent = widget.onExit != null
+          // narrow/touch has no hover concept, and there are no hover actions
+          // to reveal while selecting.
+          final rowContent = (widget.onExit != null && !selecting)
               ? MouseRegion(
-                  onEnter: (_) =>
-                      setState(() => _hoveredCardId = entry.cardId),
+                  onEnter: (_) => setState(() => _hoveredCardId = entry.cardId),
                   onExit: (_) => setState(() {
                     if (_hoveredCardId == entry.cardId) {
                       _hoveredCardId = null;
@@ -693,8 +939,13 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                 )
               : tappable;
 
+          // No swipe-to-remove while selecting; the key still has to sit on the
+          // outer widget for ReorderableListView either way.
+          if (selecting) {
+            return KeyedSubtree(key: ValueKey(entry.cardId), child: rowContent);
+          }
+
           // Swipe left to remove the card from this set (works for both types).
-          // Key must sit on the outer widget for ReorderableListView.
           return Dismissible(
             key: ValueKey(entry.cardId),
             direction: DismissDirection.endToStart,
@@ -726,25 +977,25 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     if (paneEdit != null) {
       body = switch (paneEdit) {
         _FlashPaneEdit(:final card, :final key) => CardEditorBody(
-            key: key,
-            card: card,
-            parentSet: liveSet,
-            showFooterActions: false,
-            onSaved: _exitPaneEdit,
-            onCancel: _exitPaneEdit,
-            onSavingChanged: (v) =>
-                mounted ? setState(() => _isPaneSaving = v) : null,
-          ),
+          key: key,
+          card: card,
+          parentSet: liveSet,
+          showFooterActions: false,
+          onSaved: _exitPaneEdit,
+          onCancel: _exitPaneEdit,
+          onSavingChanged: (v) =>
+              mounted ? setState(() => _isPaneSaving = v) : null,
+        ),
         _WorkbookPaneEdit(:final card, :final key) => WorkbookEditorBody(
-            key: key,
-            card: card,
-            parentSet: liveSet,
-            showFooterActions: false,
-            onSaved: _exitPaneEdit,
-            onCancel: _exitPaneEdit,
-            onSavingChanged: (v) =>
-                mounted ? setState(() => _isPaneSaving = v) : null,
-          ),
+          key: key,
+          card: card,
+          parentSet: liveSet,
+          showFooterActions: false,
+          onSaved: _exitPaneEdit,
+          onCancel: _exitPaneEdit,
+          onSavingChanged: (v) =>
+              mounted ? setState(() => _isPaneSaving = v) : null,
+        ),
       };
     }
 
@@ -802,37 +1053,43 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       builder: (context, constraints) {
         // Narrow pane: collapse the set-management actions into a ⋮ menu so the
         // AppBar action row can't overflow (only relevant in the wide pane).
-        final narrowPane = widget.onExit != null &&
+        final narrowPane =
+            widget.onExit != null &&
             constraints.maxWidth < kSetToolbarOverflowWidth;
         final scaffold = Scaffold(
-          appBar: AppBar(
-            title: Text(paneEdit == null ? liveSet.name : _paneEditTitle(l10n)),
-            automaticallyImplyLeading: paneEdit == null,
-            actions: paneEdit != null
-                ? [
-                    // Card mode: only Cancel / Save. No delete here — card
-                    // deletion is only available from the Cards tab editor.
-                    TextButton(
-                      onPressed: _isPaneSaving ? null : _exitPaneEdit,
-                      child: Text(l10n.labelCancel),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: FilledButton(
-                        onPressed: _isPaneSaving ? null : _savePaneEdit,
-                        child: _isPaneSaving
-                            ? const SizedBox(
-                                height: 16,
-                                width: 16,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : Text(l10n.actionSaveChanges),
-                      ),
-                    ),
-                  ]
-                : _setModeActions(l10n, liveSet, narrowPane),
-          ),
+          appBar: _selection.mode
+              ? _selectionAppBar(l10n)
+              : AppBar(
+                  title: Text(
+                    paneEdit == null ? liveSet.name : _paneEditTitle(l10n),
+                  ),
+                  automaticallyImplyLeading: paneEdit == null,
+                  actions: paneEdit != null
+                      ? [
+                          // Card mode: only Cancel / Save. No delete here — card
+                          // deletion is only available from the Cards tab editor.
+                          TextButton(
+                            onPressed: _isPaneSaving ? null : _exitPaneEdit,
+                            child: Text(l10n.labelCancel),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: FilledButton(
+                              onPressed: _isPaneSaving ? null : _savePaneEdit,
+                              child: _isPaneSaving
+                                  ? const SizedBox(
+                                      height: 16,
+                                      width: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(l10n.actionSaveChanges),
+                            ),
+                          ),
+                        ]
+                      : _setModeActions(l10n, liveSet, narrowPane),
+                ),
           body: body,
           // Mobile-only affordance — hidden in the wide pane, where "Add card"
           // is a toolbar action instead (see actions above).
@@ -867,7 +1124,10 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   // (market/export/edit/delete) fold into the top of the existing ⋮ Help menu
   // so the AppBar can't overflow; the builder actions (+, library, study) stay.
   List<Widget> _setModeActions(
-      AppLocalizations l10n, CardSet liveSet, bool narrowPane) {
+    AppLocalizations l10n,
+    CardSet liveSet,
+    bool narrowPane,
+  ) {
     final management = _setManagementActions(l10n, liveSet);
 
     return [
@@ -900,6 +1160,16 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
           tooltip: l10n.actionAddExistingCards,
           onPressed: () => setState(() => _libraryOpen = !_libraryOpen),
         ),
+      // On the wide pane there's always room for a dedicated Select button —
+      // even when the pane narrows, management folds into the ⋮ menu below and
+      // frees up the space. Only the truly tight narrow/full-screen toolbar
+      // (no equivalent fold to lean on) keeps Select in the menu instead.
+      if (widget.onExit != null && _orderedIds.isNotEmpty)
+        IconButton(
+          icon: const Icon(Icons.checklist),
+          tooltip: l10n.actionSelect,
+          onPressed: () => setState(() => _selection.mode = true),
+        ),
       // Roomy pane: management actions inline. Narrow: they move into the ⋮ menu.
       if (!narrowPane)
         for (final a in management)
@@ -916,7 +1186,18 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       ),
       HelpMenuButton(
         HelpContext.sets,
-        extraActions: narrowPane ? management : const [],
+        extraActions: [
+          // Narrow/full-screen has no dedicated Select button (see above) —
+          // long-press and Ctrl/Shift+click still work without it; this just
+          // gives mouse users without modifiers a discoverable way in.
+          if (widget.onExit == null && _orderedIds.isNotEmpty)
+            HelpMenuAction(
+              icon: Icons.checklist,
+              label: l10n.actionSelect,
+              onSelected: () => setState(() => _selection.mode = true),
+            ),
+          if (narrowPane) ...management,
+        ],
       ),
     ];
   }
@@ -924,7 +1205,9 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   // Set-management actions (market/export/edit/delete), rendered either as
   // inline toolbar IconButtons or as ⋮ menu items depending on pane width.
   List<HelpMenuAction> _setManagementActions(
-      AppLocalizations l10n, CardSet liveSet) {
+    AppLocalizations l10n,
+    CardSet liveSet,
+  ) {
     return [
       HelpMenuAction(
         // Market publish/unpublish toggle.
@@ -966,13 +1249,8 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   }
 
   // Icon + label row for a popup-menu item.
-  Widget _menuRow(IconData icon, String label) => Row(
-        children: [
-          Icon(icon),
-          const SizedBox(width: 12),
-          Text(label),
-        ],
-      );
+  Widget _menuRow(IconData icon, String label) =>
+      Row(children: [Icon(icon), const SizedBox(width: 12), Text(label)]);
 }
 
 // ---------------------------------------------------------------------------
@@ -990,20 +1268,22 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.style_outlined,
-                size: 80,
-                color: Theme.of(context).colorScheme.onSurfaceVariant),
+            Icon(
+              Icons.style_outlined,
+              size: 80,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
             const SizedBox(height: 16),
-            Text(context.l10n.titleNoCardsYet,
-                style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              context.l10n.titleNoCardsYet,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 8),
             Text(
               context.l10n.messageNoCardsHint,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -1029,7 +1309,18 @@ class _FlashCardInSetTile extends StatelessWidget {
   // Optional Edit / Remove-from-set quick-actions (#260), already
   // opacity/hit-test-gated by the caller for hover-reveal.
   final Widget? actions;
-  const _FlashCardInSetTile({required this.card, this.dragHandle, this.actions});
+  // Multi-select (#238 part 2) — leading swaps to a checkbox while selecting.
+  final bool selectionMode;
+  final bool selected;
+  final VoidCallback? onToggle;
+  const _FlashCardInSetTile({
+    required this.card,
+    this.dragHandle,
+    this.actions,
+    this.selectionMode = false,
+    this.selected = false,
+    this.onToggle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1041,8 +1332,11 @@ class _FlashCardInSetTile extends StatelessWidget {
         : null;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      color: selected ? Theme.of(context).colorScheme.secondaryContainer : null,
       child: ListTile(
-        leading: const Icon(Icons.style_outlined),
+        leading: selectionMode
+            ? Checkbox(value: selected, onChanged: (_) => onToggle?.call())
+            : const Icon(Icons.style_outlined),
         title: Text(card.primaryWord),
         subtitle: Text(card.translation),
         trailing: _tileTrailing(chip, actions, dragHandle),
@@ -1119,8 +1413,18 @@ class _WorkbookCardInSetTile extends StatelessWidget {
   // Optional Edit / Remove-from-set quick-actions (#260), already
   // opacity/hit-test-gated by the caller for hover-reveal.
   final Widget? actions;
-  const _WorkbookCardInSetTile(
-      {required this.card, this.dragHandle, this.actions});
+  // Multi-select (#238 part 2) — leading swaps to a checkbox while selecting.
+  final bool selectionMode;
+  final bool selected;
+  final VoidCallback? onToggle;
+  const _WorkbookCardInSetTile({
+    required this.card,
+    this.dragHandle,
+    this.actions,
+    this.selectionMode = false,
+    this.selected = false,
+    this.onToggle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1132,13 +1436,12 @@ class _WorkbookCardInSetTile extends StatelessWidget {
         : null;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      color: selected ? Theme.of(context).colorScheme.secondaryContainer : null,
       child: ListTile(
-        leading: const Icon(Icons.book_outlined),
-        title: Text(
-          card.prompt,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
+        leading: selectionMode
+            ? Checkbox(value: selected, onChanged: (_) => onToggle?.call())
+            : const Icon(Icons.book_outlined),
+        title: Text(card.prompt, maxLines: 2, overflow: TextOverflow.ellipsis),
         subtitle: Text(context.l10n.labelQuestionCount(card.questions.length)),
         trailing: _tileTrailing(chip, actions, dragHandle),
       ),
@@ -1310,7 +1613,7 @@ class _CardLibraryState extends ConsumerState<_CardLibrary> {
     final allWorkbookAsync = ref.watch(userWorkbookCardsProvider);
     final cardIdsInSet =
         ref.watch(cardIdsInSetProvider(widget.setId)).asData?.value.toSet() ??
-            {};
+        {};
 
     final isLoading = allFlashAsync.isLoading || allWorkbookAsync.isLoading;
     final hasError = allFlashAsync.hasError || allWorkbookAsync.hasError;
@@ -1335,7 +1638,8 @@ class _CardLibraryState extends ConsumerState<_CardLibrary> {
     }
 
     // Set's pair goes first (if it exists in the pool), then by card count desc.
-    final setsPair = (widget.targetLanguage != null && widget.nativeLanguage != null)
+    final setsPair =
+        (widget.targetLanguage != null && widget.nativeLanguage != null)
         ? (widget.targetLanguage!, widget.nativeLanguage!)
         : null;
     final sortedPairs = pairCounts.keys.toList()
@@ -1348,125 +1652,128 @@ class _CardLibraryState extends ConsumerState<_CardLibrary> {
     // Fall back to "All" when the saved filter pair is no longer in the pool.
     final effectiveLangFilter =
         (_langFilter != null && pairCounts.containsKey(_langFilter))
-            ? _langFilter
-            : null;
+        ? _langFilter
+        : null;
 
     return Column(
       children: [
-          // Header row: (drawer) close button, title, and Add button.
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Row(
-              children: [
-                if (widget.asDrawer)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: IconButton(
-                      icon: const Icon(Icons.close),
-                      tooltip: l10n.labelCancel,
-                      onPressed: widget.onClose,
-                    ),
+        // Header row: (drawer) close button, title, and Add button.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Row(
+            children: [
+              if (widget.asDrawer)
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: IconButton(
+                    icon: const Icon(Icons.close),
+                    tooltip: l10n.labelCancel,
+                    onPressed: widget.onClose,
                   ),
-                Text(l10n.actionAddCards,
-                    style: Theme.of(context).textTheme.titleMedium),
-                const Spacer(),
-                FilledButton(
-                  onPressed: _selected.isEmpty || _isAdding
-                      ? null
-                      : _commit,
-                  child: _isAdding
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
-                        )
-                      : Text(_selected.isEmpty
-                          ? l10n.actionAdd
-                          : l10n.actionAddCount(_selected.length)),
                 ),
-              ],
-            ),
+              Text(
+                l10n.actionAddCards,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const Spacer(),
+              FilledButton(
+                onPressed: _selected.isEmpty || _isAdding ? null : _commit,
+                child: _isAdding
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        _selected.isEmpty
+                            ? l10n.actionAdd
+                            : l10n.actionAddCount(_selected.length),
+                      ),
+              ),
+            ],
           ),
-          const Divider(height: 1),
+        ),
+        const Divider(height: 1),
 
-          // Language filter chips — all pairs present in the pool, scrollable.
-          // The set's own pair (if any) is sorted first; others by card count.
-          if (sortedPairs.isNotEmpty)
-            SizedBox(
-              height: 44,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Row(
-                  children: [
+        // Language filter chips — all pairs present in the pool, scrollable.
+        // The set's own pair (if any) is sorted first; others by card count.
+        if (sortedPairs.isNotEmpty)
+          SizedBox(
+            height: 44,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  FilterChip(
+                    label: Text(l10n.labelAll),
+                    selected: effectiveLangFilter == null,
+                    onSelected: (_) => setState(() => _langFilter = null),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  for (final pair in sortedPairs) ...[
+                    const SizedBox(width: 8),
                     FilterChip(
-                      label: Text(l10n.labelAll),
-                      selected: effectiveLangFilter == null,
-                      onSelected: (_) => setState(() => _langFilter = null),
+                      label: Text(
+                        '${pair.$1.toUpperCase()} → ${pair.$2.toUpperCase()}',
+                      ),
+                      selected: effectiveLangFilter == pair,
+                      onSelected: (_) => setState(() => _langFilter = pair),
                       visualDensity: VisualDensity.compact,
                     ),
-                    for (final pair in sortedPairs) ...[
-                      const SizedBox(width: 8),
-                      FilterChip(
-                        label: Text(
-                          '${pair.$1.toUpperCase()} → ${pair.$2.toUpperCase()}',
-                        ),
-                        selected: effectiveLangFilter == pair,
-                        onSelected: (_) =>
-                            setState(() => _langFilter = pair),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ],
                   ],
-                ),
+                ],
               ),
-            ),
-
-          // Search bar.
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: l10n.hintSearchCards,
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () => setState(() {
-                          _searchController.clear();
-                          _searchQuery = '';
-                        }),
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                isDense: true,
-              ),
-              onChanged: (v) => setState(() => _searchQuery = v.trim()),
             ),
           ),
 
-          // Card list.
-          Expanded(
-            child: isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : hasError
-                    ? Center(child: Text(l10n.errorFailedLoadCards))
-                    : _buildList(
-                        context,
-                        scrollController,
-                        allFlash,
-                        allWorkbook,
-                        cardIdsInSet,
-                        effectiveLangFilter,
-                      ),
+        // Search bar.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: l10n.hintSearchCards,
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () => setState(() {
+                        _searchController.clear();
+                        _searchQuery = '';
+                      }),
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: BorderSide.none,
+              ),
+              filled: true,
+              isDense: true,
+            ),
+            onChanged: (v) => setState(() => _searchQuery = v.trim()),
           ),
-        ],
+        ),
+
+        // Card list.
+        Expanded(
+          child: isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : hasError
+              ? Center(child: Text(l10n.errorFailedLoadCards))
+              : _buildList(
+                  context,
+                  scrollController,
+                  allFlash,
+                  allWorkbook,
+                  cardIdsInSet,
+                  effectiveLangFilter,
+                ),
+        ),
+      ],
     );
   }
 
@@ -1487,55 +1794,74 @@ class _CardLibraryState extends ConsumerState<_CardLibrary> {
     var filteredFlash = normQuery.isEmpty
         ? allFlash
         : allFlash
-            .where((c) =>
-                AppHelpers.normalizeSearch(c.primaryWord).contains(normQuery) ||
-                AppHelpers.normalizeSearch(c.translation).contains(normQuery) ||
-                c.tags.any(
-                    (t) => AppHelpers.normalizeSearch(t).contains(normQuery)))
-            .toList();
+              .where(
+                (c) =>
+                    AppHelpers.normalizeSearch(
+                      c.primaryWord,
+                    ).contains(normQuery) ||
+                    AppHelpers.normalizeSearch(
+                      c.translation,
+                    ).contains(normQuery) ||
+                    c.tags.any(
+                      (t) => AppHelpers.normalizeSearch(t).contains(normQuery),
+                    ),
+              )
+              .toList();
     var filteredWorkbook = normQuery.isEmpty
         ? allWorkbook
         : allWorkbook
-            .where((c) =>
-                AppHelpers.normalizeSearch(c.prompt).contains(normQuery))
-            .toList();
+              .where(
+                (c) => AppHelpers.normalizeSearch(c.prompt).contains(normQuery),
+              )
+              .toList();
 
     // Language filter — restrict to cards matching the selected pair.
     // Cards with no language metadata are excluded when a filter is active.
     if (langFilter != null) {
       filteredFlash = filteredFlash
-          .where((c) =>
-              c.targetLanguage == langFilter.$1 &&
-              c.nativeLanguage == langFilter.$2)
+          .where(
+            (c) =>
+                c.targetLanguage == langFilter.$1 &&
+                c.nativeLanguage == langFilter.$2,
+          )
           .toList();
       filteredWorkbook = filteredWorkbook
-          .where((c) =>
-              c.targetLanguage == langFilter.$1 &&
-              c.nativeLanguage == langFilter.$2)
+          .where(
+            (c) =>
+                c.targetLanguage == langFilter.$1 &&
+                c.nativeLanguage == langFilter.$2,
+          )
           .toList();
     }
 
     // Flash card buckets (based on filtered list).
-    final flashInSet =
-        filteredFlash.where((c) => cardIdsInSet.contains(c.id)).toList();
+    final flashInSet = filteredFlash
+        .where((c) => cardIdsInSet.contains(c.id))
+        .toList();
     final inSetWords = flashInSet.map((c) => c.primaryWord).toSet();
     final flashNotInSet = filteredFlash
-        .where((c) =>
-            !cardIdsInSet.contains(c.id) &&
-            !inSetWords.contains(c.primaryWord))
+        .where(
+          (c) =>
+              !cardIdsInSet.contains(c.id) &&
+              !inSetWords.contains(c.primaryWord),
+        )
         .toList();
     // Different card, same word — can't add without creating a duplicate word.
     final flashWordConflict = filteredFlash
-        .where((c) =>
-            !cardIdsInSet.contains(c.id) &&
-            inSetWords.contains(c.primaryWord))
+        .where(
+          (c) =>
+              !cardIdsInSet.contains(c.id) &&
+              inSetWords.contains(c.primaryWord),
+        )
         .toList();
 
     // Workbook card buckets — no word conflict possible.
-    final workbookNotInSet =
-        filteredWorkbook.where((c) => !cardIdsInSet.contains(c.id)).toList();
-    final workbookInSet =
-        filteredWorkbook.where((c) => cardIdsInSet.contains(c.id)).toList();
+    final workbookNotInSet = filteredWorkbook
+        .where((c) => !cardIdsInSet.contains(c.id))
+        .toList();
+    final workbookInSet = filteredWorkbook
+        .where((c) => cardIdsInSet.contains(c.id))
+        .toList();
 
     final hasAnythingSelectable =
         flashNotInSet.isNotEmpty || workbookNotInSet.isNotEmpty;
@@ -1551,10 +1877,7 @@ class _CardLibraryState extends ConsumerState<_CardLibrary> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
-          child: Text(
-            l10n.messageNoCardsYetTab,
-            textAlign: TextAlign.center,
-          ),
+          child: Text(l10n.messageNoCardsYetTab, textAlign: TextAlign.center),
         ),
       );
     }
@@ -1579,10 +1902,7 @@ class _CardLibraryState extends ConsumerState<_CardLibrary> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
-          child: Text(
-            l10n.messageAllCardsInSet,
-            textAlign: TextAlign.center,
-          ),
+          child: Text(l10n.messageAllCardsInSet, textAlign: TextAlign.center),
         ),
       );
     }
@@ -1592,7 +1912,10 @@ class _CardLibraryState extends ConsumerState<_CardLibrary> {
       children: [
         // ── Selectable flash cards ──────────────────────────────────────────
         if (flashNotInSet.isNotEmpty) ...[
-          _SectionHeader(label: l10n.labelSectionFlashCards, icon: Icons.style_outlined),
+          _SectionHeader(
+            label: l10n.labelSectionFlashCards,
+            icon: Icons.style_outlined,
+          ),
           ...flashNotInSet.map(
             (card) => _selectableTile(
               CheckboxListTile(
@@ -1616,10 +1939,9 @@ class _CardLibraryState extends ConsumerState<_CardLibrary> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Text(
               l10n.labelDuplicateWordInSet,
-              style: Theme.of(context)
-                  .textTheme
-                  .labelMedium
-                  ?.copyWith(color: Theme.of(context).colorScheme.outline),
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Theme.of(context).colorScheme.outline,
+              ),
             ),
           ),
           ...flashWordConflict.map(
@@ -1640,10 +1962,9 @@ class _CardLibraryState extends ConsumerState<_CardLibrary> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Text(
               l10n.labelAlreadyInSet,
-              style: Theme.of(context)
-                  .textTheme
-                  .labelMedium
-                  ?.copyWith(color: Theme.of(context).colorScheme.outline),
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Theme.of(context).colorScheme.outline,
+              ),
             ),
           ),
           ...flashInSet.map(
@@ -1659,9 +1980,14 @@ class _CardLibraryState extends ConsumerState<_CardLibrary> {
 
         // ── Selectable workbook cards ───────────────────────────────────────
         if (workbookNotInSet.isNotEmpty) ...[
-          if (flashNotInSet.isNotEmpty || flashWordConflict.isNotEmpty || flashInSet.isNotEmpty)
+          if (flashNotInSet.isNotEmpty ||
+              flashWordConflict.isNotEmpty ||
+              flashInSet.isNotEmpty)
             const Divider(),
-          _SectionHeader(label: l10n.labelSectionWorkbookCards, icon: Icons.book_outlined),
+          _SectionHeader(
+            label: l10n.labelSectionWorkbookCards,
+            icon: Icons.book_outlined,
+          ),
           ...workbookNotInSet.map(
             (card) => _selectableTile(
               CheckboxListTile(
@@ -1674,8 +2000,7 @@ class _CardLibraryState extends ConsumerState<_CardLibrary> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                subtitle:
-                    Text(l10n.labelQuestionCount(card.questions.length)),
+                subtitle: Text(l10n.labelQuestionCount(card.questions.length)),
               ),
               card.id,
               AppConstants.cardTypeWorkbook,
@@ -1690,10 +2015,9 @@ class _CardLibraryState extends ConsumerState<_CardLibrary> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Text(
               l10n.labelAlreadyInSet,
-              style: Theme.of(context)
-                  .textTheme
-                  .labelMedium
-                  ?.copyWith(color: Theme.of(context).colorScheme.outline),
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Theme.of(context).colorScheme.outline,
+              ),
             ),
           ),
           ...workbookInSet.map(
@@ -1738,13 +2062,19 @@ class _DragFeedback extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.playlist_add,
-                size: 18, color: scheme.onPrimaryContainer),
+            Icon(
+              Icons.playlist_add,
+              size: 18,
+              color: scheme.onPrimaryContainer,
+            ),
             const SizedBox(width: 6),
-            Text('$count',
-                style: TextStyle(
-                    color: scheme.onPrimaryContainer,
-                    fontWeight: FontWeight.w600)),
+            Text(
+              '$count',
+              style: TextStyle(
+                color: scheme.onPrimaryContainer,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),
@@ -1770,10 +2100,9 @@ class _SectionHeader extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: Theme.of(context)
-                .textTheme
-                .labelMedium
-                ?.copyWith(color: Theme.of(context).colorScheme.outline),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: Theme.of(context).colorScheme.outline,
+            ),
           ),
         ],
       ),
@@ -1828,8 +2157,9 @@ class _MarketPublishSheetState extends State<_MarketPublishSheet> {
             const SizedBox(height: 8),
             Text(
               l10n.messageOfferInMarketDescription(widget.cardSet.name),
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 20),
 

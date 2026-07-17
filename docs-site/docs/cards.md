@@ -97,6 +97,8 @@ If you change the search or tag filter while selecting, any cards that are no lo
 **What you can do with a selection:**
 
 - :material-playlist-plus: **Add to set** — choose a set and all the selected cards are added to it in one go. The same [language checks](sets.md#picker-language-check) apply as when adding cards from within a set.
+- :material-label-outline: **Tag** — opens a list of every tag used across the selection. A ticked tag is on every selected card; a dashed tag is on only some. Tick a tag to add it to every selected card, untick one to remove it from every selected card, or leave a dashed tag alone to keep it as it is on the cards that already have it. Type in the field at the bottom to add a brand-new tag to the whole selection.
+- :material-translate: **Set language** — pick a target and/or native language and apply it to every selected card. Leave a picker untouched to keep that card's existing language as it is.
 - :material-delete-outline: **Delete** — removes all the selected cards after a single confirmation. As with deleting one card, they're removed from every set they belonged to, along with any images or audio. This can't be undone.
 
 ### Editing a Flash Card { #edit-card }

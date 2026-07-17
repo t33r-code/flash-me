@@ -877,6 +877,75 @@ class AppLocalizationsEn extends AppLocalizations {
       'Failed to add cards to the set. Please try again.';
 
   @override
+  String get actionApply => 'Apply';
+
+  @override
+  String get tooltipTagSelected => 'Tag selected';
+
+  @override
+  String get tooltipSetLanguageSelected => 'Set language';
+
+  @override
+  String titleTagCards(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Tag $count cards',
+      one: 'Tag 1 card',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get messageBulkTagHint =>
+      'Ticked tags are on every selected card. Dashed tags are on only some — leave them dashed to keep them as they are. Untick a tag to remove it from every selected card.';
+
+  @override
+  String get messageNoTagsOnSelection =>
+      'None of the selected cards have tags yet. Add one below.';
+
+  @override
+  String get titleSetLanguageForCards => 'Set language';
+
+  @override
+  String get messageBulkLanguageHint =>
+      'Applies to every selected card. Leave a picker untouched to keep that language as it is.';
+
+  @override
+  String get errorFailedUpdateCards =>
+      'Failed to update cards. Please try again.';
+
+  @override
+  String get titleRemoveFromSet => 'Remove from set';
+
+  @override
+  String messageRemoveFromSetConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Remove $count cards from this set? The cards themselves are not deleted.',
+      one: 'Remove 1 card from this set? The card itself is not deleted.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String messageCardsRemovedFromSet(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cards removed from the set',
+      one: '1 card removed from the set',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get errorFailedRemoveCardsFromSet =>
+      'Failed to remove cards from the set. Please try again.';
+
+  @override
   String get titleNewCard => 'New Card';
 
   @override

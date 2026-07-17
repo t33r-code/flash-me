@@ -27,3 +27,73 @@ Set<String> pruneSelection(Set<String> current, Iterable<String> visible) {
   final live = visible.toSet();
   return current.where(live.contains).toSet();
 }
+
+// Mutable multi-select state shared by the card library and the set-detail
+// list (#238). Deliberately a plain object rather than a ChangeNotifier: the
+// owning State mutates it inside setState, which keeps rebuild control in the
+// widget and leaves this class trivially testable.
+//
+// [mode] is explicit — emptying the selection does NOT leave selection mode,
+// so entering it with nothing picked doesn't immediately bounce the user out.
+// Only [exit] clears it.
+class SelectionModel {
+  bool mode = false;
+  Set<String> selected = {};
+  // The last plainly-toggled id — the origin for a Shift+click range.
+  String? anchor;
+
+  bool get isEmpty => selected.isEmpty;
+  bool get isNotEmpty => selected.isNotEmpty;
+  int get length => selected.length;
+  bool contains(String id) => selected.contains(id);
+
+  // Enter selection mode with [id] as the only pick (long-press / modifier
+  // click on a row while browsing).
+  void enterWith(String id) {
+    mode = true;
+    selected = {id};
+    anchor = id;
+  }
+
+  void exit() {
+    mode = false;
+    selected = {};
+    anchor = null;
+  }
+
+  void toggle(String id) {
+    selected = toggleId(selected, id);
+    anchor = id;
+  }
+
+  // Shift+click: union the anchor→[id] span into the selection rather than
+  // replacing it, so extending never silently discards earlier picks. Falls
+  // back to a plain toggle when there's no usable anchor (e.g. it was filtered
+  // out from under us).
+  void extendTo(String id, List<String> ordered) {
+    final from = anchor;
+    if (from == null) {
+      toggle(id);
+      return;
+    }
+    final span = idsInRange(ordered, from, id);
+    if (span.isEmpty) {
+      toggle(id);
+      return;
+    }
+    selected = {...selected, ...span};
+  }
+
+  // Select all of [ordered], or clear if they're already all selected.
+  void toggleSelectAll(List<String> ordered) {
+    final all = ordered.toSet();
+    final allSelected = all.isNotEmpty && selected.containsAll(all);
+    selected = allSelected ? {} : all;
+    anchor = null;
+  }
+
+  void prune(Iterable<String> visible) {
+    selected = pruneSelection(selected, visible);
+    if (anchor != null && !selected.contains(anchor)) anchor = null;
+  }
+}

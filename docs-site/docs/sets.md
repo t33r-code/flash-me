@@ -82,7 +82,7 @@ This order is what learners follow when they study the set. If you've turned on 
 
 Just like [in the card library](cards.md#card-multi-select), you can select several cards in a set at once and act on all of them together.
 
-**To start selecting:** **long-press** a card (phone or tablet), **Ctrl+click** it (**⌘+click** on a Mac), or open the **⋮** menu in the top-right corner and tap **Select**.
+**To start selecting:** **long-press** a card (phone or tablet), **Ctrl+click** it (**⌘+click** on a Mac), or tap **Select** — on a wide window it's its own button in the toolbar; on a phone it's in the **⋮** menu.
 
 While selecting, each row shows a checkbox instead of its icon, and dragging to reorder or swiping to remove is turned off for the moment — tap the **✕** to leave selection mode and get them back. Tapping, Shift+clicking, and Select all all work the same way as in the card library.
 

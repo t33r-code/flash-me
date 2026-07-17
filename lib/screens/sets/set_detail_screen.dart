@@ -1160,6 +1160,16 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
           tooltip: l10n.actionAddExistingCards,
           onPressed: () => setState(() => _libraryOpen = !_libraryOpen),
         ),
+      // On the wide pane there's always room for a dedicated Select button —
+      // even when the pane narrows, management folds into the ⋮ menu below and
+      // frees up the space. Only the truly tight narrow/full-screen toolbar
+      // (no equivalent fold to lean on) keeps Select in the menu instead.
+      if (widget.onExit != null && _orderedIds.isNotEmpty)
+        IconButton(
+          icon: const Icon(Icons.checklist),
+          tooltip: l10n.actionSelect,
+          onPressed: () => setState(() => _selection.mode = true),
+        ),
       // Roomy pane: management actions inline. Narrow: they move into the ⋮ menu.
       if (!narrowPane)
         for (final a in management)
@@ -1176,12 +1186,11 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       ),
       HelpMenuButton(
         HelpContext.sets,
-        // Select has no dedicated toolbar button here (unlike the Cards tab) —
-        // the set toolbar is already tight on narrow/full-screen (up to 6
-        // icons). Long-press and Ctrl/Shift+click still work without it; this
-        // just gives mouse users without modifiers a discoverable way in.
         extraActions: [
-          if (_orderedIds.isNotEmpty)
+          // Narrow/full-screen has no dedicated Select button (see above) —
+          // long-press and Ctrl/Shift+click still work without it; this just
+          // gives mouse users without modifiers a discoverable way in.
+          if (widget.onExit == null && _orderedIds.isNotEmpty)
             HelpMenuAction(
               icon: Icons.checklist,
               label: l10n.actionSelect,

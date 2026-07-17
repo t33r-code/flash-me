@@ -16,6 +16,7 @@ import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/selection.dart';
 import 'package:flash_me/widgets/add_cards_to_set.dart';
+import 'package:flash_me/widgets/bulk_card_actions.dart';
 
 class MyCardsScreen extends ConsumerStatefulWidget {
   const MyCardsScreen({super.key});
@@ -31,9 +32,7 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
 
   // Multi-select (#238). Mode is explicit: entered via the Select button,
   // long-press (touch), or Ctrl/Shift+click (desktop); only ✕ leaves it.
-  bool _selectionMode = false;
-  Set<String> _selected = {};
-  String? _anchorId; // last plain-toggled row — the origin for Shift+click
+  final _selection = SelectionModel();
   bool _isBusy = false; // a bulk action is running; actions are disabled
 
   // Cards hidden optimistically while their background delete runs, so the
@@ -53,27 +52,17 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
     super.dispose();
   }
 
-  void _exitSelection() {
-    setState(() {
-      _selectionMode = false;
-      _selected = {};
-      _anchorId = null;
-    });
-  }
+  void _exitSelection() => setState(_selection.exit);
 
   // Keeps the selection honest when the search/tag filter narrows the list.
   // Call inside setState after changing a filter.
   void _pruneToVisible() {
-    if (!_selectionMode) return;
+    if (!_selection.mode) return;
     final flash = _filterFlash(ref.read(userCardsProvider).asData?.value ?? []);
-    final workbook =
-        _filterWorkbook(ref.read(userWorkbookCardsProvider).asData?.value ?? []);
-    final visible = [
-      ...flash.map((c) => c.id),
-      ...workbook.map((c) => c.id),
-    ];
-    _selected = pruneSelection(_selected, visible);
-    if (_anchorId != null && !_selected.contains(_anchorId)) _anchorId = null;
+    final workbook = _filterWorkbook(
+      ref.read(userWorkbookCardsProvider).asData?.value ?? [],
+    );
+    _selection.prune([...flash.map((c) => c.id), ...workbook.map((c) => c.id)]);
   }
 
   // Selected ids mapped to their card type, resolved from the live card lists.
@@ -83,10 +72,10 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
         ref.read(userWorkbookCardsProvider).asData?.value ?? <WorkbookCard>[];
     final map = <String, String>{};
     for (final c in flash) {
-      if (_selected.contains(c.id)) map[c.id] = AppConstants.cardTypeFlashcard;
+      if (_selection.contains(c.id)) map[c.id] = AppConstants.cardTypeFlashcard;
     }
     for (final c in workbook) {
-      if (_selected.contains(c.id)) map[c.id] = AppConstants.cardTypeWorkbook;
+      if (_selection.contains(c.id)) map[c.id] = AppConstants.cardTypeWorkbook;
     }
     return map;
   }
@@ -95,16 +84,20 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
     final flash = ref.read(userCardsProvider).asData?.value ?? <FlashCard>[];
     final match = flash.where((c) => c.id == id);
     if (match.isNotEmpty) {
-      Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => CardFormScreen(card: match.first)));
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => CardFormScreen(card: match.first)),
+      );
       return;
     }
     final workbook =
         ref.read(userWorkbookCardsProvider).asData?.value ?? <WorkbookCard>[];
     final wb = workbook.where((c) => c.id == id);
     if (wb.isNotEmpty) {
-      Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => WorkbookCardFormScreen(card: wb.first)));
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => WorkbookCardFormScreen(card: wb.first),
+        ),
+      );
     }
   }
 
@@ -116,58 +109,37 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
     final multi = keys.isControlPressed || keys.isMetaPressed;
     final range = keys.isShiftPressed;
 
-    if (!_selectionMode) {
+    if (!_selection.mode) {
       if (multi || range) {
-        setState(() {
-          _selectionMode = true;
-          _selected = {id};
-          _anchorId = id;
-        });
+        setState(() => _selection.enterWith(id));
       } else {
         _openCard(id);
       }
       return;
     }
 
-    if (range && _anchorId != null) {
-      // Union the anchor→target span in, rather than replacing the selection,
-      // so extending never silently discards earlier picks.
-      final span = idsInRange(_orderedIds, _anchorId!, id);
-      setState(() {
-        _selected =
-            span.isEmpty ? toggleId(_selected, id) : {..._selected, ...span};
-      });
-      return;
-    }
-
     setState(() {
-      _selected = toggleId(_selected, id);
-      _anchorId = id;
+      if (range) {
+        _selection.extendTo(id, _orderedIds);
+      } else {
+        _selection.toggle(id);
+      }
     });
   }
 
   void _onLongPressCard(String id) {
-    if (_selectionMode) return;
-    setState(() {
-      _selectionMode = true;
-      _selected = {id};
-      _anchorId = id;
-    });
+    if (_selection.mode) return;
+    setState(() => _selection.enterWith(id));
   }
 
-  void _toggleSelectAll() {
-    setState(() {
-      final all = _orderedIds.toSet();
-      final allSelected = all.isNotEmpty && _selected.containsAll(all);
-      _selected = allSelected ? {} : all;
-      _anchorId = null;
-    });
-  }
+  void _toggleSelectAll() =>
+      setState(() => _selection.toggleSelectAll(_orderedIds));
 
   void _snack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   // Bulk add-to-set: pick a target set, then run the shared #210 language
@@ -224,11 +196,13 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
         content: Text(l10n.messageDeleteCardsConfirm(idToType.length)),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text(l10n.labelCancel)),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.labelCancel),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error),
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(l10n.actionDelete),
           ),
@@ -286,8 +260,10 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Text(l10n.titleCreateCard,
-                  style: Theme.of(context).textTheme.titleMedium),
+              child: Text(
+                l10n.titleCreateCard,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ),
             ListTile(
               leading: const Icon(Icons.style_outlined),
@@ -308,7 +284,8 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                      builder: (_) => const WorkbookCardFormScreen()),
+                    builder: (_) => const WorkbookCardFormScreen(),
+                  ),
                 );
               },
             ),
@@ -321,10 +298,16 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
 
   // Unique sorted tags from both card lists (full unfiltered data).
   List<String> _allTags(
-      List<FlashCard> cards, List<WorkbookCard> workbookCards) {
+    List<FlashCard> cards,
+    List<WorkbookCard> workbookCards,
+  ) {
     final tags = <String>{};
-    for (final c in cards) { tags.addAll(c.tags); }
-    for (final c in workbookCards) { tags.addAll(c.tags); }
+    for (final c in cards) {
+      tags.addAll(c.tags);
+    }
+    for (final c in workbookCards) {
+      tags.addAll(c.tags);
+    }
     final sorted = tags.toList()..sort();
     return sorted;
   }
@@ -338,9 +321,11 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
       result = result
-          .where((c) =>
-              c.primaryWord.toLowerCase().contains(q) ||
-              c.translation.toLowerCase().contains(q))
+          .where(
+            (c) =>
+                c.primaryWord.toLowerCase().contains(q) ||
+                c.translation.toLowerCase().contains(q),
+          )
           .toList();
     }
     return result;
@@ -354,9 +339,7 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
     }
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
-      result = result
-          .where((c) => c.prompt.toLowerCase().contains(q))
-          .toList();
+      result = result.where((c) => c.prompt.toLowerCase().contains(q)).toList();
     }
     return result;
   }
@@ -364,14 +347,14 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
   // Contextual app bar shown while selecting: count + the bulk actions.
   // Tag / language / remove-from-set land here in the #238 follow-up.
   AppBar _selectionAppBar(AppLocalizations l10n, bool allSelected) {
-    final enabled = _selected.isNotEmpty && !_isBusy;
+    final enabled = _selection.isNotEmpty && !_isBusy;
     return AppBar(
       leading: IconButton(
         icon: const Icon(Icons.close),
         tooltip: l10n.tooltipExitSelection,
         onPressed: _isBusy ? null : _exitSelection,
       ),
-      title: Text(l10n.labelSelectedCount(_selected.length)),
+      title: Text(l10n.labelSelectedCount(_selection.length)),
       actions: [
         IconButton(
           icon: const Icon(Icons.select_all),
@@ -384,12 +367,51 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
           onPressed: enabled ? _bulkAddToSet : null,
         ),
         IconButton(
+          icon: const Icon(Icons.label_outline),
+          tooltip: l10n.tooltipTagSelected,
+          onPressed: enabled ? _bulkTag : null,
+        ),
+        IconButton(
+          icon: const Icon(Icons.translate),
+          tooltip: l10n.tooltipSetLanguageSelected,
+          onPressed: enabled ? _bulkLanguage : null,
+        ),
+        IconButton(
           icon: const Icon(Icons.delete_outline),
           tooltip: l10n.tooltipDeleteSelected,
           onPressed: enabled ? _bulkDelete : null,
         ),
       ],
     );
+  }
+
+  // Bulk tag / language: both run the shared dialog + apply, then report.
+  // The selection stays put so several edits can be stacked in one pass.
+  Future<void> _bulkTag() => _runBulkEdit(bulkEditTags);
+  Future<void> _bulkLanguage() => _runBulkEdit(bulkEditLanguage);
+
+  Future<void> _runBulkEdit(
+    Future<bool> Function(
+      BuildContext,
+      WidgetRef, {
+      required Map<String, String> idToType,
+    })
+    action,
+  ) async {
+    final l10n = context.l10n;
+    final idToType = _selectedIdToType();
+    if (idToType.isEmpty) return;
+    setState(() => _isBusy = true);
+    try {
+      final applied = await action(context, ref, idToType: idToType);
+      if (!mounted) return;
+      setState(() => _isBusy = false);
+      if (applied) _snack(l10n.messageCardsUpdated(idToType.length));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isBusy = false);
+      _snack(l10n.errorFailedUpdateCards);
+    }
   }
 
   @override
@@ -412,10 +434,10 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
     ];
     final hasCards = allCards.isNotEmpty || allWorkbook.isNotEmpty;
     final allSelected =
-        _orderedIds.isNotEmpty && _selected.containsAll(_orderedIds);
+        _orderedIds.isNotEmpty && _selection.selected.containsAll(_orderedIds);
 
     return Scaffold(
-      appBar: _selectionMode
+      appBar: _selection.mode
           ? _selectionAppBar(l10n, allSelected)
           : AppBar(
               title: Text(l10n.titleMyCards),
@@ -424,7 +446,7 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
                   icon: const Icon(Icons.checklist),
                   tooltip: l10n.actionSelect,
                   onPressed: hasCards
-                      ? () => setState(() => _selectionMode = true)
+                      ? () => setState(() => _selection.mode = true)
                       : null,
                 ),
                 const HelpMenuButton(HelpContext.cards),
@@ -467,8 +489,7 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
           if (allTags.isNotEmpty)
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Row(
                 children: [
                   FilterChip(
@@ -480,29 +501,32 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
                     }),
                   ),
                   const SizedBox(width: 8),
-                  ...allTags.map((tag) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: FilterChip(
-                          label: Text(tag),
-                          selected: _selectedTag == tag,
-                          onSelected: (_) => setState(() {
-                            _selectedTag = _selectedTag == tag ? null : tag;
-                            _pruneToVisible();
-                          }),
-                        ),
-                      )),
+                  ...allTags.map(
+                    (tag) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(tag),
+                        selected: _selectedTag == tag,
+                        onSelected: (_) => setState(() {
+                          _selectedTag = _selectedTag == tag ? null : tag;
+                          _pruneToVisible();
+                        }),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
 
           Expanded(
             child: _buildCardList(
-                context,
-                cardsAsync.isLoading || workbookCardsAsync.isLoading,
-                cardsAsync.hasError || workbookCardsAsync.hasError,
-                filteredCards,
-                filteredWorkbook,
-                allCards.isEmpty && allWorkbook.isEmpty),
+              context,
+              cardsAsync.isLoading || workbookCardsAsync.isLoading,
+              cardsAsync.hasError || workbookCardsAsync.hasError,
+              filteredCards,
+              filteredWorkbook,
+              allCards.isEmpty && allWorkbook.isEmpty,
+            ),
           ),
         ],
       ),
@@ -534,7 +558,8 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
           child: Text(
             context.l10n.messageNoCardsMatchSearch,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
             textAlign: TextAlign.center,
           ),
         ),
@@ -555,16 +580,16 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
         if (i < cards.length) {
           return _FlashCardTile(
             card: cards[i],
-            selectionMode: _selectionMode,
-            selected: _selected.contains(id),
+            selectionMode: _selection.mode,
+            selected: _selection.contains(id),
             onTap: onTap,
             onLongPress: onLongPress,
           );
         }
         return _WorkbookCardTile(
           card: workbookCards[i - cards.length],
-          selectionMode: _selectionMode,
-          selected: _selected.contains(id),
+          selectionMode: _selection.mode,
+          selected: _selection.contains(id),
           onTap: onTap,
           onLongPress: onLongPress,
         );
@@ -600,9 +625,11 @@ class _SetPickerDialog extends StatelessWidget {
             return ListTile(
               leading: const Icon(Icons.folder_outlined),
               title: Text(set.name),
-              subtitle: Text(hasLang
-                  ? '${set.cardCount} · ${set.targetLanguage!.toUpperCase()} → ${set.nativeLanguage!.toUpperCase()}'
-                  : '${set.cardCount}'),
+              subtitle: Text(
+                hasLang
+                    ? '${set.cardCount} · ${set.targetLanguage!.toUpperCase()} → ${set.nativeLanguage!.toUpperCase()}'
+                    : '${set.cardCount}',
+              ),
               onTap: () => Navigator.of(ctx).pop(set),
             );
           },
@@ -635,15 +662,16 @@ class _EmptyState extends StatelessWidget {
           children: [
             Icon(Icons.style_outlined, size: 80, color: onSurfaceVariant),
             const SizedBox(height: 16),
-            Text(context.l10n.titleMyCards,
-                style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              context.l10n.titleMyCards,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 8),
             Text(
               context.l10n.messageNoCardsYetCreate,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: onSurfaceVariant),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
           ],
@@ -681,16 +709,23 @@ class _FlashCardTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       // Tint selected rows so the selection reads at a glance.
-      color: selected
-          ? Theme.of(context).colorScheme.secondaryContainer
-          : null,
+      color: selected ? Theme.of(context).colorScheme.secondaryContainer : null,
       child: ListTile(
         leading: _tileLeading(
-            context, Icons.style_outlined, selectionMode, selected, onTap),
+          context,
+          Icons.style_outlined,
+          selectionMode,
+          selected,
+          onTap,
+        ),
         title: Text(card.primaryWord),
         subtitle: Text(subtitle),
-        trailing: _tileTrailing(context, card.tags, selectionMode,
-            onSurfaceVariant),
+        trailing: _tileTrailing(
+          context,
+          card.tags,
+          selectionMode,
+          onSurfaceVariant,
+        ),
         onTap: onTap,
         onLongPress: onLongPress,
       ),
@@ -700,21 +735,27 @@ class _FlashCardTile extends StatelessWidget {
 
 // A checkbox while selecting, otherwise the card-type icon. The checkbox
 // delegates to the row's own onTap so both do the same modifier-aware thing.
-Widget _tileLeading(BuildContext context, IconData icon, bool selectionMode,
-    bool selected, VoidCallback onTap) {
+Widget _tileLeading(
+  BuildContext context,
+  IconData icon,
+  bool selectionMode,
+  bool selected,
+  VoidCallback onTap,
+) {
   if (!selectionMode) return Icon(icon);
   return Checkbox(value: selected, onChanged: (_) => onTap());
 }
 
 // Tag chip + chevron; the chevron is dropped while selecting since tapping
 // no longer navigates.
-Widget? _tileTrailing(BuildContext context, List<String> tags,
-    bool selectionMode, Color onSurfaceVariant) {
+Widget? _tileTrailing(
+  BuildContext context,
+  List<String> tags,
+  bool selectionMode,
+  Color onSurfaceVariant,
+) {
   final chip = tags.isNotEmpty
-      ? Chip(
-          label: Text(tags.first),
-          visualDensity: VisualDensity.compact,
-        )
+      ? Chip(label: Text(tags.first), visualDensity: VisualDensity.compact)
       : null;
   if (selectionMode) return chip;
   return Row(
@@ -749,20 +790,23 @@ class _WorkbookCardTile extends StatelessWidget {
     final qCount = card.questions.length;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: selected
-          ? Theme.of(context).colorScheme.secondaryContainer
-          : null,
+      color: selected ? Theme.of(context).colorScheme.secondaryContainer : null,
       child: ListTile(
         leading: _tileLeading(
-            context, Icons.book_outlined, selectionMode, selected, onTap),
-        title: Text(
-          card.prompt,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
+          context,
+          Icons.book_outlined,
+          selectionMode,
+          selected,
+          onTap,
         ),
+        title: Text(card.prompt, maxLines: 2, overflow: TextOverflow.ellipsis),
         subtitle: Text(context.l10n.labelQuestionCount(qCount)),
-        trailing: _tileTrailing(context, card.tags, selectionMode,
-            onSurfaceVariant),
+        trailing: _tileTrailing(
+          context,
+          card.tags,
+          selectionMode,
+          onSurfaceVariant,
+        ),
         onTap: onTap,
         onLongPress: onLongPress,
       ),

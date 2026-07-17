@@ -78,6 +78,23 @@ This order is what learners follow when they study the set. If you've turned on 
 
 ---
 
+## Selecting Several Cards in a Set { #set-multi-select }
+
+Just like [in the card library](cards.md#card-multi-select), you can select several cards in a set at once and act on all of them together.
+
+**To start selecting:** **long-press** a card (phone or tablet), **Ctrl+click** it (**⌘+click** on a Mac), or open the **⋮** menu in the top-right corner and tap **Select**.
+
+While selecting, each row shows a checkbox instead of its icon, and dragging to reorder or swiping to remove is turned off for the moment — tap the **✕** to leave selection mode and get them back. Tapping, Shift+clicking, and Select all all work the same way as in the card library.
+
+With a selection made, the toolbar offers:
+
+- :material-label-outline: **Tag** and :material-translate: **Set language** — the same bulk edits described for the card library.
+- :material-minus-circle-outline: **Remove from set** — takes all the selected cards out of this set after a single confirmation. The cards themselves aren't deleted.
+
+There's no bulk Delete here — deleting a card entirely is only available from the **Cards** tab.
+
+---
+
 ## Studying a Set { #study-from-set }
 
 Tap the :material-play-circle-outline: **play icon** in the top-right corner of the set detail screen. This opens the study setup screen directly, bypassing the Study tab set picker.

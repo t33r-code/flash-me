@@ -1600,6 +1600,84 @@ abstract class AppLocalizations {
   /// **'Failed to add cards to the set. Please try again.'**
   String get errorFailedAddCardsToSet;
 
+  /// No description provided for @actionApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get actionApply;
+
+  /// No description provided for @tooltipTagSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag selected'**
+  String get tooltipTagSelected;
+
+  /// No description provided for @tooltipSetLanguageSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Set language'**
+  String get tooltipSetLanguageSelected;
+
+  /// No description provided for @titleTagCards.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Tag 1 card} other{Tag {count} cards}}'**
+  String titleTagCards(int count);
+
+  /// No description provided for @messageBulkTagHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ticked tags are on every selected card. Dashed tags are on only some — leave them dashed to keep them as they are. Untick a tag to remove it from every selected card.'**
+  String get messageBulkTagHint;
+
+  /// No description provided for @messageNoTagsOnSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'None of the selected cards have tags yet. Add one below.'**
+  String get messageNoTagsOnSelection;
+
+  /// No description provided for @titleSetLanguageForCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Set language'**
+  String get titleSetLanguageForCards;
+
+  /// No description provided for @messageBulkLanguageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Applies to every selected card. Leave a picker untouched to keep that language as it is.'**
+  String get messageBulkLanguageHint;
+
+  /// No description provided for @errorFailedUpdateCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update cards. Please try again.'**
+  String get errorFailedUpdateCards;
+
+  /// No description provided for @titleRemoveFromSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from set'**
+  String get titleRemoveFromSet;
+
+  /// No description provided for @messageRemoveFromSetConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Remove 1 card from this set? The card itself is not deleted.} other{Remove {count} cards from this set? The cards themselves are not deleted.}}'**
+  String messageRemoveFromSetConfirm(int count);
+
+  /// No description provided for @messageCardsRemovedFromSet.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 card removed from the set} other{{count} cards removed from the set}}'**
+  String messageCardsRemovedFromSet(int count);
+
+  /// No description provided for @errorFailedRemoveCardsFromSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to remove cards from the set. Please try again.'**
+  String get errorFailedRemoveCardsFromSet;
+
   /// No description provided for @titleNewCard.
   ///
   /// In en, this message translates to:

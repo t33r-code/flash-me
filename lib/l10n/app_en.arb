@@ -369,6 +369,35 @@
   },
   "errorFailedAddCardsToSet": "Failed to add cards to the set. Please try again.",
 
+  "actionApply": "Apply",
+  "tooltipTagSelected": "Tag selected",
+  "tooltipSetLanguageSelected": "Set language",
+  "titleTagCards": "{count, plural, =1{Tag 1 card} other{Tag {count} cards}}",
+  "@titleTagCards": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "messageBulkTagHint": "Ticked tags are on every selected card. Dashed tags are on only some — leave them dashed to keep them as they are. Untick a tag to remove it from every selected card.",
+  "messageNoTagsOnSelection": "None of the selected cards have tags yet. Add one below.",
+  "titleSetLanguageForCards": "Set language",
+  "messageBulkLanguageHint": "Applies to every selected card. Leave a picker untouched to keep that language as it is.",
+  "errorFailedUpdateCards": "Failed to update cards. Please try again.",
+  "titleRemoveFromSet": "Remove from set",
+  "messageRemoveFromSetConfirm": "{count, plural, =1{Remove 1 card from this set? The card itself is not deleted.} other{Remove {count} cards from this set? The cards themselves are not deleted.}}",
+  "@messageRemoveFromSetConfirm": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "messageCardsRemovedFromSet": "{count, plural, =1{1 card removed from the set} other{{count} cards removed from the set}}",
+  "@messageCardsRemovedFromSet": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "errorFailedRemoveCardsFromSet": "Failed to remove cards from the set. Please try again.",
+
   "titleNewCard": "New Card",
   "titleEditCard": "Edit Card",
   "titleDeleteCard": "Delete Card",

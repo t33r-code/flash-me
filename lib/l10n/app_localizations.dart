@@ -1606,6 +1606,12 @@ abstract class AppLocalizations {
   /// **'Apply'**
   String get actionApply;
 
+  /// No description provided for @actionTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag'**
+  String get actionTag;
+
   /// No description provided for @tooltipTagSelected.
   ///
   /// In en, this message translates to:

@@ -93,6 +93,8 @@ With a selection made, the toolbar offers:
 
 There's no bulk Delete here — deleting a card entirely is only available from the **Cards** tab.
 
+On a wide window, hovering over a card row highlights it, and **right-clicking** it opens a menu with **Edit** and **Remove from set** — the same two actions as the row's hover icons, just reachable without hovering first.
+
 ---
 
 ## Studying a Set { #study-from-set }
@@ -115,6 +117,10 @@ The **My Sets** screen has a search bar, tag filter chips, and a sort menu.
     - **Card count** — most cards first.
 
 The active sort order is shown as a small label below the tag chips.
+
+### Right-Click a Set { #set-context-menu }
+
+On a wide window, hovering over a set in the list highlights it, and **right-clicking** it opens a menu with **Study**, **Offer in Market** / **Remove from Market**, **Export**, **Edit**, and **Delete** — the same actions available from inside the set, without opening it first.
 
 ---
 

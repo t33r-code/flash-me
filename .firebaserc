@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "flash-me-7a1a2"
+  },
+  "targets": {
+    "flash-me-7a1a2": {
+      "hosting": {
+        "webtest": [
+          "flash-me-test"
+        ],
+        "docs": [
+          "flash-me-7a1a2"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

@@ -128,6 +128,7 @@ lib/
 - Use `firebase deploy --only firestore:rules` to deploy rules
 - Use `firebase deploy --only firestore:indexes` to deploy indexes
 - Default project is `flash-me-7a1a2` (set via `firebase use`)
+- Hosting is **multi-target** (`.firebaserc`): `docs` = the help site (`docs-site/site`), `webtest` = the web test-build site (`build/web`, https://flash-me-test.web.app). A bare `firebase deploy --only hosting` touches **both** targets; deploy just the docs site with `firebase deploy --only hosting:docs`
 
 ---
 
@@ -220,4 +221,5 @@ Remaining Phase 1 items: account linking (deferred), Google Sign-In testing on r
 - **`internal` label**: devops / tooling / CI / chore work that has no user-facing effect gets the **`internal`** GitHub label. Issues carrying it are automatically excluded from user-facing release notes (the `/prepare-release` script filters them out). Use it for build scripts, CI config, agent commands, refactors with no observable behaviour change, etc.
 - **Firestore rules changes**: always deploy after merging (`firebase deploy --only firestore:rules --project flash-me-7a1a2`)
 - **Storage rules changes**: always deploy after merging (`firebase deploy --only storage --project flash-me-7a1a2`)
+- **Release tags**: pushing a `v*` tag runs `.github/workflows/release.yml` — uploads to the Play Store internal track **and** deploys a web build to the `webtest` Hosting target (https://flash-me-test.web.app) for test-group access without going through app store review
 - **Roadmap**: update task checkboxes as work is completed; commit the change in the same branch as the work

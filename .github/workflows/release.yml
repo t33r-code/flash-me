@@ -52,3 +52,36 @@ jobs:
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
           track: internal
           whatsNewDirectory: whatsnew
+
+  # Deploys a web build to a dedicated Firebase Hosting test site, giving the
+  # web test group access to each release without app-store review (#271).
+  # Independent of release-to-play-store (no shared build artifacts) so it
+  # runs in parallel; a failure here doesn't block the Play Store upload.
+  deploy-web-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build web release
+        run: flutter build web --release
+
+      # Deploys to the `webtest` Hosting target (https://flash-me-test.web.app),
+      # defined in firebase.json/.firebaserc alongside the `docs` (help site)
+      # target. Secret required: FIREBASE_SERVICE_ACCOUNT_FLASH_ME_7A1A2
+      # (generated via `firebase init hosting:github`).
+      - name: Deploy web build to Firebase Hosting (test site)
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FLASH_ME_7A1A2 }}
+          projectId: flash-me-7a1a2
+          target: webtest
+          channelId: live

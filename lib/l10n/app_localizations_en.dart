@@ -880,6 +880,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionApply => 'Apply';
 
   @override
+  String get actionTag => 'Tag';
+
+  @override
   String get tooltipTagSelected => 'Tag selected';
 
   @override

@@ -17,6 +17,8 @@ import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/selection.dart';
 import 'package:flash_me/widgets/add_cards_to_set.dart';
 import 'package:flash_me/widgets/bulk_card_actions.dart';
+import 'package:flash_me/widgets/context_menu.dart';
+import 'package:flash_me/widgets/hover_highlight.dart';
 
 class MyCardsScreen extends ConsumerStatefulWidget {
   const MyCardsScreen({super.key});
@@ -135,6 +137,42 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
   void _toggleSelectAll() =>
       setState(() => _selection.toggleSelectAll(_orderedIds));
 
+  // Right-click menu for a single card (#237) — reuses the exact same bulk
+  // helpers as the selection toolbar, just with a one-entry map, so a single
+  // right-click action and a multi-select bulk action always behave alike.
+  List<ContextMenuAction> _cardContextActions(String id, String cardType) {
+    final l10n = context.l10n;
+    final entry = {id: cardType};
+    return [
+      ContextMenuAction(
+        icon: Icons.edit_outlined,
+        label: l10n.tooltipEditCard,
+        onSelected: () => _openCard(id),
+      ),
+      ContextMenuAction(
+        icon: Icons.playlist_add,
+        label: l10n.titleAddToSet,
+        onSelected: () => _bulkAddToSet(entry),
+      ),
+      ContextMenuAction(
+        icon: Icons.label_outline,
+        label: l10n.actionTag,
+        onSelected: () => _bulkTag(entry),
+      ),
+      ContextMenuAction(
+        icon: Icons.translate,
+        label: l10n.tooltipSetLanguageSelected,
+        onSelected: () => _bulkLanguage(entry),
+      ),
+      ContextMenuAction(
+        icon: Icons.delete_outline,
+        label: l10n.tooltipDeleteCard,
+        destructive: true,
+        onSelected: () => _bulkDelete(entry),
+      ),
+    ];
+  }
+
   void _snack(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(
@@ -143,8 +181,11 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
   }
 
   // Bulk add-to-set: pick a target set, then run the shared #210 language
-  // checks + batched add (same path the set builder uses).
-  Future<void> _bulkAddToSet() async {
+  // checks + batched add (same path the set builder uses). [idToType]
+  // defaults to the current selection; the context menu (#237) passes a
+  // single-card map instead so the same path serves both entry points.
+  Future<void> _bulkAddToSet([Map<String, String>? selection]) async {
+    final idToType = selection ?? _selectedIdToType();
     final l10n = context.l10n;
     final sets = ref.read(userSetsProvider).asData?.value ?? <CardSet>[];
     if (sets.isEmpty) {
@@ -157,7 +198,6 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
     );
     if (chosen == null || !mounted) return;
 
-    final idToType = _selectedIdToType();
     final uid = ref.read(authStateProvider).asData?.value ?? '';
     setState(() => _isBusy = true);
     try {
@@ -184,9 +224,10 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
 
   // Bulk delete behind one confirmation. Each card goes through the existing
   // per-card delete, which also clears its set links and Storage media.
-  Future<void> _bulkDelete() async {
+  // [idToType] defaults to the current selection; see _bulkAddToSet.
+  Future<void> _bulkDelete([Map<String, String>? selection]) async {
+    final idToType = selection ?? _selectedIdToType();
     final l10n = context.l10n;
-    final idToType = _selectedIdToType();
     if (idToType.isEmpty) return;
 
     final confirmed = await showDialog<bool>(
@@ -387,8 +428,11 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
 
   // Bulk tag / language: both run the shared dialog + apply, then report.
   // The selection stays put so several edits can be stacked in one pass.
-  Future<void> _bulkTag() => _runBulkEdit(bulkEditTags);
-  Future<void> _bulkLanguage() => _runBulkEdit(bulkEditLanguage);
+  // [idToType] defaults to the current selection; see _bulkAddToSet.
+  Future<void> _bulkTag([Map<String, String>? idToType]) =>
+      _runBulkEdit(bulkEditTags, idToType);
+  Future<void> _bulkLanguage([Map<String, String>? idToType]) =>
+      _runBulkEdit(bulkEditLanguage, idToType);
 
   Future<void> _runBulkEdit(
     Future<bool> Function(
@@ -397,9 +441,10 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
       required Map<String, String> idToType,
     })
     action,
+    Map<String, String>? selection,
   ) async {
     final l10n = context.l10n;
-    final idToType = _selectedIdToType();
+    final idToType = selection ?? _selectedIdToType();
     if (idToType.isEmpty) return;
     setState(() => _isBusy = true);
     try {
@@ -571,27 +616,41 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
       padding: const EdgeInsets.all(8),
       itemCount: itemCount,
       itemBuilder: (ctx, i) {
-        final id = i < cards.length
-            ? cards[i].id
-            : workbookCards[i - cards.length].id;
+        final isFlash = i < cards.length;
+        final id = isFlash ? cards[i].id : workbookCards[i - cards.length].id;
+        final cardType = isFlash
+            ? AppConstants.cardTypeFlashcard
+            : AppConstants.cardTypeWorkbook;
         // Taps route through the parent so Ctrl/Shift and mode are handled once.
         void onTap() => _onTapCard(id);
         void onLongPress() => _onLongPressCard(id);
-        if (i < cards.length) {
-          return _FlashCardTile(
-            card: cards[i],
-            selectionMode: _selection.mode,
-            selected: _selection.contains(id),
-            onTap: onTap,
-            onLongPress: onLongPress,
-          );
-        }
-        return _WorkbookCardTile(
-          card: workbookCards[i - cards.length],
-          selectionMode: _selection.mode,
-          selected: _selection.contains(id),
-          onTap: onTap,
-          onLongPress: onLongPress,
+        final tile = isFlash
+            ? _FlashCardTile(
+                card: cards[i],
+                selectionMode: _selection.mode,
+                selected: _selection.contains(id),
+                onTap: onTap,
+                onLongPress: onLongPress,
+              )
+            : _WorkbookCardTile(
+                card: workbookCards[i - cards.length],
+                selectionMode: _selection.mode,
+                selected: _selection.contains(id),
+                onTap: onTap,
+                onLongPress: onLongPress,
+              );
+        // Right-click and hover (#237) — additive on top of the existing tap
+        // handling above; secondary-tap doesn't compete with the primary-tap
+        // recognizers ListTile/InkWell already use internally.
+        return HoverHighlight(
+          child: GestureDetector(
+            onSecondaryTapDown: (details) => showContextMenu(
+              context,
+              details.globalPosition,
+              _cardContextActions(id, cardType),
+            ),
+            child: tile,
+          ),
         );
       },
     );

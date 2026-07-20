@@ -11,6 +11,9 @@ import 'package:flash_me/screens/sets/clone_confirmation_screen.dart';
 import 'package:flash_me/screens/sets/set_detail_screen.dart';
 import 'package:flash_me/utils/layout_breakpoints.dart';
 import 'package:flash_me/screens/sets/set_form_screen.dart';
+import 'package:flash_me/widgets/context_menu.dart';
+import 'package:flash_me/widgets/hover_highlight.dart';
+import 'package:flash_me/widgets/set_actions.dart';
 
 enum _SortOrder { updated, name, cardCount }
 
@@ -29,10 +32,18 @@ String _formatRelativeDate(DateTime dt, AppLocalizations l10n) {
   if (diff == 0) return l10n.labelToday;
   if (diff == 1) return l10n.labelYesterday;
   final months = [
-    l10n.labelMonthJan, l10n.labelMonthFeb, l10n.labelMonthMar,
-    l10n.labelMonthApr, l10n.labelMonthMay, l10n.labelMonthJun,
-    l10n.labelMonthJul, l10n.labelMonthAug, l10n.labelMonthSep,
-    l10n.labelMonthOct, l10n.labelMonthNov, l10n.labelMonthDec,
+    l10n.labelMonthJan,
+    l10n.labelMonthFeb,
+    l10n.labelMonthMar,
+    l10n.labelMonthApr,
+    l10n.labelMonthMay,
+    l10n.labelMonthJun,
+    l10n.labelMonthJul,
+    l10n.labelMonthAug,
+    l10n.labelMonthSep,
+    l10n.labelMonthOct,
+    l10n.labelMonthNov,
+    l10n.labelMonthDec,
   ];
   if (dt.year == now.year) return '${months[dt.month - 1]} ${dt.day}';
   return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
@@ -84,9 +95,24 @@ class _SetsScreenState extends ConsumerState<SetsScreen>
               initialValue: _sortOrder,
               onSelected: (v) => setState(() => _sortOrder = v),
               itemBuilder: (_) => [
-                _sortItem(context, _SortOrder.updated, l10n.labelSortLastUpdated, Icons.access_time),
-                _sortItem(context, _SortOrder.name, l10n.labelSortName, Icons.sort_by_alpha),
-                _sortItem(context, _SortOrder.cardCount, l10n.labelSortCardCount, Icons.numbers),
+                _sortItem(
+                  context,
+                  _SortOrder.updated,
+                  l10n.labelSortLastUpdated,
+                  Icons.access_time,
+                ),
+                _sortItem(
+                  context,
+                  _SortOrder.name,
+                  l10n.labelSortName,
+                  Icons.sort_by_alpha,
+                ),
+                _sortItem(
+                  context,
+                  _SortOrder.cardCount,
+                  l10n.labelSortCardCount,
+                  Icons.numbers,
+                ),
               ],
             ),
           const HelpMenuButton(HelpContext.sets),
@@ -112,23 +138,28 @@ class _SetsScreenState extends ConsumerState<SetsScreen>
   }
 
   PopupMenuItem<_SortOrder> _sortItem(
-          BuildContext context, _SortOrder value, String label, IconData icon) =>
-      PopupMenuItem(
-        value: value,
-        child: Row(
-          children: [
-            Icon(icon, size: 18),
-            const SizedBox(width: 10),
-            Text(label),
-            if (_sortOrder == value) ...[
-              const Spacer(),
-              Icon(Icons.check,
-                  size: 16,
-                  color: Theme.of(context).colorScheme.primary),
-            ],
-          ],
-        ),
-      );
+    BuildContext context,
+    _SortOrder value,
+    String label,
+    IconData icon,
+  ) => PopupMenuItem(
+    value: value,
+    child: Row(
+      children: [
+        Icon(icon, size: 18),
+        const SizedBox(width: 10),
+        Text(label),
+        if (_sortOrder == value) ...[
+          const Spacer(),
+          Icon(
+            Icons.check,
+            size: 16,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ],
+      ],
+    ),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -155,10 +186,49 @@ class _MySetsTabState extends ConsumerState<_MySetsTab> {
     if (wide) {
       setState(() => _selectedSetId = set.id);
     } else {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => SetDetailScreen(cardSet: set)),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => SetDetailScreen(cardSet: set)));
     }
+  }
+
+  // Right-click menu for a set tile (#237). Mirrors the set-detail toolbar's
+  // management actions exactly, via the shared widgets/set_actions.dart so
+  // both call sites do the same delete/export/publish flow.
+  List<ContextMenuAction> _setContextActions(CardSet set) {
+    final l10n = context.l10n;
+    return [
+      ContextMenuAction(
+        icon: Icons.play_circle_outline,
+        label: l10n.tooltipStudyThisSet,
+        onSelected: () => openStudySetup(context, ref, set),
+      ),
+      ContextMenuAction(
+        icon: set.isPublic
+            ? Icons.unpublished_outlined
+            : Icons.storefront_outlined,
+        label: set.isPublic
+            ? l10n.tooltipRemoveFromMarket
+            : l10n.tooltipOfferInMarket,
+        onSelected: () => toggleMarketPublish(context, ref, set),
+      ),
+      ContextMenuAction(
+        icon: Icons.download_outlined,
+        label: l10n.tooltipExportSet,
+        onSelected: () => exportSetWithProgress(context, ref, set),
+      ),
+      ContextMenuAction(
+        icon: Icons.edit_outlined,
+        label: l10n.tooltipEditSet,
+        onSelected: () => openEditSet(context, set),
+      ),
+      ContextMenuAction(
+        icon: Icons.delete_outline,
+        label: l10n.tooltipDeleteSet,
+        destructive: true,
+        onSelected: () => deleteSetWithConfirm(context, ref, set),
+      ),
+    ];
   }
 
   @override
@@ -188,8 +258,9 @@ class _MySetsTabState extends ConsumerState<_MySetsTab> {
       case _SortOrder.updated:
         result.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       case _SortOrder.name:
-        result.sort((a, b) =>
-            a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        result.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
       case _SortOrder.cardCount:
         result.sort((a, b) => b.cardCount.compareTo(a.cardCount));
     }
@@ -218,15 +289,24 @@ class _MySetsTabState extends ConsumerState<_MySetsTab> {
         // the rail is present but the set list has collapsed to single-column.
         final wide = isWideWidth(MediaQuery.sizeOf(context).width);
         final list = _buildListColumn(
-            context, wide, setsAsync, allSets, displaySets, allTags, sortLabel);
+          context,
+          wide,
+          setsAsync,
+          allSets,
+          displaySets,
+          allTags,
+          sortLabel,
+        );
 
         if (!wide) return list;
 
         // Wide: master-detail — set list on the left, detail pane on the right.
         // The list gives width up to the pane's floor before it stops shrinking,
         // so even a just-wide layout keeps the pane usable (avoids overflow).
-        final listWidth = (constraints.maxWidth - kMinDetailPaneWidth)
-            .clamp(kMinSetListWidth, kSetListWidth);
+        final listWidth = (constraints.maxWidth - kMinDetailPaneWidth).clamp(
+          kMinSetListWidth,
+          kSetListWidth,
+        );
         return Row(
           children: [
             SizedBox(width: listWidth, child: list),
@@ -271,8 +351,7 @@ class _MySetsTabState extends ConsumerState<_MySetsTab> {
             ),
             Expanded(
               child: setsAsync.when(
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: CircularProgressIndicator()),
                 error: (_, _) => Center(child: Text(l10n.errorFailedLoadSets)),
                 data: (_) {
                   if (allSets.isEmpty) return const _MySetsEmptyState();
@@ -282,13 +361,12 @@ class _MySetsTabState extends ConsumerState<_MySetsTab> {
                         padding: const EdgeInsets.all(32),
                         child: Text(
                           l10n.messageNoSetsMatchSearch,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
+                          style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -304,6 +382,7 @@ class _MySetsTabState extends ConsumerState<_MySetsTab> {
                         cardSet: set,
                         selected: wide && set.id == _selectedSetId,
                         onTap: () => _onSetTap(set, wide),
+                        contextActions: () => _setContextActions(set),
                       );
                     },
                   );
@@ -319,9 +398,9 @@ class _MySetsTabState extends ConsumerState<_MySetsTab> {
           bottom: 16,
           child: FloatingActionButton(
             heroTag: 'createSet',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SetFormScreen()),
-            ),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const SetFormScreen())),
             tooltip: l10n.tooltipCreateSet,
             child: const Icon(Icons.add),
           ),
@@ -360,15 +439,17 @@ class _SetDetailPlaceholder extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.library_books_outlined,
-                size: 48, color: onSurfaceVariant),
+            Icon(
+              Icons.library_books_outlined,
+              size: 48,
+              color: onSurfaceVariant,
+            ),
             const SizedBox(height: 12),
             Text(
               context.l10n.messageSelectASet,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: onSurfaceVariant),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
           ],
@@ -393,17 +474,22 @@ class _MySetsEmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.library_books_outlined, size: 80, color: onSurfaceVariant),
+            Icon(
+              Icons.library_books_outlined,
+              size: 80,
+              color: onSurfaceVariant,
+            ),
             const SizedBox(height: 16),
-            Text(context.l10n.titleNoSetsYet,
-                style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              context.l10n.titleNoSetsYet,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 8),
             Text(
               context.l10n.messageNoSetsHint,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: onSurfaceVariant),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
           ],
@@ -421,8 +507,15 @@ class _SetTile extends StatelessWidget {
   final VoidCallback onTap;
   // Highlighted when this set is the one shown in the wide detail pane (#236).
   final bool selected;
-  const _SetTile(
-      {required this.cardSet, required this.onTap, this.selected = false});
+  // Right-click menu (#237) — a builder (not a plain list) since the actions
+  // close over `set` and are only ever needed if the user actually right-clicks.
+  final List<ContextMenuAction> Function() contextActions;
+  const _SetTile({
+    required this.cardSet,
+    required this.onTap,
+    required this.contextActions,
+    this.selected = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -434,121 +527,138 @@ class _SetTile extends StatelessWidget {
     final hasLanguage =
         cardSet.targetLanguage != null && cardSet.nativeLanguage != null;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      clipBehavior: Clip.antiAlias,
-      color: selected ? scheme.secondaryContainer : null,
-      child: InkWell(
-        onTap: onTap,
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Coloured accent bar on the left edge.
-              if (color != null)
-                Container(width: 6, color: color)
-              else
-                const SizedBox(width: 6),
+    return HoverHighlight(
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        clipBehavior: Clip.antiAlias,
+        color: selected ? scheme.secondaryContainer : null,
+        child: InkWell(
+          onTap: onTap,
+          onSecondaryTapDown: (details) => showContextMenu(
+            context,
+            details.globalPosition,
+            contextActions(),
+          ),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Coloured accent bar on the left edge.
+                if (color != null)
+                  Container(width: 6, color: color)
+                else
+                  const SizedBox(width: 6),
 
-              // Left: name, description, tags.
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 8, 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        cardSet.name,
-                        style: textTheme.titleMedium,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (cardSet.description != null &&
-                          cardSet.description!.isNotEmpty) ...[
-                        const SizedBox(height: 2),
+                // Left: name, description, tags.
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 8, 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          cardSet.description!,
-                          style: textTheme.bodySmall
-                              ?.copyWith(color: scheme.onSurfaceVariant),
+                          cardSet.name,
+                          style: textTheme.titleMedium,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      ],
-                      if (cardSet.tags.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 4,
-                          runSpacing: 0,
-                          children: cardSet.tags
-                              .take(3)
-                              .map((tag) => Chip(
+                        if (cardSet.description != null &&
+                            cardSet.description!.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            cardSet.description!,
+                            style: textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        if (cardSet.tags.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 4,
+                            runSpacing: 0,
+                            children: cardSet.tags
+                                .take(3)
+                                .map(
+                                  (tag) => Chip(
                                     label: Text(tag),
                                     labelStyle: textTheme.labelSmall,
                                     padding: EdgeInsets.zero,
                                     materialTapTargetSize:
                                         MaterialTapTargetSize.shrinkWrap,
                                     visualDensity: VisualDensity.compact,
-                                  ))
-                              .toList(),
-                        ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ],
                       ],
+                    ),
+                  ),
+                ),
+
+                // Right: market badge, language, card count, date.
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 6, 8, 6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (cardSet.isPublic)
+                            Tooltip(
+                              message: l10n.tooltipOfferedInMarket,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.storefront,
+                                    size: 12,
+                                    color: scheme.primary,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    l10n.labelInMarket,
+                                    style: textTheme.labelSmall?.copyWith(
+                                      color: scheme.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (hasLanguage)
+                            Text(
+                              '${cardSet.targetLanguage!.toUpperCase()} → ${cardSet.nativeLanguage!.toUpperCase()}',
+                              style: textTheme.labelSmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          Text(
+                            l10n.labelCardCount(count),
+                            style: textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        _formatRelativeDate(cardSet.updatedAt, l10n),
+                        style: textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ),
 
-              // Right: market badge, language, card count, date.
-              Padding(
-                padding: const EdgeInsets.fromLTRB(0, 6, 8, 6),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        if (cardSet.isPublic)
-                          Tooltip(
-                            message: l10n.tooltipOfferedInMarket,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.storefront,
-                                    size: 12, color: scheme.primary),
-                                const SizedBox(width: 3),
-                                Text(
-                                  l10n.labelInMarket,
-                                  style: textTheme.labelSmall
-                                      ?.copyWith(color: scheme.primary),
-                                ),
-                              ],
-                            ),
-                          ),
-                        if (hasLanguage)
-                          Text(
-                            '${cardSet.targetLanguage!.toUpperCase()} → ${cardSet.nativeLanguage!.toUpperCase()}',
-                            style: textTheme.labelSmall
-                                ?.copyWith(color: scheme.onSurfaceVariant),
-                          ),
-                        Text(
-                          l10n.labelCardCount(count),
-                          style: textTheme.bodySmall
-                              ?.copyWith(color: scheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      _formatRelativeDate(cardSet.updatedAt, l10n),
-                      style: textTheme.bodySmall
-                          ?.copyWith(color: scheme.onSurfaceVariant),
-                    ),
-                  ],
-                ),
-              ),
-
-              const Icon(Icons.chevron_right, size: 20),
-              const SizedBox(width: 4),
-            ],
+                const Icon(Icons.chevron_right, size: 20),
+                const SizedBox(width: 4),
+              ],
+            ),
           ),
         ),
       ),
@@ -624,8 +734,7 @@ class _MarketTabState extends ConsumerState<_MarketTab> {
         Expanded(
           child: setsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, _) =>
-                Center(child: Text(l10n.errorFailedLoadMarket)),
+            error: (_, _) => Center(child: Text(l10n.errorFailedLoadMarket)),
             data: (_) {
               if (allSets.isEmpty) return const _MarketEmptyState();
               if (displaySets.isEmpty) {
@@ -635,9 +744,8 @@ class _MarketTabState extends ConsumerState<_MarketTab> {
                     child: Text(
                       l10n.messageNoSetsMatchSearch,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -674,15 +782,16 @@ class _MarketEmptyState extends StatelessWidget {
           children: [
             Icon(Icons.storefront_outlined, size: 80, color: onSurfaceVariant),
             const SizedBox(height: 16),
-            Text(context.l10n.titleMarketEmpty,
-                style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              context.l10n.titleMarketEmpty,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 8),
             Text(
               context.l10n.messageMarketEmpty,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: onSurfaceVariant),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
           ],
@@ -714,7 +823,8 @@ class _MarketSetTile extends ConsumerWidget {
     final creatorName = creatorAsync.asData?.value ?? '…';
 
     // Look up whether the current user has already acquired this set.
-    final acquisitions = ref.watch(userAcquisitionsProvider).asData?.value ?? {};
+    final acquisitions =
+        ref.watch(userAcquisitionsProvider).asData?.value ?? {};
     final acquisition = acquisitions[cardSet.id];
 
     return Card(
@@ -740,135 +850,160 @@ class _MarketSetTile extends ConsumerWidget {
                 const SizedBox(width: 6),
 
               // Left: name, description, creator, tags.
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 8, 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      cardSet.name,
-                      style: textTheme.titleMedium,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (cardSet.description != null &&
-                        cardSet.description!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 8, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        cardSet.description!,
-                        style: textTheme.bodySmall
-                            ?.copyWith(color: scheme.onSurfaceVariant),
+                        cardSet.name,
+                        style: textTheme.titleMedium,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                    // Creator name row.
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        Icon(Icons.person_outline,
-                            size: 12, color: scheme.onSurfaceVariant),
-                        const SizedBox(width: 3),
+                      if (cardSet.description != null &&
+                          cardSet.description!.isNotEmpty) ...[
+                        const SizedBox(height: 2),
                         Text(
-                          creatorName,
-                          style: textTheme.labelSmall
-                              ?.copyWith(color: scheme.onSurfaceVariant),
+                          cardSet.description!,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
-                    ),
-                    if (cardSet.tags.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 4,
-                        runSpacing: 0,
-                        children: cardSet.tags
-                            .take(3)
-                            .map((tag) => Chip(
+                      // Creator name row.
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.person_outline,
+                            size: 12,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            creatorName,
+                            style: textTheme.labelSmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (cardSet.tags.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 0,
+                          children: cardSet.tags
+                              .take(3)
+                              .map(
+                                (tag) => Chip(
                                   label: Text(tag),
                                   labelStyle: textTheme.labelSmall,
                                   padding: EdgeInsets.zero,
                                   materialTapTargetSize:
                                       MaterialTapTargetSize.shrinkWrap,
                                   visualDensity: VisualDensity.compact,
-                                ))
-                            .toList(),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-
-            // Right: language, card count, acquisition count.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 6, 12, 6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      if (hasLanguage)
-                        Text(
-                          '${cardSet.targetLanguage!.toUpperCase()} → ${cardSet.nativeLanguage!.toUpperCase()}',
-                          style: textTheme.labelSmall
-                              ?.copyWith(color: scheme.onSurfaceVariant),
-                        ),
-                      Text(
-                        l10n.labelCardCount(count),
-                        style: textTheme.bodySmall
-                            ?.copyWith(color: scheme.onSurfaceVariant),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // Acquisition count with download icon.
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.download_outlined,
-                              size: 12, color: scheme.onSurfaceVariant),
-                          const SizedBox(width: 3),
-                          Text(
-                            '${cardSet.acquisitionCount}',
-                            style: textTheme.labelSmall
-                                ?.copyWith(color: scheme.onSurfaceVariant),
-                          ),
-                        ],
-                      ),
-                      // "Cloned on …" / "Subscribed on …" badge.
-                      if (acquisition != null) ...[
-                        const SizedBox(height: 3),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.check_circle_outline,
-                                size: 12, color: scheme.primary),
-                            const SizedBox(width: 3),
-                            Text(
-                              acquisition.acquisitionType == 'subscription'
-                                  ? l10n.labelAcquiredSubscribed(
-                                      _formatRelativeDate(acquisition.acquiredAt, l10n))
-                                  : l10n.labelAcquiredCloned(
-                                      _formatRelativeDate(acquisition.acquiredAt, l10n)),
-                              style: textTheme.labelSmall
-                                  ?.copyWith(color: scheme.primary),
-                            ),
-                          ],
+                                ),
+                              )
+                              .toList(),
                         ),
                       ],
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ), // IntrinsicHeight
+
+              // Right: language, card count, acquisition count.
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 6, 12, 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (hasLanguage)
+                          Text(
+                            '${cardSet.targetLanguage!.toUpperCase()} → ${cardSet.nativeLanguage!.toUpperCase()}',
+                            style: textTheme.labelSmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        Text(
+                          l10n.labelCardCount(count),
+                          style: textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        // Acquisition count with download icon.
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.download_outlined,
+                              size: 12,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              '${cardSet.acquisitionCount}',
+                              style: textTheme.labelSmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                        // "Cloned on …" / "Subscribed on …" badge.
+                        if (acquisition != null) ...[
+                          const SizedBox(height: 3),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.check_circle_outline,
+                                size: 12,
+                                color: scheme.primary,
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                acquisition.acquisitionType == 'subscription'
+                                    ? l10n.labelAcquiredSubscribed(
+                                        _formatRelativeDate(
+                                          acquisition.acquiredAt,
+                                          l10n,
+                                        ),
+                                      )
+                                    : l10n.labelAcquiredCloned(
+                                        _formatRelativeDate(
+                                          acquisition.acquiredAt,
+                                          l10n,
+                                        ),
+                                      ),
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: scheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ), // IntrinsicHeight
       ), // InkWell
     );
   }
@@ -946,16 +1081,18 @@ class _SetsSearchAndFilter extends StatelessWidget {
                   onSelected: (_) => onTagSelected(null),
                 ),
                 const SizedBox(width: 8),
-                ...allTags.map((tag) => Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(tag),
-                        selected: selectedTag == tag,
-                        // Toggle off if the same tag is tapped again.
-                        onSelected: (_) =>
-                            onTagSelected(selectedTag == tag ? null : tag),
-                      ),
-                    )),
+                ...allTags.map(
+                  (tag) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(tag),
+                      selected: selectedTag == tag,
+                      // Toggle off if the same tag is tapped again.
+                      onSelected: (_) =>
+                          onTagSelected(selectedTag == tag ? null : tag),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -971,7 +1108,8 @@ class _SetsSearchAndFilter extends StatelessWidget {
                 Text(
                   sortLabel!,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: scheme.onSurfaceVariant),
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),

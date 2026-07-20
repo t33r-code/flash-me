@@ -370,6 +370,7 @@
   "errorFailedAddCardsToSet": "Failed to add cards to the set. Please try again.",
 
   "actionApply": "Apply",
+  "actionTag": "Tag",
   "tooltipTagSelected": "Tag selected",
   "tooltipSetLanguageSelected": "Set language",
   "titleTagCards": "{count, plural, =1{Tag 1 card} other{Tag {count} cards}}",

@@ -10,10 +10,6 @@ import 'package:flash_me/models/workbook_card.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
-import 'package:flash_me/providers/export_provider.dart';
-import 'package:flash_me/providers/question_template_provider.dart';
-import 'package:flash_me/providers/tag_provider.dart';
-import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/providers/workbook_card_provider.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
@@ -21,11 +17,11 @@ import 'package:flash_me/utils/layout_breakpoints.dart';
 import 'package:flash_me/utils/selection.dart';
 import 'package:flash_me/widgets/add_cards_to_set.dart';
 import 'package:flash_me/widgets/bulk_card_actions.dart';
+import 'package:flash_me/widgets/context_menu.dart';
+import 'package:flash_me/widgets/set_actions.dart';
 import 'package:flash_me/utils/set_ordering.dart';
 import 'package:flash_me/screens/cards/card_form_screen.dart';
 import 'package:flash_me/screens/cards/workbook_card_form_screen.dart';
-import 'package:flash_me/screens/sets/set_form_screen.dart';
-import 'package:flash_me/screens/study/study_setup_screen.dart';
 import 'package:flash_me/utils/constants.dart';
 
 // ---------------------------------------------------------------------------
@@ -304,6 +300,27 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     setState(() => _paneEdit = _WorkbookPaneEdit(card: card));
   }
 
+  // Right-click menu for a card row (#237) — the same two actions as the
+  // hover-reveal quick-actions (#260), just reachable without hovering first.
+  List<ContextMenuAction> _rowContextActions(
+    ({String cardId, FlashCard? flash, WorkbookCard? workbook}) entry,
+    SetCard link,
+  ) {
+    final l10n = context.l10n;
+    return [
+      ContextMenuAction(
+        icon: Icons.edit_outlined,
+        label: l10n.tooltipEditCard,
+        onSelected: () => _editCardRow(entry),
+      ),
+      ContextMenuAction(
+        icon: Icons.remove_circle_outline,
+        label: l10n.tooltipRemoveFromSet,
+        onSelected: () => _removeCard(link),
+      ),
+    ];
+  }
+
   // Edit entry point shared by the row's Edit quick-action (#260) and
   // double-tap (#259): wide (hosted in the pane) edits in place; narrow has no
   // in-place editing surface, so it pushes the full-screen editor instead —
@@ -409,60 +426,16 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       a.length == b.length && a.toSet().containsAll(b);
 
   Future<void> _confirmDelete() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(context.l10n.titleDeleteSet),
-        content: Text(
-          context.l10n.messageDeleteSetConfirm(widget.cardSet.name),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(context.l10n.labelCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            child: Text(context.l10n.labelDelete),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true || !mounted) return;
     setState(() => _isDeleting = true);
-    try {
-      final uid = ref.read(authStateProvider).asData?.value ?? '';
-      final tagsToDecrement = widget.cardSet.tags
-          .map(AppHelpers.normalizeTag)
-          .where((t) => t.isNotEmpty)
-          .toList();
-      final tagRepo = ref.read(tagRepositoryProvider);
-      await ref
-          .read(cardSetRepositoryProvider)
-          .deleteSet(widget.cardSet.id, uid);
-      for (final norm in tagsToDecrement) {
-        tagRepo.decrementTag(norm);
-      }
-      // In a pane, clear the host's selection; full-screen, pop the route.
-      if (mounted) {
-        if (widget.onExit != null) {
-          widget.onExit!();
-        } else {
-          Navigator.of(context).pop();
-        }
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.errorFailedDeleteSet)),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isDeleting = false);
+    final deleted = await deleteSetWithConfirm(context, ref, widget.cardSet);
+    if (!mounted) return;
+    setState(() => _isDeleting = false);
+    if (!deleted) return;
+    // In a pane, clear the host's selection; full-screen, pop the route.
+    if (widget.onExit != null) {
+      widget.onExit!();
+    } else {
+      Navigator.of(context).pop();
     }
   }
 
@@ -530,146 +503,20 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   // Exports the set as a self-contained ZIP archive.
   Future<void> _exportSet(CardSet liveSet) async {
     setState(() => _isExporting = true);
-    final uid = ref.read(authStateProvider).asData?.value ?? '';
-    final cards =
-        ref.read(cardsInSetProvider(widget.cardSet.id)).asData?.value ?? [];
-    // Fetch templates directly from repositories — don't rely on cached
-    // stream state, which may be AsyncLoading if the Templates tab hasn't
-    // been opened yet.
-    final cardTemplates = await ref
-        .read(templateRepositoryProvider)
-        .watchUserTemplates(uid)
-        .first;
-    final questionTemplates = await ref
-        .read(questionTemplateRepositoryProvider)
-        .getUserTemplates(uid);
-
-    // Show a non-dismissible progress dialog while the archive is built.
-    if (!mounted) return;
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        content: Row(
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(width: 20),
-            Text(ctx.l10n.messagePreparingExport),
-          ],
-        ),
-      ),
-    );
-
-    try {
-      final savedPath = await ref
-          .read(exportServiceProvider)
-          .exportSet(
-            liveSet,
-            cards,
-            cardTemplates: cardTemplates,
-            questionTemplates: questionTemplates,
-          );
-      if (mounted) {
-        Navigator.of(context).pop(); // dismiss progress dialog
-        if (savedPath != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(context.l10n.messageSavedTo(savedPath))),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.of(context).pop(); // dismiss progress dialog
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(context.l10n.errorExportFailed)));
-      }
-    } finally {
-      if (mounted) setState(() => _isExporting = false);
-    }
+    await exportSetWithProgress(context, ref, liveSet);
+    if (mounted) setState(() => _isExporting = false);
   }
 
-  // Opens the "Offer in Market" bottom sheet for a private set.
-  Future<void> _offerInMarket(CardSet liveSet) async {
-    final confirmed = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => _MarketPublishSheet(cardSet: liveSet),
-    );
-    if (confirmed != true || !mounted) return;
+  // Toggles market-publish state (offer / remove), with the acquisitionCount
+  // guard and "Offer in Market" sheet handled by the shared implementation.
+  Future<void> _toggleMarketPublish(CardSet liveSet) async {
     setState(() => _isPublishing = true);
-    try {
-      await ref
-          .read(cardSetRepositoryProvider)
-          .updateSet(liveSet.copyWith(isPublic: true));
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.errorFailedPublish)),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isPublishing = false);
-    }
-  }
-
-  // Shows the un-publish confirmation with acquisitionCount guard.
-  Future<void> _removeFromMarket(CardSet liveSet) async {
-    final count = liveSet.acquisitionCount;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(context.l10n.titleRemoveFromMarket),
-        content: Text(
-          count > 0
-              ? context.l10n.messageRemoveFromMarketAcquired(
-                  liveSet.name,
-                  count,
-                )
-              : context.l10n.messageRemoveFromMarketNoAcquisitions(
-                  liveSet.name,
-                ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(context.l10n.labelCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            child: Text(context.l10n.labelDelete),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    setState(() => _isPublishing = true);
-    try {
-      await ref
-          .read(cardSetRepositoryProvider)
-          .updateSet(liveSet.copyWith(isPublic: false));
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.errorFailedRemoveFromMarket)),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isPublishing = false);
-    }
+    await toggleMarketPublish(context, ref, liveSet);
+    if (mounted) setState(() => _isPublishing = false);
   }
 
   // Navigates to the study setup screen for this set.
-  void _study() {
-    final currentSet =
-        ref.read(setByIdProvider(widget.cardSet.id)) ?? widget.cardSet;
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => StudySetupScreen(cardSet: currentSet)),
-    );
-  }
+  void _study() => openStudySetup(context, ref, widget.cardSet);
 
   // Bottom sheet: create a new card in this set (flash/workbook, seeded with the
   // set so it links on save — #233) or add existing cards via the picker.
@@ -893,6 +740,12 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                   onRemove: () => _removeCard(linkById[entry.cardId]!),
                 );
 
+          // Hover tint (#237) reuses the same _hoveredCardId tracking as the
+          // quick-actions reveal below — only ever true on wide/pane, since
+          // narrow/touch has no MouseRegion wired up to set it.
+          final hovering =
+              widget.onExit != null && _hoveredCardId == entry.cardId;
+
           final tile = entry.flash != null
               ? _FlashCardInSetTile(
                   card: entry.flash!,
@@ -900,6 +753,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                   actions: actions,
                   selectionMode: selecting,
                   selected: _selection.contains(entry.cardId),
+                  hovering: hovering,
                   onToggle: () => _onTapRow(entry.cardId),
                 )
               : _WorkbookCardInSetTile(
@@ -908,6 +762,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                   actions: actions,
                   selectionMode: selecting,
                   selected: _selection.contains(entry.cardId),
+                  hovering: hovering,
                   onToggle: () => _onTapRow(entry.cardId),
                 );
 
@@ -915,12 +770,20 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
           // no-ripple feel and double-click-to-edit (#259) isn't disturbed.
           // Double-tap is dropped while selecting so taps toggle immediately
           // (with onDoubleTap set, onTap waits out the double-tap timeout).
+          // Right-click (#237) is likewise dropped while selecting.
           final tappable = GestureDetector(
             onTap: () => _onTapRow(entry.cardId),
             onLongPress: () => _onLongPressRow(entry.cardId),
             onDoubleTap: (!selecting && widget.onExit != null)
                 ? () => _editCardRow(entry)
                 : null,
+            onSecondaryTapDown: selecting
+                ? null
+                : (details) => showContextMenu(
+                    context,
+                    details.globalPosition,
+                    _rowContextActions(entry, linkById[entry.cardId]!),
+                  ),
             child: tile,
           );
 
@@ -1218,13 +1081,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
             ? l10n.tooltipRemoveFromMarket
             : l10n.tooltipOfferInMarket,
         enabled: !_isPublishing,
-        onSelected: () {
-          if (liveSet.isPublic) {
-            _removeFromMarket(liveSet);
-          } else {
-            _offerInMarket(liveSet);
-          }
-        },
+        onSelected: () => _toggleMarketPublish(liveSet),
       ),
       HelpMenuAction(
         icon: Icons.download_outlined,
@@ -1235,9 +1092,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       HelpMenuAction(
         icon: Icons.edit_outlined,
         label: l10n.tooltipEditSet,
-        onSelected: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => SetFormScreen(cardSet: liveSet)),
-        ),
+        onSelected: () => openEditSet(context, liveSet),
       ),
       HelpMenuAction(
         icon: Icons.delete_outline,
@@ -1312,6 +1167,9 @@ class _FlashCardInSetTile extends StatelessWidget {
   // Multi-select (#238 part 2) — leading swaps to a checkbox while selecting.
   final bool selectionMode;
   final bool selected;
+  // Hover tint (#237) — driven by the same _hoveredCardId that reveals the
+  // quick-actions above, so it's only ever true on wide/pane layouts.
+  final bool hovering;
   final VoidCallback? onToggle;
   const _FlashCardInSetTile({
     required this.card,
@@ -1319,6 +1177,7 @@ class _FlashCardInSetTile extends StatelessWidget {
     this.actions,
     this.selectionMode = false,
     this.selected = false,
+    this.hovering = false,
     this.onToggle,
   });
 
@@ -1332,7 +1191,7 @@ class _FlashCardInSetTile extends StatelessWidget {
         : null;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: selected ? Theme.of(context).colorScheme.secondaryContainer : null,
+      color: _tileColor(context, selected, hovering),
       child: ListTile(
         leading: selectionMode
             ? Checkbox(value: selected, onChanged: (_) => onToggle?.call())
@@ -1343,6 +1202,14 @@ class _FlashCardInSetTile extends StatelessWidget {
       ),
     );
   }
+}
+
+// Selection tint wins over hover tint; neither means the default Card colour.
+Color? _tileColor(BuildContext context, bool selected, bool hovering) {
+  final scheme = Theme.of(context).colorScheme;
+  if (selected) return scheme.secondaryContainer;
+  if (hovering) return scheme.surfaceContainerHighest.withValues(alpha: 0.5);
+  return null;
 }
 
 // Combines an optional tag chip, quick-actions, and drag handle for a tile's
@@ -1416,6 +1283,8 @@ class _WorkbookCardInSetTile extends StatelessWidget {
   // Multi-select (#238 part 2) — leading swaps to a checkbox while selecting.
   final bool selectionMode;
   final bool selected;
+  // Hover tint (#237) — see _FlashCardInSetTile.
+  final bool hovering;
   final VoidCallback? onToggle;
   const _WorkbookCardInSetTile({
     required this.card,
@@ -1423,6 +1292,7 @@ class _WorkbookCardInSetTile extends StatelessWidget {
     this.actions,
     this.selectionMode = false,
     this.selected = false,
+    this.hovering = false,
     this.onToggle,
   });
 
@@ -1436,7 +1306,7 @@ class _WorkbookCardInSetTile extends StatelessWidget {
         : null;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: selected ? Theme.of(context).colorScheme.secondaryContainer : null,
+      color: _tileColor(context, selected, hovering),
       child: ListTile(
         leading: selectionMode
             ? Checkbox(value: selected, onChanged: (_) => onToggle?.call())
@@ -2105,97 +1975,6 @@ class _SectionHeader extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Bottom sheet shown when the user taps "Offer in Market".
-// Returns true when the user confirms publishing, null/false on dismiss.
-// The options list is intentionally extensible: future acquisition types
-// (subscriptions, pricing) will appear here alongside Allow Clone.
-// ---------------------------------------------------------------------------
-class _MarketPublishSheet extends StatefulWidget {
-  final CardSet cardSet;
-  const _MarketPublishSheet({required this.cardSet});
-
-  @override
-  State<_MarketPublishSheet> createState() => _MarketPublishSheetState();
-}
-
-class _MarketPublishSheetState extends State<_MarketPublishSheet> {
-  // Allow Clone is the only option in this phase — on and not yet toggleable.
-  // Kept as state so future options can be wired in without restructuring.
-  final bool _allowClone = true;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final theme = Theme.of(context);
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Handle bar.
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-
-            Text(l10n.titleOfferInMarket, style: theme.textTheme.titleLarge),
-            const SizedBox(height: 8),
-            Text(
-              l10n.messageOfferInMarketDescription(widget.cardSet.name),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Options — each future acquisition type appears here as a tile.
-            Text(l10n.titleOptions, style: theme.textTheme.titleSmall),
-            const SizedBox(height: 4),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(l10n.labelAllowClone),
-              subtitle: Text(l10n.messageAllowCloneSubtitle),
-              value: _allowClone,
-              // Not yet user-toggleable — the only supported type in this phase.
-              onChanged: null,
-            ),
-
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: Text(l10n.labelCancel),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.icon(
-                    icon: const Icon(Icons.storefront_outlined),
-                    label: Text(l10n.actionOfferInMarket),
-                    onPressed: () => Navigator.of(context).pop(true),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }

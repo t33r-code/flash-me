@@ -44,7 +44,10 @@ jobs:
         # Pinned (was unpinned `firebase-tools`) so the bundled Firestore emulator
         # version is reproducible and cannot silently drift between runs. Matches
         # the version used by the last known-good run; bump deliberately (#228).
-        run: npm install -g firebase-tools@15.22.4
+        # 15.22.4 -> 15.24.0 (#271): checked the 15.16.0-15.24.0 changelog range —
+        # no Firestore/Auth emulator regressions, no breaking changes; the auth
+        # emulator picks up two "Premature close" reliability fixes (15.22.2/.3).
+        run: npm install -g firebase-tools@15.24.0
 
       # Resolve the Windows emulator cache path at runtime and export it so the
       # cache action receives a plain string rather than an env context expression.

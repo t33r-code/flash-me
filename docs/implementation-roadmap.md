@@ -343,7 +343,7 @@ All seven core phases. Items marked *(→ deferred to Alpha 0.2)* are not done i
 - [ ] #241 / #242 / #243 — paste-to-create
 - [ ] #239 — templates in the set builder
 - [ ] #240 — duplicate detection
-- [ ] #231 — clone card
+- [x] #231 — clone card (Flash Cards only; Workbook Card cloning is a separate, unstarted follow-up per the split #269 makes for Save as Template). New `cloneFrom: FlashCard?` param on `CardEditorBody`/`CardFormScreen` (and `_FlashPaneEdit` for the wide pane) seeds a brand-new draft — `card` stays null, so the untouched create path (`createCard`, fresh id/`createdAt`/`createdBy`) runs and cancelling writes nothing. Media is deliberately not copied (no reference counting on `deleteCard`, so a shared URL would let deleting either card break the other's); questions get fresh `questionId`s via a `toJson`/`fromJson` round-trip. Cloning from within a set passes the live set as `parentSet` — reusing #233's existing new-card-linking mechanism — so it lands in that set automatically; cloning from the Cards tab leaves it unattached. Entry points: the row quick-actions (#260, third icon) and right-click context menu (#237) on both the Cards tab and set-detail rows — the surfaces both tickets explicitly reserved for this.
 
 ---
 

@@ -31,7 +31,8 @@ import 'package:flash_me/widgets/template_picker_sheet.dart';
 class _QuestionState {
   final String questionId;
   String type; // AppConstants.fieldType*
-  final TextEditingController promptController; // optional label shown above the question
+  final TextEditingController
+  promptController; // optional label shown above the question
   // text_input
   final TextEditingController textAnswersController; // comma-separated answers
   final TextEditingController textHintController;
@@ -55,13 +56,13 @@ class _QuestionState {
 
   // Blank question defaulting to text-input type with 2 empty MC options pre-allocated.
   factory _QuestionState.empty() => _QuestionState(
-        questionId: CardQuestion.generateId(),
-        type: AppConstants.fieldTypeTextInput,
-        promptController: TextEditingController(),
-        textAnswersController: TextEditingController(),
-        textHintController: TextEditingController(),
-        optionControllers: [TextEditingController(), TextEditingController()],
-      );
+    questionId: CardQuestion.generateId(),
+    type: AppConstants.fieldTypeTextInput,
+    promptController: TextEditingController(),
+    textAnswersController: TextEditingController(),
+    textHintController: TextEditingController(),
+    optionControllers: [TextEditingController(), TextEditingController()],
+  );
 
   // Populate controllers from an existing CardQuestion (edit mode or template apply).
   factory _QuestionState.fromQuestion(CardQuestion q) {
@@ -100,7 +101,8 @@ class _QuestionState {
       type: switch (q) {
         TextInputQuestion _ => AppConstants.fieldTypeTextInput,
         MultipleChoiceQuestion _ => AppConstants.fieldTypeMultipleChoice,
-        WordOrderQuestion _ => AppConstants.fieldTypeTextInput, // fallback until Step 3
+        WordOrderQuestion _ =>
+          AppConstants.fieldTypeTextInput, // fallback until Step 3
         FillInTheBlanksQuestion _ =>
           AppConstants.fieldTypeTextInput, // fallback until editor lands (#170)
         GridQuestion _ =>
@@ -190,9 +192,25 @@ class _QuestionState {
 // (its language pair seeds the form). Navigation is the host's job — the body
 // reports save/cancel/delete via callbacks and never pops itself.
 // ---------------------------------------------------------------------------
+// Returns [q] with a freshly generated questionId, preserving all its content.
+// Used whenever a question moves into a new card context (template apply,
+// clone, #231) — questionId is a result-tracking key, so re-keying keeps study
+// history unambiguous between the source and the copy. Goes via toJson/fromJson
+// (both already polymorphic per-subtype) rather than a switch over copyWith,
+// since every subtype would do the identical thing: swap in a fresh id.
+CardQuestion _withFreshQuestionId(CardQuestion q) => CardQuestion.fromJson({
+  ...q.toJson(),
+  'questionId': CardQuestion.generateId(),
+});
+
 class CardEditorBody extends ConsumerStatefulWidget {
   final FlashCard? card;
-  final CardSet? parentSet; // non-null when creating from a set's "add card" flow
+  final CardSet?
+  parentSet; // non-null when creating from a set's "add card" flow
+  // Non-null when opened via Clone (#231): seeds a brand-new draft (card stays
+  // null, so the normal create path runs) with a copy of the source's fields.
+  // Media is deliberately NOT carried over — see design.md.
+  final FlashCard? cloneFrom;
   final VoidCallback? onSaved;
   final VoidCallback? onCancel;
   final VoidCallback? onDeleted;
@@ -207,6 +225,7 @@ class CardEditorBody extends ConsumerStatefulWidget {
     super.key,
     this.card,
     this.parentSet,
+    this.cloneFrom,
     this.onSaved,
     this.onCancel,
     this.onDeleted,
@@ -256,20 +275,34 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
   void initState() {
     super.initState();
     final card = widget.card;
+    final clone = widget.cloneFrom;
     // Pre-generate a Firestore ID so Storage paths can be set before the doc exists.
     _pendingCardId = card?.id.isNotEmpty == true
         ? card!.id
         : ref.read(cardRepositoryProvider).generateId();
-    _primaryWordController =
-        TextEditingController(text: card?.primaryWord ?? '');
-    _translationController =
-        TextEditingController(text: card?.translation ?? '');
-    _tags = List.from(card?.tags ?? []);
+    _primaryWordController = TextEditingController(
+      text: card?.primaryWord ?? clone?.primaryWord ?? '',
+    );
+    _translationController = TextEditingController(
+      text: card?.translation ?? clone?.translation ?? '',
+    );
+    _tags = List.from(card?.tags ?? clone?.tags ?? []);
     if (card != null) {
       _questions.addAll(card.questions.map(_QuestionState.fromQuestion));
       _nativeLanguage = card.nativeLanguage;
       _targetLanguage = card.targetLanguage;
       _primaryWordHidden = card.primaryWordHidden;
+    } else if (clone != null) {
+      // Clone (#231): fresh questionIds per question; media stays blank (never
+      // read from `clone` — see _resolveMediaUrls, which only reads widget.card).
+      _questions.addAll(
+        clone.questions.map(
+          (q) => _QuestionState.fromQuestion(_withFreshQuestionId(q)),
+        ),
+      );
+      _nativeLanguage = clone.nativeLanguage;
+      _targetLanguage = clone.targetLanguage;
+      _primaryWordHidden = clone.primaryWordHidden;
     } else if (widget.parentSet != null) {
       // Creating inside a set: inherit the set's language pair.
       _nativeLanguage = widget.parentSet!.nativeLanguage;
@@ -328,19 +361,11 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
 
   // Appends a question from a QuestionTemplate with a fresh questionId.
   void _appendQuestionFromTemplate(QuestionTemplate qt) {
-    final freshQuestion = switch (qt.question) {
-      TextInputQuestion q =>
-        q.copyWith(questionId: CardQuestion.generateId()),
-      MultipleChoiceQuestion q =>
-        q.copyWith(questionId: CardQuestion.generateId()),
-      WordOrderQuestion q =>
-        q.copyWith(questionId: CardQuestion.generateId()),
-      FillInTheBlanksQuestion q =>
-        q.copyWith(questionId: CardQuestion.generateId()),
-      GridQuestion q =>
-        q.copyWith(questionId: CardQuestion.generateId()),
-    };
-    setState(() => _questions.add(_QuestionState.fromQuestion(freshQuestion)));
+    setState(
+      () => _questions.add(
+        _QuestionState.fromQuestion(_withFreshQuestionId(qt.question)),
+      ),
+    );
   }
 
   void _removeQuestion(int index) {
@@ -351,8 +376,9 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
   }
 
   void _addOption(int qIndex) {
-    setState(() => _questions[qIndex].optionControllers
-        .add(TextEditingController()));
+    setState(
+      () => _questions[qIndex].optionControllers.add(TextEditingController()),
+    );
   }
 
   // Keeps minimum 2 options; adjusts correctOptionIndex when an option is removed.
@@ -373,17 +399,17 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
 
   // Returns the MIME type string for a file extension.
   String _mimeForExt(String ext) => switch (ext.toLowerCase()) {
-        'jpg' || 'jpeg' => 'image/jpeg',
-        'png' => 'image/png',
-        'webp' => 'image/webp',
-        'gif' => 'image/gif',
-        'mp3' => 'audio/mpeg',
-        'm4a' => 'audio/mp4',
-        'aac' => 'audio/aac',
-        'wav' => 'audio/wav',
-        'ogg' => 'audio/ogg',
-        _ => 'application/octet-stream',
-      };
+    'jpg' || 'jpeg' => 'image/jpeg',
+    'png' => 'image/png',
+    'webp' => 'image/webp',
+    'gif' => 'image/gif',
+    'mp3' => 'audio/mpeg',
+    'm4a' => 'audio/mp4',
+    'aac' => 'audio/aac',
+    'wav' => 'audio/wav',
+    'ogg' => 'audio/ogg',
+    _ => 'application/octet-stream',
+  };
 
   Future<void> _pickImage() async {
     final result = await FilePicker.pickFiles(
@@ -487,7 +513,9 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
             : q.promptController.text.trim();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(context.l10n.messageSelectCorrectOptionLabeled(label)),
+            content: Text(
+              context.l10n.messageSelectCorrectOptionLabeled(label),
+            ),
           ),
         );
         return;
@@ -510,7 +538,9 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
           .toList();
 
       if (!_isEditing) {
-        await ref.read(cardRepositoryProvider).createCard(
+        await ref
+            .read(cardRepositoryProvider)
+            .createCard(
               FlashCard(
                 id: _pendingCardId,
                 primaryWord: _primaryWordController.text.trim(),
@@ -530,7 +560,9 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
         // Link the new card into the set when created from a set's "New card"
         // flow (parentSet is passed by the Set Detail "New card" action).
         if (widget.parentSet != null) {
-          await ref.read(cardSetRepositoryProvider).addCardToSet(
+          await ref
+              .read(cardSetRepositoryProvider)
+              .addCardToSet(
                 setId: widget.parentSet!.id,
                 cardId: _pendingCardId,
                 userId: uid,
@@ -538,18 +570,23 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
               );
         }
         // Remember the language pair for the next card created this session.
-        ref.read(lastUsedLanguagesProvider.notifier).set(
-              (native: _nativeLanguage, target: _targetLanguage),
-            );
+        ref.read(lastUsedLanguagesProvider.notifier).set((
+          native: _nativeLanguage,
+          target: _targetLanguage,
+        ));
         // Upsert all tags — fire-and-forget so a count failure never
         // blocks the card save.
         for (final tag in normalizedTags) {
           tagRepo.upsertTag(tag, uid);
         }
       } else {
-        final (toUpsert, toDecrement) =
-            AppHelpers.diffTags(widget.card!.tags, normalizedTags);
-        await ref.read(cardRepositoryProvider).updateCard(
+        final (toUpsert, toDecrement) = AppHelpers.diffTags(
+          widget.card!.tags,
+          normalizedTags,
+        );
+        await ref
+            .read(cardRepositoryProvider)
+            .updateCard(
               widget.card!.copyWith(
                 primaryWord: _primaryWordController.text.trim(),
                 translation: _translationController.text.trim(),
@@ -562,8 +599,12 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
                 targetLanguage: _targetLanguage,
               ),
             );
-        for (final tag in toUpsert) { tagRepo.upsertTag(tag, uid); }
-        for (final norm in toDecrement) { tagRepo.decrementTag(norm); }
+        for (final tag in toUpsert) {
+          tagRepo.upsertTag(tag, uid);
+        }
+        for (final norm in toDecrement) {
+          tagRepo.decrementTag(norm);
+        }
       }
       if (mounted) {
         _setSaving(false);
@@ -582,8 +623,9 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
   // Null out answer fields from the current card's questions so the template
   // stores structure and config (options, hints) but not answers.
   void saveAsTemplate() {
-    final templateQuestions =
-        _questions.map((q) => q.toTemplateQuestion()).toList();
+    final templateQuestions = _questions
+        .map((q) => q.toTemplateQuestion())
+        .toList();
 
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -607,7 +649,8 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error),
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
             child: Text(l10n.labelDelete),
           ),
         ],
@@ -623,10 +666,10 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
           .where((t) => t.isNotEmpty)
           .toList();
       final tagRepo = ref.read(tagRepositoryProvider);
-      await ref
-          .read(cardRepositoryProvider)
-          .deleteCard(widget.card!.id);
-      for (final norm in tagsToDecrement) { tagRepo.decrementTag(norm); }
+      await ref.read(cardRepositoryProvider).deleteCard(widget.card!.id);
+      for (final norm in tagsToDecrement) {
+        tagRepo.decrementTag(norm);
+      }
       if (mounted) {
         _setSaving(false);
         widget.onDeleted?.call();
@@ -690,8 +733,10 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l10n.labelOptionsRequired,
-            style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          l10n.labelOptionsRequired,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
         const SizedBox(height: 8),
         // RadioGroup manages the selected index for all Radio children.
         RadioGroup<int>(
@@ -814,8 +859,8 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
   Widget _buildImagePicker(BuildContext context) {
     final l10n = context.l10n;
     final existingUrl = widget.card?.primaryImageUrl;
-    final hasImage = _pendingImageBytes != null ||
-        (existingUrl != null && !_clearImage);
+    final hasImage =
+        _pendingImageBytes != null || (existingUrl != null && !_clearImage);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -834,10 +879,13 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
             clipBehavior: Clip.antiAlias,
             child: hasImage
                 ? (_pendingImageBytes != null
-                    ? Image.memory(_pendingImageBytes!, fit: BoxFit.cover)
-                    : Image.network(existingUrl!, fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) =>
-                            const Icon(Icons.broken_image_outlined)))
+                      ? Image.memory(_pendingImageBytes!, fit: BoxFit.cover)
+                      : Image.network(
+                          existingUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) =>
+                              const Icon(Icons.broken_image_outlined),
+                        ))
                 : const Icon(Icons.image_outlined, size: 36),
           ),
         ),
@@ -848,7 +896,9 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
             TextButton.icon(
               onPressed: _isSaving ? null : _pickImage,
               icon: const Icon(Icons.upload_outlined),
-              label: Text(hasImage ? l10n.actionReplaceImage : l10n.actionAddImage),
+              label: Text(
+                hasImage ? l10n.actionReplaceImage : l10n.actionAddImage,
+              ),
             ),
             if (hasImage)
               TextButton.icon(
@@ -856,7 +906,8 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
                 icon: const Icon(Icons.delete_outline),
                 label: Text(l10n.actionRemove),
                 style: TextButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.error),
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                ),
               ),
           ],
         ),
@@ -867,8 +918,8 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
   Widget _buildAudioPicker(BuildContext context) {
     final l10n = context.l10n;
     final existingUrl = widget.card?.primaryAudioUrl;
-    final hasAudio = _pendingAudioBytes != null ||
-        (existingUrl != null && !_clearAudio);
+    final hasAudio =
+        _pendingAudioBytes != null || (existingUrl != null && !_clearAudio);
     final label = _pendingAudioBytes != null
         ? l10n.labelNewAudioSelected
         : (hasAudio ? l10n.labelAudioAttached : null);
@@ -913,23 +964,20 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
     final user = ref.watch(appUserProvider).asData?.value;
     final byName = user?.displayName ?? user?.email ?? card.createdBy;
     final labelStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        );
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    );
     final valueStyle = labelStyle;
 
     // One label+value row used for each metadata field.
     Widget metaRow(String label, String value) => Padding(
-          padding: const EdgeInsets.only(bottom: 2),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 100,
-                child: Text('$label:', style: labelStyle),
-              ),
-              Expanded(child: Text(value, style: valueStyle)),
-            ],
-          ),
-        );
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Row(
+        children: [
+          SizedBox(width: 100, child: Text('$label:', style: labelStyle)),
+          Expanded(child: Text(value, style: valueStyle)),
+        ],
+      ),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -937,11 +985,13 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
         const SizedBox(height: 24),
         const Divider(),
         const SizedBox(height: 8),
-        Text(l10n.titleCardInfo,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  letterSpacing: 0.8,
-                )),
+        Text(
+          l10n.titleCardInfo,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            letterSpacing: 0.8,
+          ),
+        ),
         const SizedBox(height: 6),
         metaRow(l10n.labelMetaCreated, fmt.format(card.createdAt.toLocal())),
         metaRow(l10n.labelMetaUpdated, fmt.format(card.updatedAt.toLocal())),
@@ -956,17 +1006,19 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     return Form(
-        key: _formKey,
-        child: IgnorePointer(
-          ignoring: _isSaving,
-          child: SingleChildScrollView(
+      key: _formKey,
+      child: IgnorePointer(
+        ignoring: _isSaving,
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // --- Primary field ----
-              Text(l10n.titlePrimaryField,
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                l10n.titlePrimaryField,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _primaryWordController,
@@ -1004,11 +1056,15 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
 
               // --- Media ---
               const SizedBox(height: 24),
-              Text(l10n.titleMediaSection,
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                l10n.titleMediaSection,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 4),
-              Text(l10n.messageMediaSectionSubtitle,
-                  style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                l10n.messageMediaSectionSubtitle,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
               const SizedBox(height: 12),
               _buildImagePicker(context),
               const SizedBox(height: 12),
@@ -1016,8 +1072,10 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
 
               // --- Languages ---
               const SizedBox(height: 24),
-              Text(l10n.titleLanguagesSection,
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                l10n.titleLanguagesSection,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 12),
               LanguagePicker(
                 label: l10n.labelTargetLanguage,
@@ -1033,8 +1091,10 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
 
               // --- Tags ---
               const SizedBox(height: 24),
-              Text(l10n.titleTagsSection,
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                l10n.titleTagsSection,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 8),
               TagInputField(
                 tags: _tags,
@@ -1047,8 +1107,10 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
               // "Use Template" button sits alongside the section header.
               Row(
                 children: [
-                  Text(l10n.titleAdditionalQuestions,
-                      style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    l10n.titleAdditionalQuestions,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   const Spacer(),
                   TextButton.icon(
                     onPressed: _showTemplatePicker,
@@ -1058,7 +1120,9 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
                 ],
               ),
               const SizedBox(height: 12),
-              ..._questions.asMap().entries.map((e) => _buildQuestionCard(e.key)),
+              ..._questions.asMap().entries.map(
+                (e) => _buildQuestionCard(e.key),
+              ),
               OutlinedButton.icon(
                 onPressed: _addQuestion,
                 icon: const Icon(Icons.add),
@@ -1091,11 +1155,15 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
                                 height: 20,
                                 width: 20,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
                               )
-                            : Text(_isEditing
-                                ? l10n.actionSaveChanges
-                                : l10n.actionCreateCard),
+                            : Text(
+                                _isEditing
+                                    ? l10n.actionSaveChanges
+                                    : l10n.actionCreateCard,
+                              ),
                       ),
                     ),
                   ],
@@ -1106,8 +1174,8 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
             ],
           ),
         ),
-        ),
-      );
+      ),
+    );
   }
 }
 
@@ -1115,11 +1183,13 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
 // CardFormScreen — full-screen host for CardEditorBody. Provides the Scaffold
 // and AppBar chrome (title, delete, save-as-template) and owns navigation.
 // Pass [card] to edit; omit to create. Pass [parentSet] to seed from a set.
+// Pass [cloneFrom] (Clone, #231) to create a new card pre-filled from another.
 // ---------------------------------------------------------------------------
 class CardFormScreen extends StatefulWidget {
   final FlashCard? card;
   final CardSet? parentSet;
-  const CardFormScreen({super.key, this.card, this.parentSet});
+  final FlashCard? cloneFrom;
+  const CardFormScreen({super.key, this.card, this.parentSet, this.cloneFrom});
 
   @override
   State<CardFormScreen> createState() => _CardFormScreenState();
@@ -1143,8 +1213,9 @@ class _CardFormScreenState extends State<CardFormScreen> {
             IconButton(
               icon: const Icon(Icons.delete_outline),
               tooltip: l10n.tooltipDeleteCard,
-              onPressed:
-                  _saving ? null : () => _bodyKey.currentState?.confirmDelete(),
+              onPressed: _saving
+                  ? null
+                  : () => _bodyKey.currentState?.confirmDelete(),
             ),
           PopupMenuButton<String>(
             onSelected: (v) {
@@ -1169,6 +1240,7 @@ class _CardFormScreenState extends State<CardFormScreen> {
         key: _bodyKey,
         card: widget.card,
         parentSet: widget.parentSet,
+        cloneFrom: widget.cloneFrom,
         onSaved: () => Navigator.of(context).pop(),
         onCancel: () => Navigator.of(context).pop(),
         onDeleted: () => Navigator.of(context).pop(),

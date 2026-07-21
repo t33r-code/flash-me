@@ -223,6 +223,7 @@
   "errorFailedAddCardToSet": "Couldn't add the card back.",
   "tooltipDragToReorder": "Drag to reorder",
   "tooltipEditCard": "Edit card",
+  "tooltipCloneCard": "Clone card",
   "tooltipRemoveFromSet": "Remove from set",
   "actionUndo": "Undo",
   "messageCardRemovedFromSet": "Removed from set",
@@ -401,6 +402,7 @@
 
   "titleNewCard": "New Card",
   "titleEditCard": "Edit Card",
+  "titleCloneCard": "Clone Card",
   "titleDeleteCard": "Delete Card",
   "messageDeleteCardConfirm": "Delete \"{name}\"? It will be removed from all sets and cannot be undone.",
   "@messageDeleteCardConfirm": {

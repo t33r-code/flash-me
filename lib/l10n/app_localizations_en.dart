@@ -560,6 +560,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tooltipEditCard => 'Edit card';
 
   @override
+  String get tooltipCloneCard => 'Clone card';
+
+  @override
   String get tooltipRemoveFromSet => 'Remove from set';
 
   @override
@@ -953,6 +956,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get titleEditCard => 'Edit Card';
+
+  @override
+  String get titleCloneCard => 'Clone Card';
 
   @override
   String get titleDeleteCard => 'Delete Card';

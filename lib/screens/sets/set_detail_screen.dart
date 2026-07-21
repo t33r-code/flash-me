@@ -36,8 +36,11 @@ sealed class _PaneEdit {
 
 class _FlashPaneEdit extends _PaneEdit {
   final FlashCard? card;
+  // Non-null for a Clone (#231): card stays null (new-card path), seeded from
+  // this instead.
+  final FlashCard? cloneFrom;
   final GlobalKey<CardEditorBodyState> key = GlobalKey();
-  _FlashPaneEdit({this.card});
+  _FlashPaneEdit({this.card, this.cloneFrom});
 }
 
 class _WorkbookPaneEdit extends _PaneEdit {
@@ -300,6 +303,28 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     setState(() => _paneEdit = _WorkbookPaneEdit(card: card));
   }
 
+  void _cloneFlashCardInPane(FlashCard card) {
+    setState(() => _paneEdit = _FlashPaneEdit(cloneFrom: card));
+  }
+
+  // Clone entry point (#231), Flash Cards only. Mirrors _editCardRow's
+  // wide→pane / narrow→full-screen split. Cloning from within a set always
+  // links the new card to the current (live) set — the whole point of
+  // cloning here rather than from the Cards tab, where the clone stays
+  // unattached.
+  void _cloneCardRow(FlashCard card) {
+    if (widget.onExit != null) {
+      _cloneFlashCardInPane(card);
+      return;
+    }
+    final live = ref.read(setByIdProvider(widget.cardSet.id)) ?? widget.cardSet;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CardFormScreen(cloneFrom: card, parentSet: live),
+      ),
+    );
+  }
+
   // Right-click menu for a card row (#237) — the same two actions as the
   // hover-reveal quick-actions (#260), just reachable without hovering first.
   List<ContextMenuAction> _rowContextActions(
@@ -313,6 +338,14 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
         label: l10n.tooltipEditCard,
         onSelected: () => _editCardRow(entry),
       ),
+      // Clone (#231) is Flash Card only — Workbook Card cloning is a separate,
+      // unstarted follow-up (mirrors the split #269 made for Save as Template).
+      if (entry.flash != null)
+        ContextMenuAction(
+          icon: Icons.copy_outlined,
+          label: l10n.tooltipCloneCard,
+          onSelected: () => _cloneCardRow(entry.flash!),
+        ),
       ContextMenuAction(
         icon: Icons.remove_circle_outline,
         label: l10n.tooltipRemoveFromSet,
@@ -348,6 +381,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
   }
 
   String _paneEditTitle(AppLocalizations l10n) => switch (_paneEdit) {
+    _FlashPaneEdit(cloneFrom: != null) => l10n.titleCloneCard,
     _FlashPaneEdit(card: null) => l10n.titleNewCard,
     _FlashPaneEdit() => l10n.titleEditCard,
     _WorkbookPaneEdit(card: null) => l10n.titleNewWorkbookCard,
@@ -738,6 +772,13 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                   removeTooltip: ctx.l10n.tooltipRemoveFromSet,
                   onEdit: () => _editCardRow(entry),
                   onRemove: () => _removeCard(linkById[entry.cardId]!),
+                  // Clone (#231) is Flash Card only.
+                  cloneTooltip: entry.flash != null
+                      ? ctx.l10n.tooltipCloneCard
+                      : null,
+                  onClone: entry.flash != null
+                      ? () => _cloneCardRow(entry.flash!)
+                      : null,
                 );
 
           // Hover tint (#237) reuses the same _hoveredCardId tracking as the
@@ -839,16 +880,18 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     final paneEdit = _paneEdit;
     if (paneEdit != null) {
       body = switch (paneEdit) {
-        _FlashPaneEdit(:final card, :final key) => CardEditorBody(
-          key: key,
-          card: card,
-          parentSet: liveSet,
-          showFooterActions: false,
-          onSaved: _exitPaneEdit,
-          onCancel: _exitPaneEdit,
-          onSavingChanged: (v) =>
-              mounted ? setState(() => _isPaneSaving = v) : null,
-        ),
+        _FlashPaneEdit(:final card, :final cloneFrom, :final key) =>
+          CardEditorBody(
+            key: key,
+            card: card,
+            parentSet: liveSet,
+            cloneFrom: cloneFrom,
+            showFooterActions: false,
+            onSaved: _exitPaneEdit,
+            onCancel: _exitPaneEdit,
+            onSavingChanged: (v) =>
+                mounted ? setState(() => _isPaneSaving = v) : null,
+          ),
         _WorkbookPaneEdit(:final card, :final key) => WorkbookEditorBody(
           key: key,
           card: card,
@@ -1238,6 +1281,10 @@ Widget _rowQuickActions({
   required String removeTooltip,
   required VoidCallback onEdit,
   required VoidCallback onRemove,
+  // Clone (#231) is Flash Card only — both null on a Workbook Card row, which
+  // simply omits the button rather than showing a disabled one.
+  String? cloneTooltip,
+  VoidCallback? onClone,
 }) {
   return IgnorePointer(
     ignoring: !visible,
@@ -1255,6 +1302,17 @@ Widget _rowQuickActions({
             constraints: const BoxConstraints(),
             onPressed: onEdit,
           ),
+          if (onClone != null) ...[
+            const SizedBox(width: 12),
+            IconButton(
+              icon: const Icon(Icons.copy_outlined, size: 20),
+              tooltip: cloneTooltip,
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: onClone,
+            ),
+          ],
           const SizedBox(width: 12),
           IconButton(
             icon: const Icon(Icons.remove_circle_outline, size: 20),

@@ -1120,6 +1120,12 @@ abstract class AppLocalizations {
   /// **'Edit card'**
   String get tooltipEditCard;
 
+  /// No description provided for @tooltipCloneCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Clone card'**
+  String get tooltipCloneCard;
+
   /// No description provided for @tooltipRemoveFromSet.
   ///
   /// In en, this message translates to:
@@ -1695,6 +1701,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit Card'**
   String get titleEditCard;
+
+  /// No description provided for @titleCloneCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Clone Card'**
+  String get titleCloneCard;
 
   /// No description provided for @titleDeleteCard.
   ///

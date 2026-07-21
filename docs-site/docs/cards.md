@@ -101,9 +101,22 @@ If you change the search or tag filter while selecting, any cards that are no lo
 - :material-translate: **Set language** — pick a target and/or native language and apply it to every selected card. Leave a picker untouched to keep that card's existing language as it is.
 - :material-delete-outline: **Delete** — removes all the selected cards after a single confirmation. As with deleting one card, they're removed from every set they belonged to, along with any images or audio. This can't be undone.
 
+### Cloning a Card { #clone-card }
+
+When you need several cards that share most of their content — the same field structure, similar options, just a different word — **Clone** gives you a head start instead of building each one from scratch.
+
+Choosing **Clone** (from the card's [right-click menu](#card-context-menu) in **My Cards**, or from a card row inside a set) opens the editor pre-filled with a copy of the source card's word, translation, fields, tags, and language pair — as a brand-new, **unsaved** card. Nothing is created until you tap **Save**; closing without saving leaves no trace. The original card is never touched.
+
+A couple of things don't carry over:
+
+- **Images and audio** are not copied — the clone starts with no media attached, so you can attach fresh media if the clone needs it.
+- If you clone a card **from inside a set**, the clone is automatically added to that same set. Cloning from **My Cards** leaves the new card unattached — add it to a set yourself if needed.
+
+Cloning is currently available for **Flash Cards** only.
+
 ### Right-Click a Card { #card-context-menu }
 
-On a wide window, hovering over a card highlights the row, and **right-clicking** it opens a menu with **Edit**, **Add to set**, **Tag**, **Set language**, and **Delete** — the same single-card actions available above, without first entering selection mode. This is a desktop-only convenience; touch devices keep using tap and long-press.
+On a wide window, hovering over a card highlights the row, and **right-clicking** it opens a menu with **Edit**, **Clone**, **Add to set**, **Tag**, **Set language**, and **Delete** — the same single-card actions available above, without first entering selection mode. This is a desktop-only convenience; touch devices keep using tap and long-press.
 
 ### Editing a Flash Card { #edit-card }
 

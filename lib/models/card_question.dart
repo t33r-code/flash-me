@@ -6,7 +6,7 @@ import 'package:flash_me/utils/constants.dart';
 // Does not affect validation logic, only how options are drawn.
 // ---------------------------------------------------------------------------
 enum MultipleChoiceDisplayMode {
-  list,  // full-width vertical buttons (default)
+  list, // full-width vertical buttons (default)
   chips; // compact wrapping chip row, best for short single-word options
 
   static MultipleChoiceDisplayMode fromString(String? s) =>
@@ -44,8 +44,9 @@ enum CompletionMode {
 //   grid            → GridQuestion
 // ---------------------------------------------------------------------------
 sealed class CardQuestion {
-  final String questionId; // unique ID within the card; used as result tracking key
-  final String? prompt;    // optional label shown above the question
+  final String
+  questionId; // unique ID within the card; used as result tracking key
+  final String? prompt; // optional label shown above the question
 
   const CardQuestion({required this.questionId, this.prompt});
 
@@ -56,27 +57,41 @@ sealed class CardQuestion {
     final type = json['type'] as String;
     final content = json['content'] as Map<String, dynamic>? ?? {};
     // Accept both 'questionId' (new) and 'fieldId' (legacy CardField).
-    final questionId =
-        (json['questionId'] ?? json['fieldId']) as String? ?? '';
+    final questionId = (json['questionId'] ?? json['fieldId']) as String? ?? '';
     // Accept both 'prompt' (new) and 'name' (legacy CardField).
     final prompt = (json['prompt'] ?? json['name']) as String?;
 
     switch (type) {
       case AppConstants.fieldTypeTextInput:
         return TextInputQuestion.fromJson(
-            questionId: questionId, prompt: prompt, content: content);
+          questionId: questionId,
+          prompt: prompt,
+          content: content,
+        );
       case AppConstants.fieldTypeMultipleChoice:
         return MultipleChoiceQuestion.fromJson(
-            questionId: questionId, prompt: prompt, content: content);
+          questionId: questionId,
+          prompt: prompt,
+          content: content,
+        );
       case AppConstants.questionTypeWordOrder:
         return WordOrderQuestion.fromJson(
-            questionId: questionId, prompt: prompt, content: content);
+          questionId: questionId,
+          prompt: prompt,
+          content: content,
+        );
       case AppConstants.questionTypeFillInBlanks:
         return FillInTheBlanksQuestion.fromJson(
-            questionId: questionId, prompt: prompt, content: content);
+          questionId: questionId,
+          prompt: prompt,
+          content: content,
+        );
       case AppConstants.questionTypeGrid:
         return GridQuestion.fromJson(
-            questionId: questionId, prompt: prompt, content: content);
+          questionId: questionId,
+          prompt: prompt,
+          content: content,
+        );
       default:
         // Unknown types (e.g. legacy 'reveal') are silently skipped by the
         // caller; returning a minimal placeholder here avoids a hard crash.
@@ -95,12 +110,25 @@ sealed class CardQuestion {
       FirebaseFirestore.instance.collection('_').doc().id;
 }
 
+// Returns [q] with a freshly generated questionId, preserving all its content.
+// Used whenever a question moves into a new card context (template apply,
+// clone — #231/#274) — questionId is a result-tracking key, so re-keying keeps
+// study history unambiguous between the source and the copy. Goes via
+// toJson/fromJson (both already polymorphic per-subtype) rather than a switch
+// over copyWith, since every subtype would do the identical thing: swap in a
+// fresh id. Shared by CardEditorBody (flash) and WorkbookEditorBody (workbook)
+// so both clone paths re-key identically.
+CardQuestion withFreshQuestionId(CardQuestion q) => CardQuestion.fromJson({
+  ...q.toJson(),
+  'questionId': CardQuestion.generateId(),
+});
+
 // --- Text input question ---------------------------------------------------
 // User types a free-text answer validated against correctAnswers.
 class TextInputQuestion extends CardQuestion {
   final List<String>? correctAnswers; // null in templates
-  final String? hint;                 // optional guidance shown during study
-  final bool exactMatch;              // false = case-insensitive (default)
+  final String? hint; // optional guidance shown during study
+  final bool exactMatch; // false = case-insensitive (default)
 
   const TextInputQuestion({
     required super.questionId,
@@ -114,28 +142,27 @@ class TextInputQuestion extends CardQuestion {
     required String questionId,
     String? prompt,
     required Map<String, dynamic> content,
-  }) =>
-      TextInputQuestion(
-        questionId: questionId,
-        prompt: prompt,
-        correctAnswers: content['correctAnswers'] != null
-            ? List<String>.from(content['correctAnswers'] as List)
-            : null,
-        hint: content['hint'] as String?,
-        exactMatch: content['exactMatch'] as bool? ?? false,
-      );
+  }) => TextInputQuestion(
+    questionId: questionId,
+    prompt: prompt,
+    correctAnswers: content['correctAnswers'] != null
+        ? List<String>.from(content['correctAnswers'] as List)
+        : null,
+    hint: content['hint'] as String?,
+    exactMatch: content['exactMatch'] as bool? ?? false,
+  );
 
   @override
   Map<String, dynamic> toJson() => {
-        'questionId': questionId,
-        'type': AppConstants.fieldTypeTextInput,
-        'prompt': prompt,
-        'content': {
-          'correctAnswers': correctAnswers,
-          'hint': hint,
-          'exactMatch': exactMatch,
-        },
-      };
+    'questionId': questionId,
+    'type': AppConstants.fieldTypeTextInput,
+    'prompt': prompt,
+    'content': {
+      'correctAnswers': correctAnswers,
+      'hint': hint,
+      'exactMatch': exactMatch,
+    },
+  };
 
   @override
   List<String> validate({bool isTemplate = false}) {
@@ -152,24 +179,23 @@ class TextInputQuestion extends CardQuestion {
     List<String>? correctAnswers,
     String? hint,
     bool? exactMatch,
-  }) =>
-      TextInputQuestion(
-        questionId: questionId ?? this.questionId,
-        prompt: prompt ?? this.prompt,
-        correctAnswers: correctAnswers ?? this.correctAnswers,
-        hint: hint ?? this.hint,
-        exactMatch: exactMatch ?? this.exactMatch,
-      );
+  }) => TextInputQuestion(
+    questionId: questionId ?? this.questionId,
+    prompt: prompt ?? this.prompt,
+    correctAnswers: correctAnswers ?? this.correctAnswers,
+    hint: hint ?? this.hint,
+    exactMatch: exactMatch ?? this.exactMatch,
+  );
 }
 
 // --- Multiple choice question ----------------------------------------------
 // User selects one option; displayMode controls how options are rendered.
 class MultipleChoiceQuestion extends CardQuestion {
-  final List<String>? options;   // CAN be pre-filled in templates
-  final int? correctIndex;       // index into options; null in templates
+  final List<String>? options; // CAN be pre-filled in templates
+  final int? correctIndex; // index into options; null in templates
   final MultipleChoiceDisplayMode displayMode;
-  final String? explanation;     // shown after the user answers
-  final bool randomizeOptions;   // shuffle option order each time shown in study
+  final String? explanation; // shown after the user answers
+  final bool randomizeOptions; // shuffle option order each time shown in study
 
   const MultipleChoiceQuestion({
     required super.questionId,
@@ -185,33 +211,33 @@ class MultipleChoiceQuestion extends CardQuestion {
     required String questionId,
     String? prompt,
     required Map<String, dynamic> content,
-  }) =>
-      MultipleChoiceQuestion(
-        questionId: questionId,
-        prompt: prompt,
-        options: content['options'] != null
-            ? List<String>.from(content['options'] as List)
-            : null,
-        correctIndex: content['correctIndex'] as int?,
-        displayMode: MultipleChoiceDisplayMode.fromString(
-            content['displayMode'] as String?),
-        explanation: content['explanation'] as String?,
-        randomizeOptions: content['randomizeOptions'] as bool? ?? false,
-      );
+  }) => MultipleChoiceQuestion(
+    questionId: questionId,
+    prompt: prompt,
+    options: content['options'] != null
+        ? List<String>.from(content['options'] as List)
+        : null,
+    correctIndex: content['correctIndex'] as int?,
+    displayMode: MultipleChoiceDisplayMode.fromString(
+      content['displayMode'] as String?,
+    ),
+    explanation: content['explanation'] as String?,
+    randomizeOptions: content['randomizeOptions'] as bool? ?? false,
+  );
 
   @override
   Map<String, dynamic> toJson() => {
-        'questionId': questionId,
-        'type': AppConstants.fieldTypeMultipleChoice,
-        'prompt': prompt,
-        'content': {
-          'options': options,
-          'correctIndex': correctIndex,
-          'displayMode': displayMode.name,
-          'explanation': explanation,
-          'randomizeOptions': randomizeOptions,
-        },
-      };
+    'questionId': questionId,
+    'type': AppConstants.fieldTypeMultipleChoice,
+    'prompt': prompt,
+    'content': {
+      'options': options,
+      'correctIndex': correctIndex,
+      'displayMode': displayMode.name,
+      'explanation': explanation,
+      'randomizeOptions': randomizeOptions,
+    },
+  };
 
   @override
   List<String> validate({bool isTemplate = false}) {
@@ -221,10 +247,13 @@ class MultipleChoiceQuestion extends CardQuestion {
       errors.add('multiple choice question must have at least 2 options');
     }
     if (correctIndex == null) {
-      errors.add('multiple choice question must have a correct answer selected');
+      errors.add(
+        'multiple choice question must have a correct answer selected',
+      );
     } else if (options != null && correctIndex! >= options!.length) {
       errors.add(
-          'correct answer index $correctIndex is out of range (${options!.length} options)');
+        'correct answer index $correctIndex is out of range (${options!.length} options)',
+      );
     }
     return errors;
   }
@@ -237,24 +266,24 @@ class MultipleChoiceQuestion extends CardQuestion {
     MultipleChoiceDisplayMode? displayMode,
     String? explanation,
     bool? randomizeOptions,
-  }) =>
-      MultipleChoiceQuestion(
-        questionId: questionId ?? this.questionId,
-        prompt: prompt ?? this.prompt,
-        options: options ?? this.options,
-        correctIndex: correctIndex ?? this.correctIndex,
-        displayMode: displayMode ?? this.displayMode,
-        explanation: explanation ?? this.explanation,
-        randomizeOptions: randomizeOptions ?? this.randomizeOptions,
-      );
+  }) => MultipleChoiceQuestion(
+    questionId: questionId ?? this.questionId,
+    prompt: prompt ?? this.prompt,
+    options: options ?? this.options,
+    correctIndex: correctIndex ?? this.correctIndex,
+    displayMode: displayMode ?? this.displayMode,
+    explanation: explanation ?? this.explanation,
+    randomizeOptions: randomizeOptions ?? this.randomizeOptions,
+  );
 }
 
 // --- Word order question ---------------------------------------------------
 // User assembles an answer by tapping tiles from wordBank into an answer row.
 // correctOrder is an ordered subset of (or equal to) wordBank.
 class WordOrderQuestion extends CardQuestion {
-  final List<String>? wordBank;    // available tiles; null in templates
-  final List<String>? correctOrder; // expected answer sequence; null in templates
+  final List<String>? wordBank; // available tiles; null in templates
+  final List<String>?
+  correctOrder; // expected answer sequence; null in templates
 
   const WordOrderQuestion({
     required super.questionId,
@@ -267,28 +296,24 @@ class WordOrderQuestion extends CardQuestion {
     required String questionId,
     String? prompt,
     required Map<String, dynamic> content,
-  }) =>
-      WordOrderQuestion(
-        questionId: questionId,
-        prompt: prompt,
-        wordBank: content['wordBank'] != null
-            ? List<String>.from(content['wordBank'] as List)
-            : null,
-        correctOrder: content['correctOrder'] != null
-            ? List<String>.from(content['correctOrder'] as List)
-            : null,
-      );
+  }) => WordOrderQuestion(
+    questionId: questionId,
+    prompt: prompt,
+    wordBank: content['wordBank'] != null
+        ? List<String>.from(content['wordBank'] as List)
+        : null,
+    correctOrder: content['correctOrder'] != null
+        ? List<String>.from(content['correctOrder'] as List)
+        : null,
+  );
 
   @override
   Map<String, dynamic> toJson() => {
-        'questionId': questionId,
-        'type': AppConstants.questionTypeWordOrder,
-        'prompt': prompt,
-        'content': {
-          'wordBank': wordBank,
-          'correctOrder': correctOrder,
-        },
-      };
+    'questionId': questionId,
+    'type': AppConstants.questionTypeWordOrder,
+    'prompt': prompt,
+    'content': {'wordBank': wordBank, 'correctOrder': correctOrder},
+  };
 
   @override
   List<String> validate({bool isTemplate = false}) {
@@ -304,7 +329,9 @@ class WordOrderQuestion extends CardQuestion {
       final bankSet = wordBank!.toSet();
       for (final word in correctOrder!) {
         if (!bankSet.contains(word)) {
-          errors.add('correct order contains "$word" which is not in the word bank');
+          errors.add(
+            'correct order contains "$word" which is not in the word bank',
+          );
         }
       }
     }
@@ -316,13 +343,12 @@ class WordOrderQuestion extends CardQuestion {
     String? prompt,
     List<String>? wordBank,
     List<String>? correctOrder,
-  }) =>
-      WordOrderQuestion(
-        questionId: questionId ?? this.questionId,
-        prompt: prompt ?? this.prompt,
-        wordBank: wordBank ?? this.wordBank,
-        correctOrder: correctOrder ?? this.correctOrder,
-      );
+  }) => WordOrderQuestion(
+    questionId: questionId ?? this.questionId,
+    prompt: prompt ?? this.prompt,
+    wordBank: wordBank ?? this.wordBank,
+    correctOrder: correctOrder ?? this.correctOrder,
+  );
 }
 
 // --- Fill-in-the-blanks question -------------------------------------------
@@ -340,7 +366,7 @@ class WordOrderQuestion extends CardQuestion {
 class FillBlankToken {
   final String word;
   final bool eligible; // true = author allows this word to be blanked
-  final String leading;  // formatting punctuation before the word, attached
+  final String leading; // formatting punctuation before the word, attached
   final String trailing; // formatting punctuation after the word, attached
 
   const FillBlankToken({
@@ -351,27 +377,31 @@ class FillBlankToken {
   });
 
   factory FillBlankToken.fromJson(Map<String, dynamic> json) => FillBlankToken(
-        word: json['word'] as String? ?? '',
-        eligible: json['eligible'] as bool? ?? false,
-        leading: json['leading'] as String? ?? '',
-        trailing: json['trailing'] as String? ?? '',
-      );
+    word: json['word'] as String? ?? '',
+    eligible: json['eligible'] as bool? ?? false,
+    leading: json['leading'] as String? ?? '',
+    trailing: json['trailing'] as String? ?? '',
+  );
 
   Map<String, dynamic> toJson() => {
-        'word': word,
-        'eligible': eligible,
-        // Omit empty affixes to keep stored docs lean and backward-compatible.
-        if (leading.isNotEmpty) 'leading': leading,
-        if (trailing.isNotEmpty) 'trailing': trailing,
-      };
+    'word': word,
+    'eligible': eligible,
+    // Omit empty affixes to keep stored docs lean and backward-compatible.
+    if (leading.isNotEmpty) 'leading': leading,
+    if (trailing.isNotEmpty) 'trailing': trailing,
+  };
 
-  FillBlankToken copyWith({String? word, bool? eligible, String? leading, String? trailing}) =>
-      FillBlankToken(
-        word: word ?? this.word,
-        eligible: eligible ?? this.eligible,
-        leading: leading ?? this.leading,
-        trailing: trailing ?? this.trailing,
-      );
+  FillBlankToken copyWith({
+    String? word,
+    bool? eligible,
+    String? leading,
+    String? trailing,
+  }) => FillBlankToken(
+    word: word ?? this.word,
+    eligible: eligible ?? this.eligible,
+    leading: leading ?? this.leading,
+    trailing: trailing ?? this.trailing,
+  );
 
   // Split a sentence into tokens on whitespace, stripping *formatting*
   // punctuation from each word's edges into leading/trailing while keeping
@@ -410,24 +440,28 @@ class FillBlankToken {
         final punct = chunk;
         if (tokens.isNotEmpty) {
           final prev = tokens.removeLast();
-          tokens.add(FillBlankToken(
-            word: prev.word,
-            eligible: prev.eligible,
-            leading: prev.leading,
-            trailing: prev.trailing + punct,
-          ));
+          tokens.add(
+            FillBlankToken(
+              word: prev.word,
+              eligible: prev.eligible,
+              leading: prev.leading,
+              trailing: prev.trailing + punct,
+            ),
+          );
         } else {
           pendingLeading += punct;
         }
         continue;
       }
 
-      tokens.add(FillBlankToken(
-        word: word,
-        eligible: false,
-        leading: pendingLeading + leadMatch,
-        trailing: trailMatch,
-      ));
+      tokens.add(
+        FillBlankToken(
+          word: word,
+          eligible: false,
+          leading: pendingLeading + leadMatch,
+          trailing: trailMatch,
+        ),
+      );
       pendingLeading = '';
     }
     return tokens;
@@ -435,10 +469,10 @@ class FillBlankToken {
 }
 
 class FillInTheBlanksQuestion extends CardQuestion {
-  final String? sentence;            // complete original sentence; null in templates
+  final String? sentence; // complete original sentence; null in templates
   final List<FillBlankToken>? tokens; // tokenized sentence; null in templates
-  final int blankCount;              // eligible words to hide per display
-  final List<String> extraWords;     // author-added distractor words for the pool
+  final int blankCount; // eligible words to hide per display
+  final List<String> extraWords; // author-added distractor words for the pool
   final CompletionMode completionMode;
 
   const FillInTheBlanksQuestion({
@@ -455,37 +489,37 @@ class FillInTheBlanksQuestion extends CardQuestion {
     required String questionId,
     String? prompt,
     required Map<String, dynamic> content,
-  }) =>
-      FillInTheBlanksQuestion(
-        questionId: questionId,
-        prompt: prompt,
-        sentence: content['sentence'] as String?,
-        tokens: content['tokens'] != null
-            ? (content['tokens'] as List)
-                .map((t) => FillBlankToken.fromJson(t as Map<String, dynamic>))
-                .toList()
-            : null,
-        blankCount: content['blankCount'] as int? ?? 1,
-        extraWords: content['extraWords'] != null
-            ? List<String>.from(content['extraWords'] as List)
-            : const [],
-        completionMode:
-            CompletionMode.fromString(content['completionMode'] as String?),
-      );
+  }) => FillInTheBlanksQuestion(
+    questionId: questionId,
+    prompt: prompt,
+    sentence: content['sentence'] as String?,
+    tokens: content['tokens'] != null
+        ? (content['tokens'] as List)
+              .map((t) => FillBlankToken.fromJson(t as Map<String, dynamic>))
+              .toList()
+        : null,
+    blankCount: content['blankCount'] as int? ?? 1,
+    extraWords: content['extraWords'] != null
+        ? List<String>.from(content['extraWords'] as List)
+        : const [],
+    completionMode: CompletionMode.fromString(
+      content['completionMode'] as String?,
+    ),
+  );
 
   @override
   Map<String, dynamic> toJson() => {
-        'questionId': questionId,
-        'type': AppConstants.questionTypeFillInBlanks,
-        'prompt': prompt,
-        'content': {
-          'sentence': sentence,
-          'tokens': tokens?.map((t) => t.toJson()).toList(),
-          'blankCount': blankCount,
-          'extraWords': extraWords,
-          'completionMode': completionMode.asJson,
-        },
-      };
+    'questionId': questionId,
+    'type': AppConstants.questionTypeFillInBlanks,
+    'prompt': prompt,
+    'content': {
+      'sentence': sentence,
+      'tokens': tokens?.map((t) => t.toJson()).toList(),
+      'blankCount': blankCount,
+      'extraWords': extraWords,
+      'completionMode': completionMode.asJson,
+    },
+  };
 
   @override
   List<String> validate({bool isTemplate = false}) {
@@ -519,16 +553,15 @@ class FillInTheBlanksQuestion extends CardQuestion {
     int? blankCount,
     List<String>? extraWords,
     CompletionMode? completionMode,
-  }) =>
-      FillInTheBlanksQuestion(
-        questionId: questionId ?? this.questionId,
-        prompt: prompt ?? this.prompt,
-        sentence: sentence ?? this.sentence,
-        tokens: tokens ?? this.tokens,
-        blankCount: blankCount ?? this.blankCount,
-        extraWords: extraWords ?? this.extraWords,
-        completionMode: completionMode ?? this.completionMode,
-      );
+  }) => FillInTheBlanksQuestion(
+    questionId: questionId ?? this.questionId,
+    prompt: prompt ?? this.prompt,
+    sentence: sentence ?? this.sentence,
+    tokens: tokens ?? this.tokens,
+    blankCount: blankCount ?? this.blankCount,
+    extraWords: extraWords ?? this.extraWords,
+    completionMode: completionMode ?? this.completionMode,
+  );
 }
 
 // --- Complete-the-grid question --------------------------------------------
@@ -543,13 +576,16 @@ class FillInTheBlanksQuestion extends CardQuestion {
 // QTI note: maps onto matchInteraction — hidden cells are the targets, the
 // pill pool (hidden cell values) are the source choices.
 class GridQuestion extends CardQuestion {
-  final List<String> rowHeaders;    // optional left-column labels (ticket: "rows")
-  final List<String> columnHeaders; // optional top-row labels (ticket: "columns")
-  final String cornerLabel;         // optional title for the row-header column,
-                                    // shown in the top-left corner (e.g. "Pronoun")
-  final List<List<String>>? cells;  // complete grid, row-major; null in templates
-  final int emptyCount;             // cells to hide per display
-  final List<String> extraWords;    // author-added distractor words for the pill pool
+  final List<String> rowHeaders; // optional left-column labels (ticket: "rows")
+  final List<String>
+  columnHeaders; // optional top-row labels (ticket: "columns")
+  final String cornerLabel; // optional title for the row-header column,
+  // shown in the top-left corner (e.g. "Pronoun")
+  final List<List<String>>?
+  cells; // complete grid, row-major; null in templates
+  final int emptyCount; // cells to hide per display
+  final List<String>
+  extraWords; // author-added distractor words for the pill pool
   final CompletionMode completionMode;
 
   const GridQuestion({
@@ -601,29 +637,30 @@ class GridQuestion extends CardQuestion {
       extraWords: content['extraWords'] != null
           ? List<String>.from(content['extraWords'] as List)
           : const [],
-      completionMode:
-          CompletionMode.fromString(content['completionMode'] as String?),
+      completionMode: CompletionMode.fromString(
+        content['completionMode'] as String?,
+      ),
     );
   }
 
   @override
   Map<String, dynamic> toJson() => {
-        'questionId': questionId,
-        'type': AppConstants.questionTypeGrid,
-        'prompt': prompt,
-        'content': {
-          'rowHeaders': rowHeaders,
-          'columnHeaders': columnHeaders,
-          // Omit the corner label when empty to keep stored docs lean.
-          if (cornerLabel.isNotEmpty) 'cornerLabel': cornerLabel,
-          // Flatten row-major; Firestore disallows arrays of arrays.
-          'cells': cells?.expand((row) => row).toList(),
-          'columnCount': columnCount,
-          'emptyCount': emptyCount,
-          'extraWords': extraWords,
-          'completionMode': completionMode.asJson,
-        },
-      };
+    'questionId': questionId,
+    'type': AppConstants.questionTypeGrid,
+    'prompt': prompt,
+    'content': {
+      'rowHeaders': rowHeaders,
+      'columnHeaders': columnHeaders,
+      // Omit the corner label when empty to keep stored docs lean.
+      if (cornerLabel.isNotEmpty) 'cornerLabel': cornerLabel,
+      // Flatten row-major; Firestore disallows arrays of arrays.
+      'cells': cells?.expand((row) => row).toList(),
+      'columnCount': columnCount,
+      'emptyCount': emptyCount,
+      'extraWords': extraWords,
+      'completionMode': completionMode.asJson,
+    },
+  };
 
   @override
   List<String> validate({bool isTemplate = false}) {
@@ -664,16 +701,15 @@ class GridQuestion extends CardQuestion {
     int? emptyCount,
     List<String>? extraWords,
     CompletionMode? completionMode,
-  }) =>
-      GridQuestion(
-        questionId: questionId ?? this.questionId,
-        prompt: prompt ?? this.prompt,
-        rowHeaders: rowHeaders ?? this.rowHeaders,
-        columnHeaders: columnHeaders ?? this.columnHeaders,
-        cornerLabel: cornerLabel ?? this.cornerLabel,
-        cells: cells ?? this.cells,
-        emptyCount: emptyCount ?? this.emptyCount,
-        extraWords: extraWords ?? this.extraWords,
-        completionMode: completionMode ?? this.completionMode,
-      );
+  }) => GridQuestion(
+    questionId: questionId ?? this.questionId,
+    prompt: prompt ?? this.prompt,
+    rowHeaders: rowHeaders ?? this.rowHeaders,
+    columnHeaders: columnHeaders ?? this.columnHeaders,
+    cornerLabel: cornerLabel ?? this.cornerLabel,
+    cells: cells ?? this.cells,
+    emptyCount: emptyCount ?? this.emptyCount,
+    extraWords: extraWords ?? this.extraWords,
+    completionMode: completionMode ?? this.completionMode,
+  );
 }

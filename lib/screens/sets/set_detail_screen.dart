@@ -45,8 +45,11 @@ class _FlashPaneEdit extends _PaneEdit {
 
 class _WorkbookPaneEdit extends _PaneEdit {
   final WorkbookCard? card;
+  // Non-null for a Clone (#274): card stays null (new-card path), seeded from
+  // this instead.
+  final WorkbookCard? cloneFrom;
   final GlobalKey<WorkbookEditorBodyState> key = GlobalKey();
-  _WorkbookPaneEdit({this.card});
+  _WorkbookPaneEdit({this.card, this.cloneFrom});
 }
 
 // ---------------------------------------------------------------------------
@@ -307,22 +310,44 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     setState(() => _paneEdit = _FlashPaneEdit(cloneFrom: card));
   }
 
-  // Clone entry point (#231), Flash Cards only. Mirrors _editCardRow's
-  // wide→pane / narrow→full-screen split. Cloning from within a set always
-  // links the new card to the current (live) set — the whole point of
-  // cloning here rather than from the Cards tab, where the clone stays
-  // unattached.
-  void _cloneCardRow(FlashCard card) {
+  void _cloneWorkbookCardInPane(WorkbookCard card) {
+    setState(() => _paneEdit = _WorkbookPaneEdit(cloneFrom: card));
+  }
+
+  // Clone entry point (#231 Flash Cards, #274 Workbook Cards). Mirrors
+  // _editCardRow's wide→pane / narrow→full-screen split. Cloning from within
+  // a set always links the new card to the current (live) set — the whole
+  // point of cloning here rather than from the Cards tab, where the clone
+  // stays unattached.
+  void _cloneCardRow(
+    ({String cardId, FlashCard? flash, WorkbookCard? workbook}) entry,
+  ) {
     if (widget.onExit != null) {
-      _cloneFlashCardInPane(card);
+      if (entry.flash != null) {
+        _cloneFlashCardInPane(entry.flash!);
+      } else {
+        _cloneWorkbookCardInPane(entry.workbook!);
+      }
       return;
     }
     final live = ref.read(setByIdProvider(widget.cardSet.id)) ?? widget.cardSet;
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => CardFormScreen(cloneFrom: card, parentSet: live),
-      ),
-    );
+    if (entry.flash != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              CardFormScreen(cloneFrom: entry.flash, parentSet: live),
+        ),
+      );
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => WorkbookCardFormScreen(
+            cloneFrom: entry.workbook,
+            parentSet: live,
+          ),
+        ),
+      );
+    }
   }
 
   // Right-click menu for a card row (#237) — the same two actions as the
@@ -338,14 +363,12 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
         label: l10n.tooltipEditCard,
         onSelected: () => _editCardRow(entry),
       ),
-      // Clone (#231) is Flash Card only — Workbook Card cloning is a separate,
-      // unstarted follow-up (mirrors the split #269 made for Save as Template).
-      if (entry.flash != null)
-        ContextMenuAction(
-          icon: Icons.copy_outlined,
-          label: l10n.tooltipCloneCard,
-          onSelected: () => _cloneCardRow(entry.flash!),
-        ),
+      // Clone (#231 Flash, #274 Workbook).
+      ContextMenuAction(
+        icon: Icons.copy_outlined,
+        label: l10n.tooltipCloneCard,
+        onSelected: () => _cloneCardRow(entry),
+      ),
       ContextMenuAction(
         icon: Icons.remove_circle_outline,
         label: l10n.tooltipRemoveFromSet,
@@ -384,6 +407,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     _FlashPaneEdit(cloneFrom: != null) => l10n.titleCloneCard,
     _FlashPaneEdit(card: null) => l10n.titleNewCard,
     _FlashPaneEdit() => l10n.titleEditCard,
+    _WorkbookPaneEdit(cloneFrom: != null) => l10n.titleCloneCard,
     _WorkbookPaneEdit(card: null) => l10n.titleNewWorkbookCard,
     _WorkbookPaneEdit() => l10n.titleEditWorkbookCard,
     null => '',
@@ -772,13 +796,9 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                   removeTooltip: ctx.l10n.tooltipRemoveFromSet,
                   onEdit: () => _editCardRow(entry),
                   onRemove: () => _removeCard(linkById[entry.cardId]!),
-                  // Clone (#231) is Flash Card only.
-                  cloneTooltip: entry.flash != null
-                      ? ctx.l10n.tooltipCloneCard
-                      : null,
-                  onClone: entry.flash != null
-                      ? () => _cloneCardRow(entry.flash!)
-                      : null,
+                  // Clone (#231 Flash, #274 Workbook).
+                  cloneTooltip: ctx.l10n.tooltipCloneCard,
+                  onClone: () => _cloneCardRow(entry),
                 );
 
           // Hover tint (#237) reuses the same _hoveredCardId tracking as the
@@ -892,16 +912,18 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
             onSavingChanged: (v) =>
                 mounted ? setState(() => _isPaneSaving = v) : null,
           ),
-        _WorkbookPaneEdit(:final card, :final key) => WorkbookEditorBody(
-          key: key,
-          card: card,
-          parentSet: liveSet,
-          showFooterActions: false,
-          onSaved: _exitPaneEdit,
-          onCancel: _exitPaneEdit,
-          onSavingChanged: (v) =>
-              mounted ? setState(() => _isPaneSaving = v) : null,
-        ),
+        _WorkbookPaneEdit(:final card, :final cloneFrom, :final key) =>
+          WorkbookEditorBody(
+            key: key,
+            card: card,
+            parentSet: liveSet,
+            cloneFrom: cloneFrom,
+            showFooterActions: false,
+            onSaved: _exitPaneEdit,
+            onCancel: _exitPaneEdit,
+            onSavingChanged: (v) =>
+                mounted ? setState(() => _isPaneSaving = v) : null,
+          ),
       };
     }
 
@@ -1281,10 +1303,9 @@ Widget _rowQuickActions({
   required String removeTooltip,
   required VoidCallback onEdit,
   required VoidCallback onRemove,
-  // Clone (#231) is Flash Card only — both null on a Workbook Card row, which
-  // simply omits the button rather than showing a disabled one.
-  String? cloneTooltip,
-  VoidCallback? onClone,
+  // Clone (#231 Flash, #274 Workbook) — available on both card types.
+  required String cloneTooltip,
+  required VoidCallback onClone,
 }) {
   return IgnorePointer(
     ignoring: !visible,
@@ -1302,17 +1323,15 @@ Widget _rowQuickActions({
             constraints: const BoxConstraints(),
             onPressed: onEdit,
           ),
-          if (onClone != null) ...[
-            const SizedBox(width: 12),
-            IconButton(
-              icon: const Icon(Icons.copy_outlined, size: 20),
-              tooltip: cloneTooltip,
-              visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              onPressed: onClone,
-            ),
-          ],
+          const SizedBox(width: 12),
+          IconButton(
+            icon: const Icon(Icons.copy_outlined, size: 20),
+            tooltip: cloneTooltip,
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: onClone,
+          ),
           const SizedBox(width: 12),
           IconButton(
             icon: const Icon(Icons.remove_circle_outline, size: 20),

@@ -103,15 +103,29 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
     }
   }
 
-  // Clone (#231), Flash Card only. No set context here, so unlike cloning
+  // Clone (#231 Flash, #274 Workbook). No set context here, so unlike cloning
   // from within a set (set_detail_screen.dart), the clone stays unattached.
   void _cloneCard(String id) {
     final flash = ref.read(userCardsProvider).asData?.value ?? <FlashCard>[];
     final match = flash.where((c) => c.id == id);
-    if (match.isEmpty) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => CardFormScreen(cloneFrom: match.first)),
-    );
+    if (match.isNotEmpty) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => CardFormScreen(cloneFrom: match.first),
+        ),
+      );
+      return;
+    }
+    final workbook =
+        ref.read(userWorkbookCardsProvider).asData?.value ?? <WorkbookCard>[];
+    final wb = workbook.where((c) => c.id == id);
+    if (wb.isNotEmpty) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => WorkbookCardFormScreen(cloneFrom: wb.first),
+        ),
+      );
+    }
   }
 
   // Row tap. Outside selection mode a plain tap opens the card and a modifier
@@ -160,14 +174,12 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
         label: l10n.tooltipEditCard,
         onSelected: () => _openCard(id),
       ),
-      // Clone (#231) is Flash Card only — Workbook Card cloning is a separate,
-      // unstarted follow-up (mirrors the split #269 made for Save as Template).
-      if (cardType == AppConstants.cardTypeFlashcard)
-        ContextMenuAction(
-          icon: Icons.copy_outlined,
-          label: l10n.tooltipCloneCard,
-          onSelected: () => _cloneCard(id),
-        ),
+      // Clone (#231 Flash, #274 Workbook).
+      ContextMenuAction(
+        icon: Icons.copy_outlined,
+        label: l10n.tooltipCloneCard,
+        onSelected: () => _cloneCard(id),
+      ),
       ContextMenuAction(
         icon: Icons.playlist_add,
         label: l10n.titleAddToSet,

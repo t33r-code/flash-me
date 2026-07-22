@@ -192,16 +192,6 @@ class _QuestionState {
 // (its language pair seeds the form). Navigation is the host's job — the body
 // reports save/cancel/delete via callbacks and never pops itself.
 // ---------------------------------------------------------------------------
-// Returns [q] with a freshly generated questionId, preserving all its content.
-// Used whenever a question moves into a new card context (template apply,
-// clone, #231) — questionId is a result-tracking key, so re-keying keeps study
-// history unambiguous between the source and the copy. Goes via toJson/fromJson
-// (both already polymorphic per-subtype) rather than a switch over copyWith,
-// since every subtype would do the identical thing: swap in a fresh id.
-CardQuestion _withFreshQuestionId(CardQuestion q) => CardQuestion.fromJson({
-  ...q.toJson(),
-  'questionId': CardQuestion.generateId(),
-});
 
 class CardEditorBody extends ConsumerStatefulWidget {
   final FlashCard? card;
@@ -297,7 +287,7 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
       // read from `clone` — see _resolveMediaUrls, which only reads widget.card).
       _questions.addAll(
         clone.questions.map(
-          (q) => _QuestionState.fromQuestion(_withFreshQuestionId(q)),
+          (q) => _QuestionState.fromQuestion(withFreshQuestionId(q)),
         ),
       );
       _nativeLanguage = clone.nativeLanguage;
@@ -363,7 +353,7 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
   void _appendQuestionFromTemplate(QuestionTemplate qt) {
     setState(
       () => _questions.add(
-        _QuestionState.fromQuestion(_withFreshQuestionId(qt.question)),
+        _QuestionState.fromQuestion(withFreshQuestionId(qt.question)),
       ),
     );
   }

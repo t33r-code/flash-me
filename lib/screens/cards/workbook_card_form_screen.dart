@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flash_me/models/card_question.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/card_template.dart';
 import 'package:flash_me/models/question_template.dart';
@@ -92,18 +93,18 @@ class _QuestionState {
 
   // Blank question defaulting to text_input type.
   factory _QuestionState.empty() => _QuestionState(
-        questionId: CardQuestion.generateId(),
-        type: AppConstants.fieldTypeTextInput,
-        promptController: TextEditingController(),
-        answersController: TextEditingController(),
-        hintController: TextEditingController(),
-        optionControllers: [TextEditingController(), TextEditingController()],
-        explanationController: TextEditingController(),
-        wordBank: [],
-        correctOrder: [],
-        wordBankInputController: TextEditingController(),
-        correctOrderInputController: TextEditingController(),
-      );
+    questionId: CardQuestion.generateId(),
+    type: AppConstants.fieldTypeTextInput,
+    promptController: TextEditingController(),
+    answersController: TextEditingController(),
+    hintController: TextEditingController(),
+    optionControllers: [TextEditingController(), TextEditingController()],
+    explanationController: TextEditingController(),
+    wordBank: [],
+    correctOrder: [],
+    wordBankInputController: TextEditingController(),
+    correctOrderInputController: TextEditingController(),
+  );
 
   // Populate controllers from an existing CardQuestion (edit mode).
   factory _QuestionState.fromQuestion(CardQuestion q) {
@@ -113,14 +114,12 @@ class _QuestionState {
           questionId: q.questionId,
           type: AppConstants.fieldTypeTextInput,
           promptController: TextEditingController(text: q.prompt ?? ''),
-          answersController:
-              TextEditingController(text: (q.correctAnswers ?? []).join(', ')),
+          answersController: TextEditingController(
+            text: (q.correctAnswers ?? []).join(', '),
+          ),
           hintController: TextEditingController(text: q.hint ?? ''),
           exactMatch: q.exactMatch,
-          optionControllers: [
-            TextEditingController(),
-            TextEditingController(),
-          ],
+          optionControllers: [TextEditingController(), TextEditingController()],
           explanationController: TextEditingController(),
           wordBank: [],
           correctOrder: [],
@@ -144,8 +143,9 @@ class _QuestionState {
           optionControllers: optCtls,
           correctIndex: q.correctIndex,
           displayMode: q.displayMode,
-          explanationController:
-              TextEditingController(text: q.explanation ?? ''),
+          explanationController: TextEditingController(
+            text: q.explanation ?? '',
+          ),
           wordBank: [],
           correctOrder: [],
           wordBankInputController: TextEditingController(),
@@ -158,10 +158,7 @@ class _QuestionState {
           promptController: TextEditingController(text: q.prompt ?? ''),
           answersController: TextEditingController(),
           hintController: TextEditingController(),
-          optionControllers: [
-            TextEditingController(),
-            TextEditingController(),
-          ],
+          optionControllers: [TextEditingController(), TextEditingController()],
           explanationController: TextEditingController(),
           wordBank: List.from(q.wordBank ?? []),
           correctOrder: List.from(q.correctOrder ?? []),
@@ -175,10 +172,7 @@ class _QuestionState {
           promptController: TextEditingController(text: q.prompt ?? ''),
           answersController: TextEditingController(),
           hintController: TextEditingController(),
-          optionControllers: [
-            TextEditingController(),
-            TextEditingController(),
-          ],
+          optionControllers: [TextEditingController(), TextEditingController()],
           explanationController: TextEditingController(),
           wordBank: [],
           correctOrder: [],
@@ -199,10 +193,7 @@ class _QuestionState {
           promptController: TextEditingController(text: q.prompt ?? ''),
           answersController: TextEditingController(),
           hintController: TextEditingController(),
-          optionControllers: [
-            TextEditingController(),
-            TextEditingController(),
-          ],
+          optionControllers: [TextEditingController(), TextEditingController()],
           explanationController: TextEditingController(),
           wordBank: [],
           correctOrder: [],
@@ -212,14 +203,17 @@ class _QuestionState {
         // Prefill the grid editor state from the stored cells/headers.
         for (final row in q.cells ?? const <List<String>>[]) {
           state.gridCells.add(
-              row.map((v) => TextEditingController(text: v)).toList());
+            row.map((v) => TextEditingController(text: v)).toList(),
+          );
         }
         state.gridHasRowHeaders = q.rowHeaders.isNotEmpty;
         state.gridHasColHeaders = q.columnHeaders.isNotEmpty;
         state.gridRowHeaderCtls.addAll(
-            q.rowHeaders.map((h) => TextEditingController(text: h)));
+          q.rowHeaders.map((h) => TextEditingController(text: h)),
+        );
         state.gridColHeaderCtls.addAll(
-            q.columnHeaders.map((h) => TextEditingController(text: h)));
+          q.columnHeaders.map((h) => TextEditingController(text: h)),
+        );
         state.gridCornerCtl.text = q.cornerLabel;
         state.gridEmptyCount = q.emptyCount;
         state.gridExtraWords.addAll(q.extraWords);
@@ -342,6 +336,11 @@ class _QuestionState {
 class WorkbookEditorBody extends ConsumerStatefulWidget {
   final WorkbookCard? card;
   final CardSet? parentSet;
+  // Non-null when opened via Clone (#274, mirrors #231): seeds a brand-new
+  // draft (card stays null, so the normal create path runs) with a copy of
+  // the source's fields. Workbook Cards have no media fields, so unlike the
+  // Flash Card clone there's nothing to deliberately leave out.
+  final WorkbookCard? cloneFrom;
   final VoidCallback? onSaved;
   final VoidCallback? onCancel;
   final VoidCallback? onDeleted;
@@ -356,6 +355,7 @@ class WorkbookEditorBody extends ConsumerStatefulWidget {
     super.key,
     this.card,
     this.parentSet,
+    this.cloneFrom,
     this.onSaved,
     this.onCancel,
     this.onDeleted,
@@ -391,13 +391,28 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
   void initState() {
     super.initState();
     final card = widget.card;
-    _promptController = TextEditingController(text: card?.prompt ?? '');
-    _tags = List.from(card?.tags ?? []);
+    final clone = widget.cloneFrom;
+    _promptController = TextEditingController(
+      text: card?.prompt ?? clone?.prompt ?? '',
+    );
+    _tags = List.from(card?.tags ?? clone?.tags ?? []);
     if (card != null) {
       _questions.addAll(card.questions.map(_QuestionState.fromQuestion));
       _nativeLanguage = card.nativeLanguage;
       _targetLanguage = card.targetLanguage;
       _questionAsCard = card.questionAsCard;
+    } else if (clone != null) {
+      // Clone (#274): fresh questionIds per question, same as the Flash Card
+      // clone — questionId is a result-tracking key, so re-keying keeps study
+      // history unambiguous between the source and the copy.
+      _questions.addAll(
+        clone.questions.map(
+          (q) => _QuestionState.fromQuestion(withFreshQuestionId(q)),
+        ),
+      );
+      _nativeLanguage = clone.nativeLanguage;
+      _targetLanguage = clone.targetLanguage;
+      _questionAsCard = clone.questionAsCard;
     } else if (widget.parentSet != null) {
       _nativeLanguage = widget.parentSet!.nativeLanguage;
       _targetLanguage = widget.parentSet!.targetLanguage;
@@ -468,16 +483,15 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
   // Appends a single question from a QuestionTemplate with a fresh questionId.
   void _appendQuestionFromTemplate(QuestionTemplate qt) {
     final freshQuestion = switch (qt.question) {
-      TextInputQuestion q =>
-        q.copyWith(questionId: CardQuestion.generateId()),
-      MultipleChoiceQuestion q =>
-        q.copyWith(questionId: CardQuestion.generateId()),
-      WordOrderQuestion q =>
-        q.copyWith(questionId: CardQuestion.generateId()),
-      FillInTheBlanksQuestion q =>
-        q.copyWith(questionId: CardQuestion.generateId()),
-      GridQuestion q =>
-        q.copyWith(questionId: CardQuestion.generateId()),
+      TextInputQuestion q => q.copyWith(questionId: CardQuestion.generateId()),
+      MultipleChoiceQuestion q => q.copyWith(
+        questionId: CardQuestion.generateId(),
+      ),
+      WordOrderQuestion q => q.copyWith(questionId: CardQuestion.generateId()),
+      FillInTheBlanksQuestion q => q.copyWith(
+        questionId: CardQuestion.generateId(),
+      ),
+      GridQuestion q => q.copyWith(questionId: CardQuestion.generateId()),
     };
     setState(() {
       _questions.add(_QuestionState.fromQuestion(freshQuestion));
@@ -497,7 +511,8 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
   // --- Multiple choice option management ------------------------------------
 
   void _addOption(int qIdx) => setState(
-      () => _questions[qIdx].optionControllers.add(TextEditingController()));
+    () => _questions[qIdx].optionControllers.add(TextEditingController()),
+  );
 
   void _removeOption(int qIdx, int optIdx) {
     final q = _questions[qIdx];
@@ -585,17 +600,21 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
   void _setFibBlankCount(int qIdx, int count) {
     final q = _questions[qIdx];
     final eligible = _fibEligibleCount(q);
-    setState(() => q.fibBlankCount = count.clamp(1, eligible < 1 ? 1 : eligible));
+    setState(
+      () => q.fibBlankCount = count.clamp(1, eligible < 1 ? 1 : eligible),
+    );
   }
 
   // Add one or more distractors from a comma-separated entry (#209).
   // Words already in the sentence, dupes, and CSV-internal repeats are dropped.
   void _addFibExtraWord(int qIdx, String csv) {
     final q = _questions[qIdx];
-    final questionWords =
-        q.fibTokens.map((t) => t.word.toLowerCase()).toSet();
-    final toAdd =
-        AppHelpers.parseDistractorCsv(csv, q.fibExtraWords, questionWords);
+    final questionWords = q.fibTokens.map((t) => t.word.toLowerCase()).toSet();
+    final toAdd = AppHelpers.parseDistractorCsv(
+      csv,
+      q.fibExtraWords,
+      questionWords,
+    );
     if (toAdd.isNotEmpty) {
       setState(() => q.fibExtraWords.addAll(toAdd));
     }
@@ -616,8 +635,11 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
         for (final c in row)
           if (c.text.trim().isNotEmpty) c.text.trim().toLowerCase(),
     };
-    final toAdd =
-        AppHelpers.parseDistractorCsv(csv, q.gridExtraWords, questionWords);
+    final toAdd = AppHelpers.parseDistractorCsv(
+      csv,
+      q.gridExtraWords,
+      questionWords,
+    );
     if (toAdd.isNotEmpty) {
       setState(() => q.gridExtraWords.addAll(toAdd));
     }
@@ -633,8 +655,7 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
   int _gridRowCount(_QuestionState q) => q.gridCells.length;
   int _gridColCount(_QuestionState q) =>
       q.gridCells.isEmpty ? 0 : q.gridCells.first.length;
-  int _gridTotalCells(_QuestionState q) =>
-      _gridRowCount(q) * _gridColCount(q);
+  int _gridTotalCells(_QuestionState q) => _gridRowCount(q) * _gridColCount(q);
 
   // Create a default 2×2 grid the first time the grid type is selected.
   void _gridEnsureInit(_QuestionState q) {
@@ -650,9 +671,10 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
     final cols = _gridColCount(q).clamp(1, 99);
     setState(() {
       while (q.gridCells.length < rows) {
-        q.gridCells
-            .add(List.generate(cols, (_) => TextEditingController()));
-        if (q.gridHasRowHeaders) q.gridRowHeaderCtls.add(TextEditingController());
+        q.gridCells.add(List.generate(cols, (_) => TextEditingController()));
+        if (q.gridHasRowHeaders) {
+          q.gridRowHeaderCtls.add(TextEditingController());
+        }
       }
       while (q.gridCells.length > rows && q.gridCells.length > 1) {
         for (final c in q.gridCells.removeLast()) {
@@ -718,8 +740,7 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
   void _gridSetEmptyCount(int qIdx, int count) {
     final q = _questions[qIdx];
     final total = _gridTotalCells(q);
-    setState(() =>
-        q.gridEmptyCount = count.clamp(1, total < 1 ? 1 : total));
+    setState(() => q.gridEmptyCount = count.clamp(1, total < 1 ? 1 : total));
   }
 
   void _gridClampEmptyCount(_QuestionState q) {
@@ -744,9 +765,9 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
       final q = _questions[i];
       if (q.type == AppConstants.fieldTypeMultipleChoice &&
           q.correctIndex == null) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(l10n.messageSelectCorrectOptionNumber(i + 1)),
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.messageSelectCorrectOptionNumber(i + 1))),
+        );
         return;
       }
     }
@@ -756,22 +777,26 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
       final q = _questions[i];
       if (q.type == AppConstants.questionTypeWordOrder) {
         if (q.wordBank.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(l10n.messageWordOrderNeedWordBank(i + 1)),
-          ));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.messageWordOrderNeedWordBank(i + 1))),
+          );
           return;
         }
         if (q.correctOrder.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(l10n.messageWordOrderNeedCorrectOrder(i + 1)),
-          ));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.messageWordOrderNeedCorrectOrder(i + 1)),
+            ),
+          );
           return;
         }
         for (final word in q.correctOrder) {
           if (!q.wordBank.contains(word)) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(l10n.messageWordOrderWordNotInBank(i + 1, word)),
-            ));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(l10n.messageWordOrderWordNotInBank(i + 1, word)),
+              ),
+            );
             return;
           }
         }
@@ -782,16 +807,17 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
     for (int i = 0; i < _questions.length; i++) {
       final q = _questions[i];
       if (q.type == AppConstants.questionTypeFillInBlanks) {
-        if (q.fibSentenceController.text.trim().isEmpty || q.fibTokens.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(l10n.messageFibNeedSentence(i + 1)),
-          ));
+        if (q.fibSentenceController.text.trim().isEmpty ||
+            q.fibTokens.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.messageFibNeedSentence(i + 1))),
+          );
           return;
         }
         if (_fibEligibleCount(q) == 0) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(l10n.messageFibNeedEligible(i + 1)),
-          ));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.messageFibNeedEligible(i + 1))),
+          );
           return;
         }
       }
@@ -802,12 +828,13 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
     for (int i = 0; i < _questions.length; i++) {
       final q = _questions[i];
       if (q.type == AppConstants.questionTypeGrid) {
-        final anyEmpty =
-            q.gridCells.any((row) => row.any((c) => c.text.trim().isEmpty));
+        final anyEmpty = q.gridCells.any(
+          (row) => row.any((c) => c.text.trim().isEmpty),
+        );
         if (q.gridCells.isEmpty || anyEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(l10n.messageGridFillAllCells(i + 1)),
-          ));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.messageGridFillAllCells(i + 1))),
+          );
           return;
         }
       }
@@ -828,40 +855,50 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
 
       if (!_isEditing) {
         final now = DateTime.now();
-        final created =
-            await ref.read(workbookCardRepositoryProvider).createCard(
-                  WorkbookCard(
-                    id: '',
-                    prompt: _promptController.text.trim(),
-                    questions: questions,
-                    questionAsCard: _questionAsCard,
-                    tags: normalizedTags,
-                    nativeLanguage: _nativeLanguage,
-                    targetLanguage: _targetLanguage,
-                    createdAt: now,
-                    updatedAt: now,
-                    createdBy: uid,
-                  ),
-                );
+        final created = await ref
+            .read(workbookCardRepositoryProvider)
+            .createCard(
+              WorkbookCard(
+                id: '',
+                prompt: _promptController.text.trim(),
+                questions: questions,
+                questionAsCard: _questionAsCard,
+                tags: normalizedTags,
+                nativeLanguage: _nativeLanguage,
+                targetLanguage: _targetLanguage,
+                createdAt: now,
+                updatedAt: now,
+                createdBy: uid,
+              ),
+            );
         // Link the new card into the set when created from a set's "New card"
         // flow (parentSet is passed by the Set Detail "New card" action).
         if (widget.parentSet != null) {
-          await ref.read(cardSetRepositoryProvider).addCardToSet(
+          await ref
+              .read(cardSetRepositoryProvider)
+              .addCardToSet(
                 setId: widget.parentSet!.id,
                 cardId: created.id,
                 userId: uid,
                 cardType: AppConstants.cardTypeWorkbook,
               );
         }
-        ref.read(lastUsedLanguagesProvider.notifier).set(
-              (native: _nativeLanguage, target: _targetLanguage),
-            );
+        ref.read(lastUsedLanguagesProvider.notifier).set((
+          native: _nativeLanguage,
+          target: _targetLanguage,
+        ));
         // Fire-and-forget tag upserts so a count failure never blocks save.
-        for (final tag in normalizedTags) { tagRepo.upsertTag(tag, uid); }
+        for (final tag in normalizedTags) {
+          tagRepo.upsertTag(tag, uid);
+        }
       } else {
-        final (toUpsert, toDecrement) =
-            AppHelpers.diffTags(widget.card!.tags, normalizedTags);
-        await ref.read(workbookCardRepositoryProvider).updateCard(
+        final (toUpsert, toDecrement) = AppHelpers.diffTags(
+          widget.card!.tags,
+          normalizedTags,
+        );
+        await ref
+            .read(workbookCardRepositoryProvider)
+            .updateCard(
               widget.card!.copyWith(
                 prompt: _promptController.text.trim(),
                 questions: questions,
@@ -871,8 +908,12 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
                 targetLanguage: _targetLanguage,
               ),
             );
-        for (final tag in toUpsert) { tagRepo.upsertTag(tag, uid); }
-        for (final norm in toDecrement) { tagRepo.decrementTag(norm); }
+        for (final tag in toUpsert) {
+          tagRepo.upsertTag(tag, uid);
+        }
+        for (final norm in toDecrement) {
+          tagRepo.decrementTag(norm);
+        }
       }
       if (mounted) {
         _setSaving(false);
@@ -903,7 +944,8 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error),
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
             child: Text(l10n.labelDelete),
           ),
         ],
@@ -920,7 +962,9 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
       await ref
           .read(workbookCardRepositoryProvider)
           .deleteCard(widget.card!.id);
-      for (final norm in tagsToDecrement) { tagRepo.decrementTag(norm); }
+      for (final norm in tagsToDecrement) {
+        tagRepo.decrementTag(norm);
+      }
       if (mounted) {
         _setSaving(false);
         widget.onDeleted?.call();
@@ -987,14 +1031,17 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
         // Display mode chip selector.
         Row(
           children: [
-            Text(l10n.labelDisplay,
-                style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              l10n.labelDisplay,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(width: 8),
             ChoiceChip(
               label: Text(l10n.labelDisplayList),
               selected: q.displayMode == MultipleChoiceDisplayMode.list,
               onSelected: (_) => setState(
-                  () => q.displayMode = MultipleChoiceDisplayMode.list),
+                () => q.displayMode = MultipleChoiceDisplayMode.list,
+              ),
               visualDensity: VisualDensity.compact,
             ),
             const SizedBox(width: 4),
@@ -1002,14 +1049,17 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
               label: Text(l10n.labelDisplayChips),
               selected: q.displayMode == MultipleChoiceDisplayMode.chips,
               onSelected: (_) => setState(
-                  () => q.displayMode = MultipleChoiceDisplayMode.chips),
+                () => q.displayMode = MultipleChoiceDisplayMode.chips,
+              ),
               visualDensity: VisualDensity.compact,
             ),
           ],
         ),
         const SizedBox(height: 8),
-        Text(l10n.labelOptionsRequired,
-            style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          l10n.labelOptionsRequired,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
         const SizedBox(height: 8),
         // RadioGroup groups all Radio children around a shared value.
         RadioGroup<int>(
@@ -1067,18 +1117,19 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
   Widget _buildWordOrderContent(_QuestionState q, int qIdx) {
     final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
-    final muted = Theme.of(context)
-        .textTheme
-        .bodySmall
-        ?.copyWith(color: scheme.onSurfaceVariant);
+    final muted = Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant);
     final available = _availableForCorrectOrder(qIdx);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // -- Word Bank -------------------------------------------------
-        Text(l10n.labelWordBankRequired,
-            style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          l10n.labelWordBankRequired,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
         const SizedBox(height: 2),
         Text(l10n.messageWordBankHelp, style: muted),
         const SizedBox(height: 8),
@@ -1113,11 +1164,13 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
             children: q.wordBank
                 .asMap()
                 .entries
-                .map((e) => Chip(
-                      label: Text(e.value),
-                      onDeleted: () => _removeWordBankTile(qIdx, e.key),
-                      visualDensity: VisualDensity.compact,
-                    ))
+                .map(
+                  (e) => Chip(
+                    label: Text(e.value),
+                    onDeleted: () => _removeWordBankTile(qIdx, e.key),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                )
                 .toList(),
           ),
         ],
@@ -1126,14 +1179,17 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
         // -- Correct Order (tap tiles to build sequence) ---------------
         Row(
           children: [
-            Text(l10n.labelCorrectOrderRequired,
-                style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              l10n.labelCorrectOrderRequired,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const Spacer(),
             if (q.correctOrder.isNotEmpty)
               TextButton(
                 onPressed: () => setState(() => q.correctOrder.clear()),
                 style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact),
+                  visualDensity: VisualDensity.compact,
+                ),
                 child: Text(l10n.actionClear),
               ),
           ],
@@ -1179,12 +1235,14 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
             spacing: 6,
             runSpacing: 4,
             children: available
-                .map((word) => ActionChip(
-                      label: Text(word),
-                      onPressed: () => _placeCorrectOrderWord(qIdx, word),
-                      visualDensity: VisualDensity.compact,
-                      avatar: const Icon(Icons.add, size: 16),
-                    ))
+                .map(
+                  (word) => ActionChip(
+                    label: Text(word),
+                    onPressed: () => _placeCorrectOrderWord(qIdx, word),
+                    visualDensity: VisualDensity.compact,
+                    avatar: const Icon(Icons.add, size: 16),
+                  ),
+                )
                 .toList(),
           )
         else if (q.wordBank.isNotEmpty)
@@ -1198,10 +1256,9 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
   Widget _buildFillInBlanksContent(_QuestionState q, int qIdx) {
     final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
-    final muted = Theme.of(context)
-        .textTheme
-        .bodySmall
-        ?.copyWith(color: scheme.onSurfaceVariant);
+    final muted = Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant);
     final eligibleCount = _fibEligibleCount(q);
 
     return Column(
@@ -1212,8 +1269,10 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
         const SizedBox(height: 12),
 
         // -- Sentence + Tokenize --------------------------------------------
-        Text(l10n.labelFibSentenceRequired,
-            style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          l10n.labelFibSentenceRequired,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
         const SizedBox(height: 2),
         Text(l10n.messageFibSentenceHelp, style: muted),
         const SizedBox(height: 8),
@@ -1264,8 +1323,10 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
           // -- Number of blanks ---------------------------------------------
           Row(
             children: [
-              Text(l10n.labelFibBlankCount,
-                  style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                l10n.labelFibBlankCount,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
               const Spacer(),
               IconButton(
                 icon: const Icon(Icons.remove_circle_outline),
@@ -1275,8 +1336,10 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
                     ? () => _setFibBlankCount(qIdx, q.fibBlankCount - 1)
                     : null,
               ),
-              Text('${q.fibBlankCount}',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                '${q.fibBlankCount}',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               IconButton(
                 icon: const Icon(Icons.add_circle_outline),
                 iconSize: 22,
@@ -1292,8 +1355,10 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
 
           // -- Distractor words (optional, pill mode only) ------------------
           if (q.completionMode == CompletionMode.pill) ...[
-            Text(l10n.labelFibDistractorsOptional,
-                style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              l10n.labelFibDistractorsOptional,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 2),
             Text(l10n.messageFibDistractorsHelp, style: muted),
             const SizedBox(height: 8),
@@ -1315,7 +1380,9 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
                 const SizedBox(width: 8),
                 FilledButton(
                   onPressed: () => _addFibExtraWord(
-                      qIdx, q.fibExtraWordInputController.text),
+                    qIdx,
+                    q.fibExtraWordInputController.text,
+                  ),
                   child: Text(l10n.actionAdd),
                 ),
               ],
@@ -1328,11 +1395,13 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
                 children: q.fibExtraWords
                     .asMap()
                     .entries
-                    .map((e) => Chip(
-                          label: Text(e.value),
-                          onDeleted: () => _removeFibExtraWord(qIdx, e.key),
-                          visualDensity: VisualDensity.compact,
-                        ))
+                    .map(
+                      (e) => Chip(
+                        label: Text(e.value),
+                        onDeleted: () => _removeFibExtraWord(qIdx, e.key),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    )
                     .toList(),
               ),
             ],
@@ -1348,10 +1417,9 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
   Widget _buildGridContent(_QuestionState q, int qIdx) {
     final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
-    final muted = Theme.of(context)
-        .textTheme
-        .bodySmall
-        ?.copyWith(color: scheme.onSurfaceVariant);
+    final muted = Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant);
     final rows = _gridRowCount(q);
     final cols = _gridColCount(q);
     final total = _gridTotalCells(q);
@@ -1374,10 +1442,12 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
               child: _gridStepper(
                 label: l10n.labelGridRows,
                 value: rows,
-                onDecrease:
-                    rows > 1 ? () => _gridSetRows(qIdx, rows - 1) : null,
-                onIncrease:
-                    rows < maxDim ? () => _gridSetRows(qIdx, rows + 1) : null,
+                onDecrease: rows > 1
+                    ? () => _gridSetRows(qIdx, rows - 1)
+                    : null,
+                onIncrease: rows < maxDim
+                    ? () => _gridSetRows(qIdx, rows + 1)
+                    : null,
               ),
             ),
             const SizedBox(width: 12),
@@ -1385,10 +1455,12 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
               child: _gridStepper(
                 label: l10n.labelGridColumns,
                 value: cols,
-                onDecrease:
-                    cols > 1 ? () => _gridSetCols(qIdx, cols - 1) : null,
-                onIncrease:
-                    cols < maxDim ? () => _gridSetCols(qIdx, cols + 1) : null,
+                onDecrease: cols > 1
+                    ? () => _gridSetCols(qIdx, cols - 1)
+                    : null,
+                onIncrease: cols < maxDim
+                    ? () => _gridSetCols(qIdx, cols + 1)
+                    : null,
               ),
             ),
           ],
@@ -1403,8 +1475,10 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
                 contentPadding: EdgeInsets.zero,
                 dense: true,
                 controlAffinity: ListTileControlAffinity.leading,
-                title: Text(l10n.labelGridColumnHeaders,
-                    style: Theme.of(context).textTheme.bodySmall),
+                title: Text(
+                  l10n.labelGridColumnHeaders,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
                 value: q.gridHasColHeaders,
                 onChanged: (v) => _gridToggleColHeaders(qIdx, v ?? false),
               ),
@@ -1414,8 +1488,10 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
                 contentPadding: EdgeInsets.zero,
                 dense: true,
                 controlAffinity: ListTileControlAffinity.leading,
-                title: Text(l10n.labelGridRowHeaders,
-                    style: Theme.of(context).textTheme.bodySmall),
+                title: Text(
+                  l10n.labelGridRowHeaders,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
                 value: q.gridHasRowHeaders,
                 onChanged: (v) => _gridToggleRowHeaders(qIdx, v ?? false),
               ),
@@ -1479,8 +1555,10 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
         // -- Empty-cell count -----------------------------------------------
         Row(
           children: [
-            Text(l10n.labelGridEmptyCells,
-                style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              l10n.labelGridEmptyCells,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const Spacer(),
             IconButton(
               icon: const Icon(Icons.remove_circle_outline),
@@ -1490,8 +1568,10 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
                   ? () => _gridSetEmptyCount(qIdx, q.gridEmptyCount - 1)
                   : null,
             ),
-            Text('${q.gridEmptyCount}',
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              '${q.gridEmptyCount}',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             IconButton(
               icon: const Icon(Icons.add_circle_outline),
               iconSize: 22,
@@ -1507,8 +1587,10 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
 
         // -- Distractor words (optional, pill mode only) --------------------
         if (q.completionMode == CompletionMode.pill) ...[
-          Text(l10n.labelFibDistractorsOptional,
-              style: Theme.of(context).textTheme.bodySmall),
+          Text(
+            l10n.labelFibDistractorsOptional,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
           const SizedBox(height: 2),
           Text(l10n.messageFibDistractorsHelp, style: muted),
           const SizedBox(height: 8),
@@ -1529,8 +1611,10 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
               ),
               const SizedBox(width: 8),
               FilledButton(
-                onPressed: () =>
-                    _addGridExtraWord(qIdx, q.gridExtraWordInputController.text),
+                onPressed: () => _addGridExtraWord(
+                  qIdx,
+                  q.gridExtraWordInputController.text,
+                ),
                 child: Text(l10n.actionAdd),
               ),
             ],
@@ -1543,11 +1627,13 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
               children: q.gridExtraWords
                   .asMap()
                   .entries
-                  .map((e) => Chip(
-                        label: Text(e.value),
-                        onDeleted: () => _removeGridExtraWord(qIdx, e.key),
-                        visualDensity: VisualDensity.compact,
-                      ))
+                  .map(
+                    (e) => Chip(
+                      label: Text(e.value),
+                      onDeleted: () => _removeGridExtraWord(qIdx, e.key),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  )
                   .toList(),
             ),
           ],
@@ -1562,8 +1648,10 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
     final l10n = context.l10n;
     return Row(
       children: [
-        Text(l10n.labelCompletionMode,
-            style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          l10n.labelCompletionMode,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
         const SizedBox(width: 12),
         SegmentedButton<CompletionMode>(
           segments: [
@@ -1624,10 +1712,11 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
   }
 
   // One fixed-width cell/header text field in the grid editor.
-  Widget _gridFieldBox(
-      {required TextEditingController controller,
-      required String hint,
-      bool header = false}) {
+  Widget _gridFieldBox({
+    required TextEditingController controller,
+    required String hint,
+    bool header = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.all(2),
       child: SizedBox(
@@ -1635,15 +1724,15 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
         child: TextField(
           controller: controller,
           textAlign: TextAlign.center,
-          style: header
-              ? const TextStyle(fontWeight: FontWeight.bold)
-              : null,
+          style: header ? const TextStyle(fontWeight: FontWeight.bold) : null,
           decoration: InputDecoration(
             hintText: hint,
             isDense: true,
             filled: header,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 6,
+              vertical: 8,
+            ),
             border: const OutlineInputBorder(),
           ),
         ),
@@ -1665,15 +1754,18 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
             // Header: label + reorder + delete.
             Row(
               children: [
-                Text(l10n.labelQuestionNumber(index + 1),
-                    style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  l10n.labelQuestionNumber(index + 1),
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.arrow_upward),
                   iconSize: 20,
                   tooltip: l10n.tooltipMoveUp,
-                  onPressed:
-                      index > 0 ? () => _moveQuestion(index, index - 1) : null,
+                  onPressed: index > 0
+                      ? () => _moveQuestion(index, index - 1)
+                      : null,
                 ),
                 IconButton(
                   icon: const Icon(Icons.arrow_downward),
@@ -1770,141 +1862,156 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     return Form(
-        key: _formKey,
-        child: IgnorePointer(
-          ignoring: _isSaving,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // --- Prompt -----------------------------------------------
-                Text(l10n.titlePromptSection,
-                    style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 4),
-                Text(
-                  l10n.messagePromptSectionHelp,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color:
-                          Theme.of(context).colorScheme.onSurfaceVariant),
+      key: _formKey,
+      child: IgnorePointer(
+        ignoring: _isSaving,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // --- Prompt -----------------------------------------------
+              Text(
+                l10n.titlePromptSection,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                l10n.messagePromptSectionHelp,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _promptController,
-                  decoration: InputDecoration(
-                    labelText: l10n.labelPromptRequired,
-                    hintText: l10n.hintPromptExample,
-                    border: const OutlineInputBorder(),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _promptController,
+                decoration: InputDecoration(
+                  labelText: l10n.labelPromptRequired,
+                  hintText: l10n.hintPromptExample,
+                  border: const OutlineInputBorder(),
+                ),
+                maxLines: 3,
+                textCapitalization: TextCapitalization.sentences,
+                validator: (v) => v?.trim().isEmpty ?? true
+                    ? l10n.validatorPromptRequired
+                    : null,
+              ),
+
+              // --- Languages --------------------------------------------
+              const SizedBox(height: 24),
+              Text(
+                l10n.titleLanguagesSection,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              LanguagePicker(
+                label: l10n.labelTargetLanguage,
+                value: _targetLanguage,
+                onChanged: (v) => setState(() => _targetLanguage = v),
+              ),
+              const SizedBox(height: 12),
+              LanguagePicker(
+                label: l10n.labelNativeLanguage,
+                value: _nativeLanguage,
+                onChanged: (v) => setState(() => _nativeLanguage = v),
+              ),
+
+              // --- Tags -------------------------------------------------
+              const SizedBox(height: 24),
+              Text(
+                l10n.titleTagsSection,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              TagInputField(
+                tags: _tags,
+                enabled: !_isSaving,
+                onChanged: (updated) => setState(() => _tags = updated),
+              ),
+
+              // --- Questions --------------------------------------------
+              const SizedBox(height: 24),
+              // "Use Template" button sits alongside the section header.
+              Row(
+                children: [
+                  Text(
+                    l10n.titleQuestionsSection,
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  maxLines: 3,
-                  textCapitalization: TextCapitalization.sentences,
-                  validator: (v) =>
-                      v?.trim().isEmpty ?? true ? l10n.validatorPromptRequired : null,
-                ),
-
-                // --- Languages --------------------------------------------
-                const SizedBox(height: 24),
-                Text(l10n.titleLanguagesSection,
-                    style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 12),
-                LanguagePicker(
-                  label: l10n.labelTargetLanguage,
-                  value: _targetLanguage,
-                  onChanged: (v) => setState(() => _targetLanguage = v),
-                ),
-                const SizedBox(height: 12),
-                LanguagePicker(
-                  label: l10n.labelNativeLanguage,
-                  value: _nativeLanguage,
-                  onChanged: (v) => setState(() => _nativeLanguage = v),
-                ),
-
-                // --- Tags -------------------------------------------------
-                const SizedBox(height: 24),
-                Text(l10n.titleTagsSection,
-                    style: Theme.of(context).textTheme.titleMedium),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: _showTemplatePicker,
+                    icon: const Icon(Icons.copy_all_outlined, size: 18),
+                    label: Text(l10n.actionUseTemplate),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ..._questions.asMap().entries.map(
+                (e) => _buildQuestionCard(e.key),
+              ),
+              // "Question as card" only makes sense for exactly one question.
+              if (_questions.length == 1) ...[
                 const SizedBox(height: 8),
-                TagInputField(
-                  tags: _tags,
-                  enabled: !_isSaving,
-                  onChanged: (updated) => setState(() => _tags = updated),
+                SwitchListTile(
+                  value: _questionAsCard,
+                  onChanged: (v) => setState(() => _questionAsCard = v),
+                  title: Text(l10n.labelQuestionAsCard),
+                  subtitle: Text(l10n.messageQuestionAsCardSubtitle),
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
                 ),
+              ],
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: _addQuestion,
+                icon: const Icon(Icons.add),
+                label: Text(l10n.actionAddQuestion),
+              ),
 
-                // --- Questions --------------------------------------------
-                const SizedBox(height: 24),
-                // "Use Template" button sits alongside the section header.
+              // --- Save / Cancel ----------------------------------------
+              // Hidden when a host drives these from its own toolbar (#259).
+              if (widget.showFooterActions) ...[
+                const SizedBox(height: 32),
                 Row(
                   children: [
-                    Text(l10n.titleQuestionsSection,
-                        style: Theme.of(context).textTheme.titleMedium),
-                    const Spacer(),
-                    TextButton.icon(
-                      onPressed: _showTemplatePicker,
-                      icon: const Icon(Icons.copy_all_outlined, size: 18),
-                      label: Text(l10n.actionUseTemplate),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _isSaving
+                            ? null
+                            : () => widget.onCancel?.call(),
+                        child: Text(l10n.labelCancel),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: _isSaving ? null : _save,
+                        child: _isSaving
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                _isEditing
+                                    ? l10n.actionSaveChanges
+                                    : l10n.actionCreateCard,
+                              ),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                ..._questions.asMap().entries.map((e) => _buildQuestionCard(e.key)),
-                // "Question as card" only makes sense for exactly one question.
-                if (_questions.length == 1) ...[
-                  const SizedBox(height: 8),
-                  SwitchListTile(
-                    value: _questionAsCard,
-                    onChanged: (v) => setState(() => _questionAsCard = v),
-                    title: Text(l10n.labelQuestionAsCard),
-                    subtitle: Text(l10n.messageQuestionAsCardSubtitle),
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                  ),
-                ],
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: _addQuestion,
-                  icon: const Icon(Icons.add),
-                  label: Text(l10n.actionAddQuestion),
-                ),
-
-                // --- Save / Cancel ----------------------------------------
-                // Hidden when a host drives these from its own toolbar (#259).
-                if (widget.showFooterActions) ...[
-                  const SizedBox(height: 32),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: _isSaving
-                              ? null
-                              : () => widget.onCancel?.call(),
-                          child: Text(l10n.labelCancel),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: _isSaving ? null : _save,
-                          child: _isSaving
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: Colors.white),
-                                )
-                              : Text(_isEditing
-                                  ? l10n.actionSaveChanges
-                                  : l10n.actionCreateCard),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 16),
               ],
-            ),
+              const SizedBox(height: 16),
+            ],
           ),
         ),
-      );
+      ),
+    );
   }
 }
 
@@ -1913,10 +2020,17 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
 // Scaffold + AppBar chrome (title, delete) and owns navigation.
 // Pass [card] to edit; omit to create. Pass [parentSet] to seed from a set.
 // ---------------------------------------------------------------------------
+// Pass [cloneFrom] (Clone, #274) to create a new card pre-filled from another.
 class WorkbookCardFormScreen extends StatefulWidget {
   final WorkbookCard? card;
   final CardSet? parentSet;
-  const WorkbookCardFormScreen({super.key, this.card, this.parentSet});
+  final WorkbookCard? cloneFrom;
+  const WorkbookCardFormScreen({
+    super.key,
+    this.card,
+    this.parentSet,
+    this.cloneFrom,
+  });
 
   @override
   State<WorkbookCardFormScreen> createState() => _WorkbookCardFormScreenState();
@@ -1934,16 +2048,21 @@ class _WorkbookCardFormScreenState extends State<WorkbookCardFormScreen> {
     final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing
-            ? l10n.titleEditWorkbookCard
-            : l10n.titleNewWorkbookCard),
+        title: Text(
+          _isEditing
+              ? l10n.titleEditWorkbookCard
+              : widget.cloneFrom != null
+              ? l10n.titleCloneCard
+              : l10n.titleNewWorkbookCard,
+        ),
         actions: [
           if (_isEditing)
             IconButton(
               icon: const Icon(Icons.delete_outline),
               tooltip: l10n.tooltipDeleteCard,
-              onPressed:
-                  _saving ? null : () => _bodyKey.currentState?.confirmDelete(),
+              onPressed: _saving
+                  ? null
+                  : () => _bodyKey.currentState?.confirmDelete(),
             ),
         ],
       ),
@@ -1951,6 +2070,7 @@ class _WorkbookCardFormScreenState extends State<WorkbookCardFormScreen> {
         key: _bodyKey,
         card: widget.card,
         parentSet: widget.parentSet,
+        cloneFrom: widget.cloneFrom,
         onSaved: () => Navigator.of(context).pop(),
         onCancel: () => Navigator.of(context).pop(),
         onDeleted: () => Navigator.of(context).pop(),

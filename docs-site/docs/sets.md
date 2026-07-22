@@ -68,7 +68,7 @@ Sets work best with a single language pair. When you add cards, Agora checks the
 
 In the set detail screen, **swipe left** on any card row (or, on a wide window, tap the **remove icon** that appears next to the reorder handle when you hover the row). Either way the card is removed from the set but is not deleted from your library. A brief **Undo** appears if you change your mind — it puts the card back in the same spot.
 
-On a wide window, Flash Card rows also show a **clone icon** next to Edit and Remove when you hover — see [Cloning a Card](cards.md#clone-card). Cloning from here automatically adds the new card to this same set.
+On a wide window, card rows also show a **clone icon** next to Edit and Remove when you hover — see [Cloning a Card](cards.md#clone-card). Cloning from here automatically adds the new card to this same set.
 
 ---
 
@@ -95,7 +95,7 @@ With a selection made, the toolbar offers:
 
 There's no bulk Delete here — deleting a card entirely is only available from the **Cards** tab.
 
-On a wide window, hovering over a card row highlights it, and **right-clicking** it opens a menu with **Edit**, **Clone** (Flash Cards only), and **Remove from set** — the same actions as the row's hover icons, just reachable without hovering first.
+On a wide window, hovering over a card row highlights it, and **right-clicking** it opens a menu with **Edit**, **Clone**, and **Remove from set** — the same actions as the row's hover icons, just reachable without hovering first.
 
 ---
 

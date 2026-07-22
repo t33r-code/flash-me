@@ -105,14 +105,14 @@ If you change the search or tag filter while selecting, any cards that are no lo
 
 When you need several cards that share most of their content — the same field structure, similar options, just a different word — **Clone** gives you a head start instead of building each one from scratch.
 
-Choosing **Clone** (from the card's [right-click menu](#card-context-menu) in **My Cards**, or from a card row inside a set) opens the editor pre-filled with a copy of the source card's word, translation, fields, tags, and language pair — as a brand-new, **unsaved** card. Nothing is created until you tap **Save**; closing without saving leaves no trace. The original card is never touched.
+Choosing **Clone** (from the card's [right-click menu](#card-context-menu) in **My Cards**, or from a card row inside a set) opens the editor pre-filled with a copy of the source card's content — word, translation, fields, tags, and language pair for a Flash Card; prompt, questions, tags, and language pair for a Workbook Card — as a brand-new, **unsaved** card. Nothing is created until you tap **Save**; closing without saving leaves no trace. The original card is never touched.
 
 A couple of things don't carry over:
 
-- **Images and audio** are not copied — the clone starts with no media attached, so you can attach fresh media if the clone needs it.
+- **Images and audio** on a Flash Card are not copied — the clone starts with no media attached, so you can attach fresh media if the clone needs it. (Workbook Cards don't have image/audio fields, so this doesn't apply to them.)
 - If you clone a card **from inside a set**, the clone is automatically added to that same set. Cloning from **My Cards** leaves the new card unattached — add it to a set yourself if needed.
 
-Cloning is currently available for **Flash Cards** only.
+Cloning is available for both **Flash Cards** and **Workbook Cards**.
 
 ### Right-Click a Card { #card-context-menu }
 

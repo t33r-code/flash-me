@@ -17,6 +17,7 @@ import 'package:flash_me/utils/layout_breakpoints.dart';
 import 'package:flash_me/utils/selection.dart';
 import 'package:flash_me/widgets/add_cards_to_set.dart';
 import 'package:flash_me/widgets/bulk_card_actions.dart';
+import 'package:flash_me/widgets/keyboard_actions.dart';
 import 'package:flash_me/widgets/context_menu.dart';
 import 'package:flash_me/widgets/set_actions.dart';
 import 'package:flash_me/utils/set_ordering.dart';
@@ -145,19 +146,23 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.titleRemoveFromSet),
-        content: Text(l10n.messageRemoveFromSetConfirm(ids.length)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.labelCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.actionRemove),
-          ),
-        ],
+      // Enter confirms the primary action (#235); Esc / tap-away cancels.
+      builder: (ctx) => KeyboardActions(
+        onConfirm: () => Navigator.of(ctx).pop(true),
+        child: AlertDialog(
+          title: Text(l10n.titleRemoveFromSet),
+          content: Text(l10n.messageRemoveFromSetConfirm(ids.length)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.labelCancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.actionRemove),
+            ),
+          ],
+        ),
       ),
     );
     if (confirmed != true || !mounted) return;

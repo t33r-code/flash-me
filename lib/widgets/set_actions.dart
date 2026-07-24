@@ -11,6 +11,7 @@ import 'package:flash_me/screens/sets/set_form_screen.dart';
 import 'package:flash_me/screens/study/study_setup_screen.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
+import 'package:flash_me/widgets/keyboard_actions.dart';
 
 // ---------------------------------------------------------------------------
 // Set-management actions (delete/export/market/study/edit) shared by
@@ -31,22 +32,26 @@ Future<bool> deleteSetWithConfirm(
   final l10n = context.l10n;
   final confirmed = await showDialog<bool>(
     context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(l10n.titleDeleteSet),
-      content: Text(l10n.messageDeleteSetConfirm(set.name)),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(false),
-          child: Text(l10n.labelCancel),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(ctx).pop(true),
-          style: FilledButton.styleFrom(
-            backgroundColor: Theme.of(ctx).colorScheme.error,
+    // Enter confirms the primary action (#235); Esc / tap-away cancels.
+    builder: (ctx) => KeyboardActions(
+      onConfirm: () => Navigator.of(ctx).pop(true),
+      child: AlertDialog(
+        title: Text(l10n.titleDeleteSet),
+        content: Text(l10n.messageDeleteSetConfirm(set.name)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.labelCancel),
           ),
-          child: Text(l10n.labelDelete),
-        ),
-      ],
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            child: Text(l10n.labelDelete),
+          ),
+        ],
+      ),
     ),
   );
   if (confirmed != true || !context.mounted) return false;
@@ -147,26 +152,30 @@ Future<void> toggleMarketPublish(
     final count = set.acquisitionCount;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.titleRemoveFromMarket),
-        content: Text(
-          count > 0
-              ? l10n.messageRemoveFromMarketAcquired(set.name, count)
-              : l10n.messageRemoveFromMarketNoAcquisitions(set.name),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.labelCancel),
+      // Enter confirms the primary action (#235); Esc / tap-away cancels.
+      builder: (ctx) => KeyboardActions(
+        onConfirm: () => Navigator.of(ctx).pop(true),
+        child: AlertDialog(
+          title: Text(l10n.titleRemoveFromMarket),
+          content: Text(
+            count > 0
+                ? l10n.messageRemoveFromMarketAcquired(set.name, count)
+                : l10n.messageRemoveFromMarketNoAcquisitions(set.name),
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.labelCancel),
             ),
-            child: Text(l10n.labelDelete),
-          ),
-        ],
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error,
+              ),
+              child: Text(l10n.labelDelete),
+            ),
+          ],
+        ),
       ),
     );
     if (confirmed != true || !context.mounted) return;

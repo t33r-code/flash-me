@@ -7,6 +7,7 @@ import 'package:flash_me/models/question_template.dart';
 import 'package:flash_me/providers/question_template_provider.dart';
 import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/utils/extensions.dart';
+import 'package:flash_me/widgets/keyboard_actions.dart';
 
 // ---------------------------------------------------------------------------
 // Shared template picker used by both the flash-card and workbook-card forms.
@@ -35,23 +36,29 @@ Future<Object?> showTemplatePicker(BuildContext context, WidgetRef ref) {
 
 // Confirmation shown before a CardTemplate replaces a card's existing questions.
 Future<bool> confirmReplaceQuestions(
-    BuildContext context, String templateName) async {
+  BuildContext context,
+  String templateName,
+) async {
   final l10n = context.l10n;
   final confirmed = await showDialog<bool>(
     context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(l10n.titleReplaceQuestions),
-      content: Text(l10n.messageReplaceQuestionsConfirm(templateName)),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(false),
-          child: Text(l10n.labelCancel),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(ctx).pop(true),
-          child: Text(l10n.actionReplace),
-        ),
-      ],
+    // Enter confirms the primary action (#235); Esc / tap-away cancels.
+    builder: (ctx) => KeyboardActions(
+      onConfirm: () => Navigator.of(ctx).pop(true),
+      child: AlertDialog(
+        title: Text(l10n.titleReplaceQuestions),
+        content: Text(l10n.messageReplaceQuestionsConfirm(templateName)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.labelCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.actionReplace),
+          ),
+        ],
+      ),
     ),
   );
   return confirmed ?? false;
@@ -112,8 +119,10 @@ class _TemplatePickerSheetState extends ConsumerState<TemplatePickerSheet>
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: Text(l10n.actionUseTemplate,
-                style: Theme.of(context).textTheme.titleMedium),
+            child: Text(
+              l10n.actionUseTemplate,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
           ),
           TabBar(
             controller: _tabController,
@@ -173,9 +182,12 @@ class _TemplatePickerSheetState extends ConsumerState<TemplatePickerSheet>
   }) {
     if (items.isEmpty) {
       return Center(
-        child: Text(emptyMessage,
-            style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        child: Text(
+          emptyMessage,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
       );
     }
     return ListView.builder(
@@ -185,8 +197,11 @@ class _TemplatePickerSheetState extends ConsumerState<TemplatePickerSheet>
         return ListTile(
           leading: Icon(icon),
           title: Text(title(item)),
-          subtitle: Text(subtitle(item),
-              maxLines: 1, overflow: TextOverflow.ellipsis),
+          subtitle: Text(
+            subtitle(item),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           onTap: () => onTap(item),
         );
       },

@@ -8,6 +8,7 @@ import 'package:flash_me/providers/question_template_provider.dart';
 import 'package:flash_me/providers/template_provider.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
+import 'package:flash_me/widgets/keyboard_actions.dart';
 
 // ---------------------------------------------------------------------------
 // _TplQuestionState — mutable holder for one question while the template form
@@ -36,12 +37,12 @@ class _TplQuestionState {
   });
 
   factory _TplQuestionState.empty() => _TplQuestionState(
-        questionId: CardQuestion.generateId(),
-        type: AppConstants.fieldTypeTextInput,
-        promptController: TextEditingController(),
-        textHintController: TextEditingController(),
-        optionControllers: [TextEditingController(), TextEditingController()],
-      );
+    questionId: CardQuestion.generateId(),
+    type: AppConstants.fieldTypeTextInput,
+    promptController: TextEditingController(),
+    textHintController: TextEditingController(),
+    optionControllers: [TextEditingController(), TextEditingController()],
+  );
 
   // Initialise from an existing CardQuestion — works for both template questions
   // and card questions (answers are intentionally ignored; only config is read).
@@ -76,7 +77,8 @@ class _TplQuestionState {
         TextInputQuestion _ => AppConstants.fieldTypeTextInput,
         MultipleChoiceQuestion _ => AppConstants.fieldTypeMultipleChoice,
         WordOrderQuestion _ => AppConstants.fieldTypeTextInput, // fallback
-        FillInTheBlanksQuestion _ => AppConstants.fieldTypeTextInput, // fallback (#170)
+        FillInTheBlanksQuestion _ =>
+          AppConstants.fieldTypeTextInput, // fallback (#170)
         GridQuestion _ => AppConstants.fieldTypeTextInput, // fallback (#167)
       },
       promptController: TextEditingController(text: q.prompt ?? ''),
@@ -150,8 +152,10 @@ class _QuestionTemplatePickerSheet extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Text(l10n.titleChooseQuestionTemplate,
-                style: Theme.of(context).textTheme.titleMedium),
+            child: Text(
+              l10n.titleChooseQuestionTemplate,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
           ),
           const Divider(height: 1),
           Expanded(
@@ -162,9 +166,11 @@ class _QuestionTemplatePickerSheet extends StatelessWidget {
                 final t = templates[i];
                 final typeLabel = switch (t.question) {
                   TextInputQuestion _ => l10n.labelQuestionTypeTextInput,
-                  MultipleChoiceQuestion _ => l10n.labelQuestionTypeMultipleChoice,
+                  MultipleChoiceQuestion _ =>
+                    l10n.labelQuestionTypeMultipleChoice,
                   WordOrderQuestion _ => l10n.labelQuestionTypeWordOrder,
-                  FillInTheBlanksQuestion _ => l10n.labelQuestionTypeFillInBlanks,
+                  FillInTheBlanksQuestion _ =>
+                    l10n.labelQuestionTypeFillInBlanks,
                   GridQuestion _ => l10n.labelQuestionTypeGrid,
                 };
                 return ListTile(
@@ -197,7 +203,8 @@ class _QuestionTemplatePickerSheet extends StatelessWidget {
 // ---------------------------------------------------------------------------
 class TemplateFormScreen extends ConsumerStatefulWidget {
   final CardTemplate? template;
-  final List<CardQuestion>? initialQuestions; // pre-populated from a card's questions
+  final List<CardQuestion>?
+  initialQuestions; // pre-populated from a card's questions
 
   const TemplateFormScreen({super.key, this.template, this.initialQuestions});
 
@@ -226,8 +233,9 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
     if (t != null) {
       _questions.addAll(t.questions.map(_TplQuestionState.fromQuestion));
     } else if (widget.initialQuestions != null) {
-      _questions
-          .addAll(widget.initialQuestions!.map(_TplQuestionState.fromQuestion));
+      _questions.addAll(
+        widget.initialQuestions!.map(_TplQuestionState.fromQuestion),
+      );
     }
   }
 
@@ -241,7 +249,8 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
     super.dispose();
   }
 
-  void _addQuestion() => setState(() => _questions.add(_TplQuestionState.empty()));
+  void _addQuestion() =>
+      setState(() => _questions.add(_TplQuestionState.empty()));
 
   // Opens a picker showing the user's question templates; appends the selected
   // question (with a fresh ID) to this template's question list.
@@ -249,8 +258,11 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
     final qtemplates =
         ref.read(userQuestionTemplatesProvider).asData?.value ?? [];
     if (qtemplates.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(context.l10n.messageNoQuestionTemplatesSnackbar)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.messageNoQuestionTemplatesSnackbar),
+        ),
+      );
       return;
     }
     final selected = await showModalBottomSheet<QuestionTemplate>(
@@ -260,18 +272,19 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
     );
     if (selected == null || !mounted) return;
     final freshQuestion = switch (selected.question) {
-      TextInputQuestion q =>
-        q.copyWith(questionId: CardQuestion.generateId()),
-      MultipleChoiceQuestion q =>
-        q.copyWith(questionId: CardQuestion.generateId()),
-      WordOrderQuestion q =>
-        q.copyWith(questionId: CardQuestion.generateId()),
-      FillInTheBlanksQuestion q =>
-        q.copyWith(questionId: CardQuestion.generateId()),
-      GridQuestion q =>
-        q.copyWith(questionId: CardQuestion.generateId()),
+      TextInputQuestion q => q.copyWith(questionId: CardQuestion.generateId()),
+      MultipleChoiceQuestion q => q.copyWith(
+        questionId: CardQuestion.generateId(),
+      ),
+      WordOrderQuestion q => q.copyWith(questionId: CardQuestion.generateId()),
+      FillInTheBlanksQuestion q => q.copyWith(
+        questionId: CardQuestion.generateId(),
+      ),
+      GridQuestion q => q.copyWith(questionId: CardQuestion.generateId()),
     };
-    setState(() => _questions.add(_TplQuestionState.fromQuestion(freshQuestion)));
+    setState(
+      () => _questions.add(_TplQuestionState.fromQuestion(freshQuestion)),
+    );
   }
 
   void _removeQuestion(int index) {
@@ -282,8 +295,9 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
   }
 
   void _addOption(int qIndex) {
-    setState(() =>
-        _questions[qIndex].optionControllers.add(TextEditingController()));
+    setState(
+      () => _questions[qIndex].optionControllers.add(TextEditingController()),
+    );
   }
 
   void _removeOption(int qIndex, int optionIndex) {
@@ -304,7 +318,9 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
       final questions = _questions.map((q) => q.toQuestion()).toList();
 
       if (!_isEditing) {
-        await ref.read(templateRepositoryProvider).createTemplate(
+        await ref
+            .read(templateRepositoryProvider)
+            .createTemplate(
               CardTemplate(
                 id: '',
                 createdBy: uid,
@@ -319,7 +335,9 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
               ),
             );
       } else {
-        await ref.read(templateRepositoryProvider).updateTemplate(
+        await ref
+            .read(templateRepositoryProvider)
+            .updateTemplate(
               widget.template!.copyWith(
                 name: _nameController.text.trim(),
                 description: _descController.text.trim().isEmpty
@@ -348,21 +366,28 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
     final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.titleDeleteTemplate),
-        content: Text(l10n.messageDeleteTemplateConfirm(widget.template!.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.labelCancel),
+      // Enter confirms the primary action (#235); Esc / tap-away cancels.
+      builder: (ctx) => KeyboardActions(
+        onConfirm: () => Navigator.of(ctx).pop(true),
+        child: AlertDialog(
+          title: Text(l10n.titleDeleteTemplate),
+          content: Text(
+            l10n.messageDeleteTemplateConfirm(widget.template!.name),
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error),
-            child: Text(l10n.labelDelete),
-          ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.labelCancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error,
+              ),
+              child: Text(l10n.labelDelete),
+            ),
+          ],
+        ),
       ),
     );
 
@@ -419,8 +444,10 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l10n.labelOptionsPreFilled,
-            style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          l10n.labelOptionsPreFilled,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
         const SizedBox(height: 8),
         ...List.generate(q.optionControllers.length, (optIdx) {
           return Padding(
@@ -498,11 +525,13 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
               ),
               items: [
                 DropdownMenuItem(
-                    value: AppConstants.fieldTypeTextInput,
-                    child: Text(l10n.labelQuestionTypeTextInput)),
+                  value: AppConstants.fieldTypeTextInput,
+                  child: Text(l10n.labelQuestionTypeTextInput),
+                ),
                 DropdownMenuItem(
-                    value: AppConstants.fieldTypeMultipleChoice,
-                    child: Text(l10n.labelQuestionTypeMultipleChoice)),
+                  value: AppConstants.fieldTypeMultipleChoice,
+                  child: Text(l10n.labelQuestionTypeMultipleChoice),
+                ),
               ],
               onChanged: (v) {
                 if (v != null) setState(() => q.type = v);
@@ -524,129 +553,145 @@ class _TemplateFormScreenState extends ConsumerState<TemplateFormScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing ? l10n.titleEditTemplate : l10n.titleNewTemplate),
-        actions: [
-          if (_isEditing)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              tooltip: l10n.tooltipDeleteTemplate,
-              onPressed: _isSaving ? null : _confirmDelete,
-            ),
-        ],
-      ),
-      body: Form(
-        key: _formKey,
-        child: IgnorePointer(
-          ignoring: _isSaving,
-          child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // --- Template metadata ---
-              Text(l10n.titleTemplateDetails,
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: l10n.labelTemplateNameRequired,
-                  hintText: l10n.hintTemplateNameExample,
-                  border: const OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                    v?.trim().isEmpty ?? true ? l10n.validatorTemplateNameRequired : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _descController,
-                decoration: InputDecoration(
-                  labelText: l10n.labelDescriptionOptional,
-                  border: const OutlineInputBorder(),
-                ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 8),
-              // primaryWordHidden default for cards created from this template
-              SwitchListTile(
-                title: Text(l10n.labelHideWordByDefault),
-                subtitle: Text(l10n.messageHideWordByDefaultSubtitle),
-                value: _primaryWordHidden,
-                onChanged: (v) => setState(() => _primaryWordHidden = v),
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-              ),
-
-              // --- Questions ---
-              const SizedBox(height: 24),
-              Text(l10n.titleQuestionsSection,
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 4),
-              Text(
-                l10n.messageTemplateQuestionsHelp,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: Theme.of(context).colorScheme.outline),
-              ),
-              const SizedBox(height: 12),
-              ..._questions.asMap().entries.map((e) => _buildQuestionCard(e.key)),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _addQuestion,
-                      icon: const Icon(Icons.add),
-                      label: Text(l10n.actionAddQuestion),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _showQuestionTemplatePicker,
-                      icon: const Icon(Icons.quiz_outlined),
-                      label: Text(l10n.actionUseTemplate),
-                    ),
-                  ),
-                ],
-              ),
-
-              // --- Save / Cancel ---
-              const SizedBox(height: 32),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _isSaving
-                          ? null
-                          : () => Navigator.of(context).pop(),
-                      child: Text(l10n.labelCancel),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: _isSaving ? null : _save,
-                      child: _isSaving
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
-                            )
-                          : Text(_isEditing
-                              ? l10n.actionSaveChanges
-                              : l10n.actionCreateTemplate),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-            ],
+    // Esc cancels (#235); Enter-to-submit deferred to Ctrl/Cmd+S (#278).
+    return KeyboardActions(
+      onCancel: _isSaving ? null : () => Navigator.of(context).pop(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            _isEditing ? l10n.titleEditTemplate : l10n.titleNewTemplate,
           ),
+          actions: [
+            if (_isEditing)
+              IconButton(
+                icon: const Icon(Icons.delete_outline),
+                tooltip: l10n.tooltipDeleteTemplate,
+                onPressed: _isSaving ? null : _confirmDelete,
+              ),
+          ],
         ),
+        body: Form(
+          key: _formKey,
+          child: IgnorePointer(
+            ignoring: _isSaving,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // --- Template metadata ---
+                  Text(
+                    l10n.titleTemplateDetails,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      labelText: l10n.labelTemplateNameRequired,
+                      hintText: l10n.hintTemplateNameExample,
+                      border: const OutlineInputBorder(),
+                    ),
+                    validator: (v) => v?.trim().isEmpty ?? true
+                        ? l10n.validatorTemplateNameRequired
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _descController,
+                    decoration: InputDecoration(
+                      labelText: l10n.labelDescriptionOptional,
+                      border: const OutlineInputBorder(),
+                    ),
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 8),
+                  // primaryWordHidden default for cards created from this template
+                  SwitchListTile(
+                    title: Text(l10n.labelHideWordByDefault),
+                    subtitle: Text(l10n.messageHideWordByDefaultSubtitle),
+                    value: _primaryWordHidden,
+                    onChanged: (v) => setState(() => _primaryWordHidden = v),
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  ),
+
+                  // --- Questions ---
+                  const SizedBox(height: 24),
+                  Text(
+                    l10n.titleQuestionsSection,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.messageTemplateQuestionsHelp,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ..._questions.asMap().entries.map(
+                    (e) => _buildQuestionCard(e.key),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _addQuestion,
+                          icon: const Icon(Icons.add),
+                          label: Text(l10n.actionAddQuestion),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _showQuestionTemplatePicker,
+                          icon: const Icon(Icons.quiz_outlined),
+                          label: Text(l10n.actionUseTemplate),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // --- Save / Cancel ---
+                  const SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _isSaving
+                              ? null
+                              : () => Navigator.of(context).pop(),
+                          child: Text(l10n.labelCancel),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: _isSaving ? null : _save,
+                          child: _isSaving
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Text(
+                                  _isEditing
+                                      ? l10n.actionSaveChanges
+                                      : l10n.actionCreateTemplate,
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

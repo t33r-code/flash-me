@@ -8,6 +8,7 @@ import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/widgets/tag_input_field.dart';
 import 'package:flash_me/widgets/language_picker.dart';
+import 'package:flash_me/widgets/keyboard_actions.dart';
 
 // ---------------------------------------------------------------------------
 // SetFormScreen — create or edit a CardSet.
@@ -84,39 +85,51 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
           .toList();
 
       if (!_isEditing) {
-        await repo.createSet(CardSet(
-          id: '',
-          userId: uid,
-          name: _nameController.text.trim(),
-          description: _descController.text.trim().isEmpty
-              ? null
-              : _descController.text.trim(),
-          cardCount: 0,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-          tags: normalizedTags,
-          color: _selectedColor,
-          nativeLanguage: _nativeLanguage,
-          targetLanguage: _targetLanguage,
-          enforceOrder: _enforceOrder,
-        ));
-        for (final tag in normalizedTags) { tagRepo.upsertTag(tag, uid); }
+        await repo.createSet(
+          CardSet(
+            id: '',
+            userId: uid,
+            name: _nameController.text.trim(),
+            description: _descController.text.trim().isEmpty
+                ? null
+                : _descController.text.trim(),
+            cardCount: 0,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+            tags: normalizedTags,
+            color: _selectedColor,
+            nativeLanguage: _nativeLanguage,
+            targetLanguage: _targetLanguage,
+            enforceOrder: _enforceOrder,
+          ),
+        );
+        for (final tag in normalizedTags) {
+          tagRepo.upsertTag(tag, uid);
+        }
       } else {
-        final (toUpsert, toDecrement) =
-            AppHelpers.diffTags(widget.cardSet!.tags, normalizedTags);
-        await repo.updateSet(widget.cardSet!.copyWith(
-          name: _nameController.text.trim(),
-          description: _descController.text.trim().isEmpty
-              ? null
-              : _descController.text.trim(),
-          tags: normalizedTags,
-          color: _selectedColor,
-          nativeLanguage: _nativeLanguage,
-          targetLanguage: _targetLanguage,
-          enforceOrder: _enforceOrder,
-        ));
-        for (final tag in toUpsert) { tagRepo.upsertTag(tag, uid); }
-        for (final norm in toDecrement) { tagRepo.decrementTag(norm); }
+        final (toUpsert, toDecrement) = AppHelpers.diffTags(
+          widget.cardSet!.tags,
+          normalizedTags,
+        );
+        await repo.updateSet(
+          widget.cardSet!.copyWith(
+            name: _nameController.text.trim(),
+            description: _descController.text.trim().isEmpty
+                ? null
+                : _descController.text.trim(),
+            tags: normalizedTags,
+            color: _selectedColor,
+            nativeLanguage: _nativeLanguage,
+            targetLanguage: _targetLanguage,
+            enforceOrder: _enforceOrder,
+          ),
+        );
+        for (final tag in toUpsert) {
+          tagRepo.upsertTag(tag, uid);
+        }
+        for (final norm in toDecrement) {
+          tagRepo.decrementTag(norm);
+        }
       }
       if (mounted) {
         setState(() => _isSaving = false);
@@ -158,16 +171,19 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
       runSpacing: 0,
       children: _colorPalette.map((hex) {
         final selected = _selectedColor == hex;
-        final itemColor =
-            hex == null ? Colors.transparent : _hexColor(hex);
+        final itemColor = hex == null ? Colors.transparent : _hexColor(hex);
         final colorLabel = colorLabels[hex] ?? hex ?? '';
         // Semantics label announces colour name and selection state.
         // SizedBox expands the hit area to 48dp without changing the 36dp visual.
         return Semantics(
-          label: selected ? l10n.semanticsColorSelected(colorLabel) : colorLabel,
+          label: selected
+              ? l10n.semanticsColorSelected(colorLabel)
+              : colorLabel,
           button: true,
           child: GestureDetector(
-            onTap: _isSaving ? null : () => setState(() => _selectedColor = hex),
+            onTap: _isSaving
+                ? null
+                : () => setState(() => _selectedColor = hex),
             child: SizedBox(
               width: 48,
               height: 48,
@@ -195,10 +211,12 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
                         )
                       // "None" option shows a slash icon when unselected.
                       : hex == null
-                          ? Icon(Icons.block,
-                              size: 18,
-                              color: Theme.of(context).colorScheme.outline)
-                          : null,
+                      ? Icon(
+                          Icons.block,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.outline,
+                        )
+                      : null,
                 ),
               ),
             ),
@@ -211,122 +229,139 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing ? l10n.titleEditSet : l10n.titleNewSet),
-      ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // --- Name ---
-              TextFormField(
-                controller: _nameController,
-                enabled: !_isSaving,
-                decoration: InputDecoration(
-                  labelText: l10n.labelSetNameRequired,
-                  hintText: l10n.hintSetNameExample,
-                  border: const OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                    v?.trim().isEmpty ?? true ? l10n.validatorSetNameRequired : null,
-              ),
-              const SizedBox(height: 12),
-
-              // --- Description ---
-              TextFormField(
-                controller: _descController,
-                enabled: !_isSaving,
-                decoration: InputDecoration(
-                  labelText: l10n.labelDescriptionOptional,
-                  border: const OutlineInputBorder(),
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 24),
-
-              // --- Languages ---
-              Text(l10n.titleLanguagesSection,
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 12),
-              LanguagePicker(
-                label: l10n.labelTargetLanguage,
-                value: _targetLanguage,
-                enabled: !_isSaving,
-                onChanged: (v) => setState(() => _targetLanguage = v),
-              ),
-              const SizedBox(height: 12),
-              LanguagePicker(
-                label: l10n.labelNativeLanguage,
-                value: _nativeLanguage,
-                enabled: !_isSaving,
-                onChanged: (v) => setState(() => _nativeLanguage = v),
-              ),
-              const SizedBox(height: 24),
-
-              // --- Colour ---
-              Text(l10n.titleColorSection,
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 12),
-              _buildColorPicker(),
-              const SizedBox(height: 24),
-
-              // --- Tags ---
-              Text(l10n.titleTagsSection,
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              TagInputField(
-                tags: _tags,
-                enabled: !_isSaving,
-                onChanged: (updated) => setState(() => _tags = updated),
-              ),
-              const SizedBox(height: 16),
-
-              // --- Ordering ---
-              SwitchListTile(
-                value: _enforceOrder,
-                onChanged: _isSaving
-                    ? null
-                    : (v) => setState(() => _enforceOrder = v),
-                title: Text(l10n.labelEnforceCardOrder),
-                subtitle: Text(l10n.messageEnforceCardOrderSubtitle),
-                contentPadding: EdgeInsets.zero,
-              ),
-
-              // --- Save / Cancel ---
-              const SizedBox(height: 32),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _isSaving
-                          ? null
-                          : () => Navigator.of(context).pop(),
-                      child: Text(l10n.labelCancel),
-                    ),
+    // Esc cancels (#235); Enter-to-submit is deferred to Ctrl/Cmd+S (#278)
+    // because this form has multi-line and multiple fields.
+    return KeyboardActions(
+      onCancel: _isSaving ? null : () => Navigator.of(context).pop(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_isEditing ? l10n.titleEditSet : l10n.titleNewSet),
+        ),
+        body: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // --- Name ---
+                TextFormField(
+                  controller: _nameController,
+                  enabled: !_isSaving,
+                  decoration: InputDecoration(
+                    labelText: l10n.labelSetNameRequired,
+                    hintText: l10n.hintSetNameExample,
+                    border: const OutlineInputBorder(),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: _isSaving ? null : _save,
-                      child: _isSaving
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
-                            )
-                          : Text(
-                              _isEditing ? l10n.actionSaveChanges : l10n.actionCreateSet),
-                    ),
+                  validator: (v) => v?.trim().isEmpty ?? true
+                      ? l10n.validatorSetNameRequired
+                      : null,
+                ),
+                const SizedBox(height: 12),
+
+                // --- Description ---
+                TextFormField(
+                  controller: _descController,
+                  enabled: !_isSaving,
+                  decoration: InputDecoration(
+                    labelText: l10n.labelDescriptionOptional,
+                    border: const OutlineInputBorder(),
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-            ],
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 24),
+
+                // --- Languages ---
+                Text(
+                  l10n.titleLanguagesSection,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 12),
+                LanguagePicker(
+                  label: l10n.labelTargetLanguage,
+                  value: _targetLanguage,
+                  enabled: !_isSaving,
+                  onChanged: (v) => setState(() => _targetLanguage = v),
+                ),
+                const SizedBox(height: 12),
+                LanguagePicker(
+                  label: l10n.labelNativeLanguage,
+                  value: _nativeLanguage,
+                  enabled: !_isSaving,
+                  onChanged: (v) => setState(() => _nativeLanguage = v),
+                ),
+                const SizedBox(height: 24),
+
+                // --- Colour ---
+                Text(
+                  l10n.titleColorSection,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 12),
+                _buildColorPicker(),
+                const SizedBox(height: 24),
+
+                // --- Tags ---
+                Text(
+                  l10n.titleTagsSection,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                TagInputField(
+                  tags: _tags,
+                  enabled: !_isSaving,
+                  onChanged: (updated) => setState(() => _tags = updated),
+                ),
+                const SizedBox(height: 16),
+
+                // --- Ordering ---
+                SwitchListTile(
+                  value: _enforceOrder,
+                  onChanged: _isSaving
+                      ? null
+                      : (v) => setState(() => _enforceOrder = v),
+                  title: Text(l10n.labelEnforceCardOrder),
+                  subtitle: Text(l10n.messageEnforceCardOrderSubtitle),
+                  contentPadding: EdgeInsets.zero,
+                ),
+
+                // --- Save / Cancel ---
+                const SizedBox(height: 32),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _isSaving
+                            ? null
+                            : () => Navigator.of(context).pop(),
+                        child: Text(l10n.labelCancel),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: _isSaving ? null : _save,
+                        child: _isSaving
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                _isEditing
+                                    ? l10n.actionSaveChanges
+                                    : l10n.actionCreateSet,
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         ),
       ),

@@ -1225,6 +1225,21 @@ The mechanism is each question widget's own `initState` requesting focus via `Wi
 
 `autofocus: true` was tried first and rejected: it only claims focus if nothing already has it, and by the time any question widget mounts, `StudySessionScreen`'s own `Focus(autofocus: true)` (added for the shortcuts above) has already claimed the screen's focus at initial build — confirmed by a throwaway scratch test before writing the real fix (an ancestor `Focus(autofocus: true)` followed by a later-mounted `TextField(autofocus: true)`; the field never took focus). An explicit `FocusNode.requestFocus()` call unconditionally moves focus regardless of who currently holds it, which is what's needed here.
 
+### Enter-to-confirm / Esc-to-cancel (#235)
+
+The parent keyboard ticket. Its landed scope is making editors and dialogs keyboard-consistent; the global-shortcut ideas it also raised (Ctrl/Cmd+S save, `/` focus-search, Ctrl/Cmd+N create, a `?` cheatsheet) were split into their own backlog tickets (#278–#281) so this stays focused.
+
+**What Flutter already does.** A `showDialog` with the default `barrierDismissible: true` already dismisses on Esc in the project's Flutter version (verified with a throwaway probe test before building anything). So Esc was *already* handled for ordinary dialogs — the real gaps were (a) full-screen editors, which are routes with no barrier and so had no Esc, and (b) Enter, which nothing confirmed anywhere.
+
+**Shared helper — `widgets/keyboard_actions.dart`.** `KeyboardActions` wraps a dialog's or editor's subtree in a `Focus(onKeyEvent:)` and takes optional `onConfirm` (Enter/NumpadEnter) and `onCancel` (Esc) callbacks:
+- Enter is deliberately *ignored* (bubbles on) while a focused button (`TextButton`/`FilledButton`/`OutlinedButton`/`ElevatedButton` ancestor of the primary-focus context) or a **multi-line** `EditableText` has focus — so Enter still activates a tabbed-to button and still inserts newlines in a multi-line field. Single-line fields aren't blocked, but in practice a single-line `TextField` consumes Enter itself, so text-entry dialogs wire their field's `onFieldSubmitted` to the same submit path rather than relying on the wrapper (see the forgot-password and link-email dialogs).
+- `onCancel` is passed **only** where Esc isn't already handled — the five editors (routes) — and left off ordinary `barrierDismissible` dialogs to avoid a double-pop (the barrier's Esc plus a second handler would pop twice).
+- `autofocus` (default true) lets the wrapper claim focus so its shortcuts fire before the user touches anything; set false when a descendant field should keep the initial focus.
+
+Covered by `test/widgets/keyboard_actions_test.dart` (Enter confirms; Esc cancels; Enter defers to a multi-line field; Enter activates a focused button rather than confirming).
+
+**Coverage.** Esc-to-cancel: the flash-card, workbook-card, set, template, and question-template editors (Enter-to-submit there is intentionally left to Ctrl/Cmd+S, #278, because they're multi-field/multi-line). Enter-to-confirm: the confirmation and choice dialogs across the app — delete card/set/account/template, remove-from-set, remove-from-market, unlink, replace-questions, import preview/summary, the add-to-set language dialogs, and the bulk-language dialog — plus `onFieldSubmitted` on the forgot-password and link-email entry dialogs. The bulk-*tag* dialog is intentionally left alone: its tag-entry field owns Enter (to add a tag), and Esc already dismisses it. Progress-spinner dialogs (export/analyse) have no confirm action and are untouched.
+
 ---
 
 ## Use Flash Card Sets

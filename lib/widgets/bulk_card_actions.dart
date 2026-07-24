@@ -11,6 +11,7 @@ import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/widgets/language_picker.dart';
 import 'package:flash_me/widgets/tag_input_field.dart';
+import 'package:flash_me/widgets/keyboard_actions.dart';
 
 // ---------------------------------------------------------------------------
 // Bulk edits applied across a multi-selection (#238) — shared by the card
@@ -272,49 +273,55 @@ class _BulkLanguageDialogState extends State<_BulkLanguageDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return AlertDialog(
-      title: Text(l10n.titleSetLanguageForCards),
-      content: SizedBox(
-        width: 380,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.messageBulkLanguageHint,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+    // Enter applies when a language is picked (#235); Esc / tap-away cancels.
+    return KeyboardActions(
+      onConfirm: (_target == null && _native == null)
+          ? null
+          : () => Navigator.of(context).pop((target: _target, native: _native)),
+      child: AlertDialog(
+        title: Text(l10n.titleSetLanguageForCards),
+        content: SizedBox(
+          width: 380,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.messageBulkLanguageHint,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            LanguagePicker(
-              label: l10n.labelTargetLanguage,
-              value: _target,
-              onChanged: (v) => setState(() => _target = v),
-            ),
-            const SizedBox(height: 12),
-            LanguagePicker(
-              label: l10n.labelNativeLanguage,
-              value: _native,
-              onChanged: (v) => setState(() => _native = v),
-            ),
-          ],
+              const SizedBox(height: 16),
+              LanguagePicker(
+                label: l10n.labelTargetLanguage,
+                value: _target,
+                onChanged: (v) => setState(() => _target = v),
+              ),
+              const SizedBox(height: 12),
+              LanguagePicker(
+                label: l10n.labelNativeLanguage,
+                value: _native,
+                onChanged: (v) => setState(() => _native = v),
+              ),
+            ],
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.labelCancel),
+          ),
+          FilledButton(
+            onPressed: (_target == null && _native == null)
+                ? null
+                : () => Navigator.of(
+                    context,
+                  ).pop((target: _target, native: _native)),
+            child: Text(l10n.actionApply),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.labelCancel),
-        ),
-        FilledButton(
-          onPressed: (_target == null && _native == null)
-              ? null
-              : () => Navigator.of(
-                  context,
-                ).pop((target: _target, native: _native)),
-          child: Text(l10n.actionApply),
-        ),
-      ],
     );
   }
 }

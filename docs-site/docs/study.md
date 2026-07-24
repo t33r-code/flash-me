@@ -87,7 +87,7 @@ After tapping **More**, any interactive fields on the card become active:
 
 On a card with **more than one question**, the questions reveal one at a time so you can work through them at a natural pace. The first question is shown straight away; each later question stays collapsed to just its label until you answer the one before it, then it expands automatically. Questions you've already answered stay open. A question with no label of its own shows **Question 1**, **Question 2**, and so on. Cards with a single question are unaffected.
 
-On a wide window, a text-entry question (or a text-mode fill-in-the-blanks/grid) automatically focuses its field as soon as it's revealed, and moves to the next question's field the moment you answer — you can work straight through a card's questions without reaching for the mouse.
+On a wide window, a text-entry question (or a text-mode fill-in-the-blanks/grid) automatically focuses its field as soon as it's revealed, and moves to the next question's field the moment you answer — you can work straight through a card's questions without reaching for the mouse. Multiple choice questions get the same treatment: the first option is focused automatically, so pressing **Enter** (or **Space**) selects it.
 
 ### Text Input { #study-text-input }
 

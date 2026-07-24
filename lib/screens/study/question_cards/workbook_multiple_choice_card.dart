@@ -22,6 +22,11 @@ class _WorkbookMultipleChoiceCardState
   int? _selectedIndex;
   late final List<String> _displayOptions;
   late final int? _displayCorrectIndex;
+  // First option's FocusNode (#87 follow-up) — a focused OutlinedButton
+  // already activates on Enter/Space via Flutter's default button shortcuts,
+  // so once this has focus, Enter selects the option instead of falling
+  // through to the study screen's reveal/advance shortcut.
+  final _firstOptionFocus = FocusNode();
 
   @override
   void initState() {
@@ -40,6 +45,21 @@ class _WorkbookMultipleChoiceCardState
       _displayOptions = original;
       _displayCorrectIndex = q.correctIndex;
     }
+    // Auto-focus the first option the moment this question is revealed —
+    // this widget is only ever built once per reveal (see _QuestionReveal),
+    // so initState firing exactly once here can't re-steal focus on an
+    // unrelated rebuild.
+    if (_displayOptions.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _firstOptionFocus.requestFocus();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _firstOptionFocus.dispose();
+    super.dispose();
   }
 
   @override
@@ -72,6 +92,7 @@ class _WorkbookMultipleChoiceCardState
                     _OptionButton(
                       label: options[i],
                       state: _stateFor(i, correctIndex, answered),
+                      focusNode: i == 0 ? _firstOptionFocus : null,
                       onTap: answered
                           ? null
                           : () {
@@ -91,6 +112,7 @@ class _WorkbookMultipleChoiceCardState
                 _OptionButton(
                   label: options[i],
                   state: _stateFor(i, correctIndex, answered),
+                  focusNode: i == 0 ? _firstOptionFocus : null,
                   onTap: answered
                       ? null
                       : () {

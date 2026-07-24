@@ -122,6 +122,21 @@ Tap the **:material-chevron-right:** arrow (or **:material-check-circle-outline:
 
 ---
 
+## Desktop Keyboard Shortcuts { #study-keyboard-shortcuts }
+
+On a wide window, an entire session can be driven from the keyboard:
+
+| Key(s) | Action |
+|---|---|
+| **←** / **→** | Previous / next card |
+| **Enter** | Reveal the card (translation and any extra questions, all at once); press again to advance |
+| **K** or **1** | Mark **Skip** |
+| **U** or **2** | Mark **Review** |
+
+Hover the Previous/Next arrows or the Skip/Review buttons to see the shortcut as a tooltip. Shortcuts are automatically disabled while you're typing an answer into a text-input question, so typing a "k" or "u" (or moving your cursor with the arrow keys) never gets mistaken for a shortcut.
+
+---
+
 ## Session Summary { #session-summary }
 
 When you finish the last card, Agora shows a **Session Complete** screen with:

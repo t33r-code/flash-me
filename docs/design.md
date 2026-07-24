@@ -1198,6 +1198,23 @@ The Set Detail screen retains a play-circle icon in the AppBar that navigates di
 
 > Implemented in #171 — core modes (#179, this), language filter (#180).
 
+### Desktop Keyboard Shortcuts (#87)
+
+`StudySessionScreen` wraps its `Scaffold` in a `Focus(autofocus: true, onKeyEvent: _handleKeyEvent)` so a physical keyboard can drive an entire session without a mouse:
+
+| Key(s) | Action |
+|---|---|
+| ← / → | Previous / next card (`_previous()` / `_next()` directly — same as the nav-bar arrows, works regardless of reveal state) |
+| Enter | **Reveal** everything at once (translation + any additional questions — equivalent to tap + **More** together) if not yet revealed; **advance** to the next card if it already is |
+| K / 1 | Mark **Skip** |
+| U / 2 | Mark **Review** |
+
+**Reveal granularity.** A flash card normally reveals in two separate taps (tap the card → translation + self-eval; tap **More** → expand additional questions). Enter deliberately collapses this to one press — `_isRevealed` (`_fullyRevealed`, or `questionAsCard` for a workbook card already showing everything) decides whether Enter reveals or advances, so a full card takes exactly two Enter presses regardless of whether it has extra questions. This trades a little step-for-step fidelity to the tap gesture for a faster keyboard review loop (matching Anki/Quizlet-style flashcard apps) — considered and confirmed over the more literal "mirror every tap" alternative, which would have required lifting `_WordCard`'s currently-private reveal state up to the parent screen.
+
+**Text-field safety.** Every shortcut is gated behind `_isTextFieldFocused()` — without it, typing a literal `k`/`u` (or using arrow keys to move the cursor) while answering a text-input question would double as a navigation/marking shortcut. The check is *not* `primaryFocus?.context?.widget is EditableText` — that widget is the `Focus` `EditableText` wraps itself in, never `EditableText` itself, so the check always evaluated false and the guard silently did nothing. The correct form walks up the ancestor chain: `primaryFocus?.context?.findAncestorWidgetOfExactType<EditableText>() != null`. This exact failure mode is what `test/screens/study/study_keyboard_shortcuts_test.dart` exists to catch — a small isolated harness (`Focus` wrapping a `TextField`) that doesn't build the full session screen, since the risk being verified is a general Flutter focus-bubbling behaviour, not anything screen-specific.
+
+**Discoverability.** The nav bar's Previous/Next tooltips and the Skip/Review buttons' (new) tooltips append the shortcut hint (`(←)`, `(K / 1)`, etc.) inline at the call site rather than editing the underlying l10n strings, which are reused in other contexts. A full shortcuts cheatsheet is deferred to #235's own scoping.
+
 ---
 
 ## Use Flash Card Sets

@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -49,12 +50,14 @@ part 'question_cards/grid_card.dart';
 class StudySessionScreen extends ConsumerStatefulWidget {
   final StudySession session;
   final CardSet cardSet;
-  const StudySessionScreen(
-      {super.key, required this.session, required this.cardSet});
+  const StudySessionScreen({
+    super.key,
+    required this.session,
+    required this.cardSet,
+  });
 
   @override
-  ConsumerState<StudySessionScreen> createState() =>
-      _StudySessionScreenState();
+  ConsumerState<StudySessionScreen> createState() => _StudySessionScreenState();
 }
 
 class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
@@ -148,8 +151,9 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     await Future.wait([
       () async {
         try {
-          flash =
-              await ref.read(cardRepositoryProvider).getCardsByIds(flashIds, uid);
+          flash = await ref
+              .read(cardRepositoryProvider)
+              .getCardsByIds(flashIds, uid);
         } catch (_) {
           failed = true;
         }
@@ -191,6 +195,86 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   CardSessionData get _currentCardData =>
       _session.cardProgress[_currentCardId] ?? const CardSessionData();
 
+  // Whether the current card is showing its full answer — accounts for
+  // questionAsCard workbook cards, which start fully revealed without ever
+  // flipping _fullyRevealed itself (see _buildWorkbookView's OR condition).
+  bool get _isRevealed =>
+      _fullyRevealed ||
+      (_workbookCardsMap[_currentCardId]?.questionAsCard ?? false);
+
+  // Desktop keyboard shortcuts (#87): ← → previous/next, Enter reveal/advance,
+  // K/1 mark Skip, U/2 mark Review. Deliberately does nothing while a text
+  // field has focus (in-progress questions) — see _isTextFieldFocused.
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (_isTextFieldFocused()) return KeyEventResult.ignored;
+
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.arrowLeft:
+        _previous();
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.arrowRight:
+        _next();
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.enter:
+      case LogicalKeyboardKey.numpadEnter:
+        // When an answer option button holds focus, let Enter bubble past us
+        // to Flutter's root-level Activate shortcut so it selects the option
+        // (Space already works because we never handle it). Our Focus sits
+        // between the button and that root shortcut, so without this we'd
+        // swallow Enter and advance the card instead of selecting.
+        if (_isButtonFocused()) return KeyEventResult.ignored;
+        // One press reveals everything (translation + any extra questions,
+        // matching a tap + More together); a second press advances — fewer
+        // keystrokes for a fast keyboard-driven review loop.
+        if (!_isRevealed) {
+          setState(() => _fullyRevealed = true);
+        } else {
+          _next();
+        }
+        return KeyEventResult.handled;
+      // Digits follow the nav bar's left-to-right display order (Review,
+      // then Skip) rather than pairing with their letter mnemonic — 1 is
+      // Review, 2 is Skip, even though U/Review and K/Skip pair together.
+      case LogicalKeyboardKey.keyK:
+      case LogicalKeyboardKey.digit2:
+        _updateCardMark(markSkip: true);
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.keyU:
+      case LogicalKeyboardKey.digit1:
+        _updateCardMark(markSkip: false);
+        return KeyEventResult.handled;
+      default:
+        return KeyEventResult.ignored;
+    }
+  }
+
+  // True while a text-editing field (a question's answer box) holds focus.
+  // Guards every shortcut above — without this, typing a literal 'k'/'u' (or
+  // even just using arrow keys to move the cursor) while answering a
+  // text-input question would double as a study-navigation shortcut.
+  //
+  // The focused context's own widget is the `Focus` that EditableText wraps
+  // itself in, never EditableText itself — verified in
+  // test/screens/study/study_keyboard_shortcuts_test.dart, which caught this
+  // exact mistake (a plain `is EditableText` check) failing to detect a
+  // focused field at all. Hence the ancestor walk instead.
+  bool _isTextFieldFocused() =>
+      FocusManager.instance.primaryFocus?.context
+          ?.findAncestorWidgetOfExactType<EditableText>() !=
+      null;
+
+  // True while an answer option button holds focus (a revealed multiple-choice
+  // question auto-focuses its first option). Same ancestor-walk approach as
+  // _isTextFieldFocused — a focused button's primary-focus context lives inside
+  // the OutlinedButton's own subtree. A disabled (already-answered) button
+  // can't hold focus, so this goes false once the question is answered and
+  // Enter resumes advancing the card.
+  bool _isButtonFocused() =>
+      FocusManager.instance.primaryFocus?.context
+          ?.findAncestorWidgetOfExactType<OutlinedButton>() !=
+      null;
+
   void _previous() {
     if (_currentIndex > 0) {
       setState(() {
@@ -211,7 +295,8 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
 
     // The card is "missed" this visit if any question was answered wrong OR the
     // user self-evaluated the primary word as "Not yet" (#214).
-    final missed = _currentCardMissed ||
+    final missed =
+        _currentCardMissed ||
         _currentCardData.primaryResult == AppConstants.primaryResultUnknown;
 
     // Re-queue the current card to the back if it was missed. This may grow the
@@ -262,8 +347,10 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     final newReview = !markSkip ? !wasActive : false;
 
     final updated = Map<String, CardSessionData>.from(_session.cardProgress);
-    updated[_currentCardId] =
-        data.copyWith(markedKnown: newSkip, markedUnknown: newReview);
+    updated[_currentCardId] = data.copyWith(
+      markedKnown: newSkip,
+      markedUnknown: newReview,
+    );
 
     // Skip/Review are persistent per-card marks only — they no longer drive the
     // session score. cardsKnown/cardsUnknown are set by _setPrimaryResult instead.
@@ -369,7 +456,8 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     if (_saving) return;
     setState(() => _saving = true);
     _saveDebounce?.cancel();
-    ref.read(studySessionRepositoryProvider)
+    ref
+        .read(studySessionRepositoryProvider)
         .saveSession(_session, _uid)
         .ignore();
     if (mounted) Navigator.of(context).pop();
@@ -403,57 +491,65 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
 
     // Fire-and-forget: the summary screen uses local data, so we don't need
     // to wait for Firestore before navigating.
-    ref.read(studySessionRepositoryProvider)
+    ref
+        .read(studySessionRepositoryProvider)
         .completeSession(completed, _uid)
         .ignore();
 
     if (mounted) {
       Navigator.of(context).pushReplacement(
-        studySurfaceRoute(StudySessionSummaryScreen(
-          session: completed,
-          cardSet: widget.cardSet,
-        )),
+        studySurfaceRoute(
+          StudySessionSummaryScreen(
+            session: completed,
+            cardSet: widget.cardSet,
+          ),
+        ),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.cardSet.name),
-        actions: [
-          TextButton(
-            // Disable while a save is in flight to prevent double-tap.
-            onPressed: _saving ? null : _endSession,
-            child: Text(context.l10n.actionEnd),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Thin bar showing how far through the session the user is.
-          LinearProgressIndicator(
-            value: (_currentIndex + 1) / _total,
-          ),
+    return Focus(
+      // Desktop keyboard shortcuts (#87). autofocus only claims focus if
+      // nothing else has (e.g. no answer field is focused yet) — it doesn't
+      // steal focus away from a text field the user has since tapped into.
+      autofocus: true,
+      onKeyEvent: _handleKeyEvent,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.cardSet.name),
+          actions: [
+            TextButton(
+              // Disable while a save is in flight to prevent double-tap.
+              onPressed: _saving ? null : _endSession,
+              child: Text(context.l10n.actionEnd),
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            // Thin bar showing how far through the session the user is.
+            LinearProgressIndicator(value: (_currentIndex + 1) / _total),
 
-          // Card content — two-phase:
-          //   • Before reveal: word card centred on screen (_WordCard)
-          //   • After tap: card slides to top, fields appear below
-          Expanded(child: _buildCardArea(context)),
+            // Card content — two-phase:
+            //   • Before reveal: word card centred on screen (_WordCard)
+            //   • After tap: card slides to top, fields appear below
+            Expanded(child: _buildCardArea(context)),
 
-          // Navigation bar — Previous/Next + Know/Don't Know marking.
-          _NavigationBar(
-            currentIndex: _currentIndex,
-            total: _total,
-            onPrevious: _previous,
-            onNext: _next,
-            onSkip: () => _updateCardMark(markSkip: true),
-            onReview: () => _updateCardMark(markSkip: false),
-            isMarkedSkip: _currentCardData.markedKnown,
-            isMarkedReview: _currentCardData.markedUnknown,
-          ),
-        ],
+            // Navigation bar — Previous/Next + Know/Don't Know marking.
+            _NavigationBar(
+              currentIndex: _currentIndex,
+              total: _total,
+              onPrevious: _previous,
+              onNext: _next,
+              onSkip: () => _updateCardMark(markSkip: true),
+              onReview: () => _updateCardMark(markSkip: false),
+              isMarkedSkip: _currentCardData.markedKnown,
+              isMarkedReview: _currentCardData.markedUnknown,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -493,8 +589,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
           position: Tween<Offset>(
             begin: const Offset(0, 0.04),
             end: Offset.zero,
-          ).animate(
-              CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+          ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
           child: child,
         ),
       ),
@@ -548,20 +643,25 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     }
 
     // Global rolling-window history records every attempt (including retries).
-    ref.read(questionResultRepositoryProvider).recordResult(
-      userId: _uid,
-      cardId: _currentCardId,
-      fieldId: '${_currentCardId}_${question.questionId}',
-      fieldName: question.prompt ?? 'Question',
-      fieldType: switch (question) {
-        TextInputQuestion _ => AppConstants.fieldTypeTextInput,
-        MultipleChoiceQuestion _ => AppConstants.fieldTypeMultipleChoice,
-        WordOrderQuestion _ => AppConstants.questionTypeWordOrder,
-        FillInTheBlanksQuestion _ => AppConstants.questionTypeFillInBlanks,
-        GridQuestion _ => AppConstants.questionTypeGrid,
-      },
-      outcome: correct ? AppConstants.resultSuccess : AppConstants.resultFail,
-    ).ignore();
+    ref
+        .read(questionResultRepositoryProvider)
+        .recordResult(
+          userId: _uid,
+          cardId: _currentCardId,
+          fieldId: '${_currentCardId}_${question.questionId}',
+          fieldName: question.prompt ?? 'Question',
+          fieldType: switch (question) {
+            TextInputQuestion _ => AppConstants.fieldTypeTextInput,
+            MultipleChoiceQuestion _ => AppConstants.fieldTypeMultipleChoice,
+            WordOrderQuestion _ => AppConstants.questionTypeWordOrder,
+            FillInTheBlanksQuestion _ => AppConstants.questionTypeFillInBlanks,
+            GridQuestion _ => AppConstants.questionTypeGrid,
+          },
+          outcome: correct
+              ? AppConstants.resultSuccess
+              : AppConstants.resultFail,
+        )
+        .ignore();
   }
 
   // Animated workbook card view — mirrors the flash card AnimatedSwitcher.
@@ -575,8 +675,7 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
           position: Tween<Offset>(
             begin: const Offset(0, 0.04),
             end: Offset.zero,
-          ).animate(
-              CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+          ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
           child: child,
         ),
       ),
@@ -638,30 +737,30 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
     final label = _questionLabel(q, index);
     return switch (q) {
       TextInputQuestion q => _WorkbookTextInputCard(
-          question: q,
-          labelOverride: label,
-          onResult: (correct) => _onQuestionResult(q, index, correct),
-        ),
+        question: q,
+        labelOverride: label,
+        onResult: (correct) => _onQuestionResult(q, index, correct),
+      ),
       MultipleChoiceQuestion q => _WorkbookMultipleChoiceCard(
-          question: q,
-          labelOverride: label,
-          onResult: (correct) => _onQuestionResult(q, index, correct),
-        ),
+        question: q,
+        labelOverride: label,
+        onResult: (correct) => _onQuestionResult(q, index, correct),
+      ),
       WordOrderQuestion q => _WordOrderCard(
-          question: q,
-          labelOverride: label,
-          onResult: (correct) => _onQuestionResult(q, index, correct),
-        ),
+        question: q,
+        labelOverride: label,
+        onResult: (correct) => _onQuestionResult(q, index, correct),
+      ),
       FillInTheBlanksQuestion q => _FillInTheBlanksCard(
-          question: q,
-          labelOverride: label,
-          onResult: (correct) => _onQuestionResult(q, index, correct),
-        ),
+        question: q,
+        labelOverride: label,
+        onResult: (correct) => _onQuestionResult(q, index, correct),
+      ),
       GridQuestion q => _GridCard(
-          question: q,
-          labelOverride: label,
-          onResult: (correct) => _onQuestionResult(q, index, correct),
-        ),
+        question: q,
+        labelOverride: label,
+        onResult: (correct) => _onQuestionResult(q, index, correct),
+      ),
     };
   }
 }
@@ -726,169 +825,182 @@ class _WordCardState extends State<_WordCard> {
           child: Semantics(
             onTapHint: _translationVisible
                 ? null
-                : _isImageCard ? context.l10n.semanticsRevealForeignWord : context.l10n.semanticsRevealTranslation,
+                : _isImageCard
+                ? context.l10n.semanticsRevealForeignWord
+                : context.l10n.semanticsRevealTranslation,
             child: InkWell(
-            // Tapping always reveals everything — even from the hidden state,
-            // skipping the "Show Hint" step. Show Hint still works as a
-            // halfway step if the user wants it.
-            onTap: _translationVisible
-                ? null
-                : () => setState(() {
-                    _wordVisible = true;
-                    _translationVisible = true;
-                  }),
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (card.primaryImageUrl != null) ...[
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: ColoredBox(
-                        color: Colors.white,
-                        child: Image.network(
-                          card.primaryImageUrl!,
-                          height: 180,
-                          width: double.infinity,
-                          fit: BoxFit.contain,
-                          errorBuilder: (ctx, _, _) => SizedBox(
-                            height: 80,
-                            child: Center(
-                              child: Icon(Icons.broken_image_outlined,
+              // Tapping always reveals everything — even from the hidden state,
+              // skipping the "Show Hint" step. Show Hint still works as a
+              // halfway step if the user wants it.
+              onTap: _translationVisible
+                  ? null
+                  : () => setState(() {
+                      _wordVisible = true;
+                      _translationVisible = true;
+                    }),
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (card.primaryImageUrl != null) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: ColoredBox(
+                          color: Colors.white,
+                          child: Image.network(
+                            card.primaryImageUrl!,
+                            height: 180,
+                            width: double.infinity,
+                            fit: BoxFit.contain,
+                            errorBuilder: (ctx, _, _) => SizedBox(
+                              height: 80,
+                              child: Center(
+                                child: Icon(
+                                  Icons.broken_image_outlined,
                                   size: 40,
-                                  color: Theme.of(ctx)
-                                      .colorScheme
-                                      .onSurfaceVariant),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-
-                  if (!_wordVisible) ...[
-                    Icon(Icons.help_outline,
-                        size: 56, color: scheme.onSurfaceVariant),
-                    const SizedBox(height: 20),
-                    FilledButton.icon(
-                      onPressed: () =>
-                          setState(() => _wordVisible = true),
-                      icon: const Icon(Icons.visibility_outlined),
-                      // Image cards hide the native-word hint; text cards hide the foreign word.
-                      label: Text(_isImageCard ? context.l10n.actionShowHint : context.l10n.actionShowWord),
-                    ),
-                  ] else ...[
-                    // Cue word stays fixed; only the section below animates.
-                    Text(
-                      _cueWord,
-                      style: Theme.of(context).textTheme.headlineLarge,
-                      textAlign: TextAlign.center,
-                    ),
-
-                    // "Tap to reveal" fades out; revealed word + buttons fade in.
-                    AnimatedCrossFade(
-                      duration: const Duration(milliseconds: 220),
-                      sizeCurve: Curves.easeOut,
-                      firstChild: Padding(
-                        padding: const EdgeInsets.only(top: 24),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.touch_app_outlined,
-                                size: 18, color: scheme.onSurfaceVariant),
-                            const SizedBox(width: 6),
-                            Text(
-                              context.l10n.labelTapToReveal,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(color: scheme.onSurfaceVariant),
-                            ),
-                          ],
-                        ),
-                      ),
-                      secondChild: Column(
-                        children: [
-                          const Divider(height: 32),
-                          Text(
-                            _revealWord,
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineMedium
-                                ?.copyWith(color: scheme.primary),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 28),
-                          // Row 1: self-evaluate recall. Selecting one highlights
-                          // it and scores the card; the user advances via the
-                          // nav arrow (no auto-advance), and may still tap More.
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _SelfEvalButton(
-                                  label: context.l10n.labelKnewIt,
-                                  icon: Icons.check,
-                                  color: context.appColors.correct,
-                                  selected: widget.selectedResult ==
-                                      AppConstants.primaryResultKnown,
-                                  onTap: () => widget.onSelfEval(
-                                      AppConstants.primaryResultKnown),
+                                  color: Theme.of(
+                                    ctx,
+                                  ).colorScheme.onSurfaceVariant,
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _SelfEvalButton(
-                                  label: context.l10n.labelNotYet,
-                                  icon: Icons.close,
-                                  color: scheme.error,
-                                  selected: widget.selectedResult ==
-                                      AppConstants.primaryResultUnknown,
-                                  onTap: () => widget.onSelfEval(
-                                      AppConstants.primaryResultUnknown),
-                                ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+
+                    if (!_wordVisible) ...[
+                      Icon(
+                        Icons.help_outline,
+                        size: 56,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(height: 20),
+                      FilledButton.icon(
+                        onPressed: () => setState(() => _wordVisible = true),
+                        icon: const Icon(Icons.visibility_outlined),
+                        // Image cards hide the native-word hint; text cards hide the foreign word.
+                        label: Text(
+                          _isImageCard
+                              ? context.l10n.actionShowHint
+                              : context.l10n.actionShowWord,
+                        ),
+                      ),
+                    ] else ...[
+                      // Cue word stays fixed; only the section below animates.
+                      Text(
+                        _cueWord,
+                        style: Theme.of(context).textTheme.headlineLarge,
+                        textAlign: TextAlign.center,
+                      ),
+
+                      // "Tap to reveal" fades out; revealed word + buttons fade in.
+                      AnimatedCrossFade(
+                        duration: const Duration(milliseconds: 220),
+                        sizeCurve: Curves.easeOut,
+                        firstChild: Padding(
+                          padding: const EdgeInsets.only(top: 24),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.touch_app_outlined,
+                                size: 18,
+                                color: scheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                context.l10n.labelTapToReveal,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(color: scheme.onSurfaceVariant),
                               ),
                             ],
                           ),
-                          // Row 2: More enters full reveal — full-width, and
-                          // only shown when the card has questions to answer.
-                          if (widget.card.questions.isNotEmpty) ...[
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              child: FilledButton(
-                                onPressed: widget.onMore,
-                                child: Text(context.l10n.actionMore),
+                        ),
+                        secondChild: Column(
+                          children: [
+                            const Divider(height: 32),
+                            Text(
+                              _revealWord,
+                              style: Theme.of(context).textTheme.headlineMedium
+                                  ?.copyWith(color: scheme.primary),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 28),
+                            // Row 1: self-evaluate recall. Selecting one highlights
+                            // it and scores the card; the user advances via the
+                            // nav arrow (no auto-advance), and may still tap More.
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _SelfEvalButton(
+                                    label: context.l10n.labelKnewIt,
+                                    icon: Icons.check,
+                                    color: context.appColors.correct,
+                                    selected:
+                                        widget.selectedResult ==
+                                        AppConstants.primaryResultKnown,
+                                    onTap: () => widget.onSelfEval(
+                                      AppConstants.primaryResultKnown,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _SelfEvalButton(
+                                    label: context.l10n.labelNotYet,
+                                    icon: Icons.close,
+                                    color: scheme.error,
+                                    selected:
+                                        widget.selectedResult ==
+                                        AppConstants.primaryResultUnknown,
+                                    onTap: () => widget.onSelfEval(
+                                      AppConstants.primaryResultUnknown,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            // Row 2: More enters full reveal — full-width, and
+                            // only shown when the card has questions to answer.
+                            if (widget.card.questions.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                width: double.infinity,
+                                child: FilledButton(
+                                  onPressed: widget.onMore,
+                                  child: Text(context.l10n.actionMore),
+                                ),
                               ),
+                            ],
+                            // Row 3: Next — diminished treatment so the nav-bar
+                            // arrow remains the primary advance gesture, but the
+                            // button is reachable without moving the thumb.
+                            const SizedBox(height: 12),
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                minimumSize: const Size(double.infinity, 48),
+                              ),
+                              onPressed: widget.onNext,
+                              child: Text(context.l10n.actionNextCard),
                             ),
                           ],
-                          // Row 3: Next — diminished treatment so the nav-bar
-                          // arrow remains the primary advance gesture, but the
-                          // button is reachable without moving the thumb.
-                          const SizedBox(height: 12),
-                          TextButton(
-                            style: TextButton.styleFrom(
-                              minimumSize: const Size(double.infinity, 48),
-                            ),
-                            onPressed: widget.onNext,
-                            child: Text(context.l10n.actionNextCard),
-                          ),
-                        ],
+                        ),
+                        crossFadeState: _translationVisible
+                            ? CrossFadeState.showSecond
+                            : CrossFadeState.showFirst,
                       ),
-                      crossFadeState: _translationVisible
-                          ? CrossFadeState.showSecond
-                          : CrossFadeState.showFirst,
-                    ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          ),        // InkWell
-          ),        // Semantics
-        ),          // Card
-      ),            // SingleChildScrollView
-    );              // Center
+            ), // InkWell
+          ), // Semantics
+        ), // Card
+      ), // SingleChildScrollView
+    ); // Center
   }
 }
 
@@ -917,10 +1029,10 @@ class _SelfEvalButton extends StatelessWidget {
     final style = ButtonStyle(
       side: WidgetStatePropertyAll(BorderSide(color: color)),
       // Selected → solid colour fill with white content; idle → outlined.
-      backgroundColor:
-          WidgetStatePropertyAll(selected ? color : Colors.transparent),
-      foregroundColor:
-          WidgetStatePropertyAll(selected ? Colors.white : color),
+      backgroundColor: WidgetStatePropertyAll(
+        selected ? color : Colors.transparent,
+      ),
+      foregroundColor: WidgetStatePropertyAll(selected ? Colors.white : color),
     );
 
     return Semantics(
@@ -974,11 +1086,11 @@ class _PrimaryFieldCard extends StatelessWidget {
                     errorBuilder: (ctx, _, _) => SizedBox(
                       height: 60,
                       child: Center(
-                        child: Icon(Icons.broken_image_outlined,
-                            size: 32,
-                            color: Theme.of(ctx)
-                                .colorScheme
-                                .onSurfaceVariant),
+                        child: Icon(
+                          Icons.broken_image_outlined,
+                          size: 32,
+                          color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ),
@@ -994,10 +1106,9 @@ class _PrimaryFieldCard extends StatelessWidget {
             const Divider(height: 24),
             Text(
               bottomWord,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(color: scheme.primary),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: scheme.primary),
               textAlign: TextAlign.center,
             ),
           ],
@@ -1006,7 +1117,6 @@ class _PrimaryFieldCard extends StatelessWidget {
     );
   }
 }
-
 
 // ---------------------------------------------------------------------------
 // _NavigationBar — Previous / Next (→ Finish on last card) with a counter,
@@ -1042,8 +1152,7 @@ class _NavigationBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(8, 4, 8, 24),
       decoration: BoxDecoration(
         border: Border(
-          top: BorderSide(
-              color: Theme.of(context).colorScheme.outlineVariant),
+          top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
         ),
       ),
       child: Column(
@@ -1060,6 +1169,7 @@ class _NavigationBar extends StatelessWidget {
                 isActive: isMarkedReview,
                 activeColor: context.appColors.markReview,
                 onTap: onReview,
+                shortcutHint: 'U / 1',
               ),
               const SizedBox(width: 32),
               _MarkButton(
@@ -1069,6 +1179,7 @@ class _NavigationBar extends StatelessWidget {
                 isActive: isMarkedSkip,
                 activeColor: context.appColors.markSkip,
                 onTap: onSkip,
+                shortcutHint: 'K / 2',
               ),
             ],
           ),
@@ -1079,7 +1190,9 @@ class _NavigationBar extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.chevron_left),
                 iconSize: 32,
-                tooltip: context.l10n.tooltipPreviousCard,
+                // Desktop keyboard hint (#87) — a plain symbol, not a
+                // sentence, so it doesn't need its own l10n entry.
+                tooltip: '${context.l10n.tooltipPreviousCard} (←)',
                 onPressed: currentIndex > 0 ? onPrevious : null,
               ),
               Expanded(
@@ -1097,9 +1210,12 @@ class _NavigationBar extends StatelessWidget {
               ),
               IconButton(
                 // On the last card, the icon becomes a check to signal Finish.
-                icon: Icon(isLast ? Icons.check_circle_outline : Icons.chevron_right),
+                icon: Icon(
+                  isLast ? Icons.check_circle_outline : Icons.chevron_right,
+                ),
                 iconSize: 32,
-                tooltip: isLast ? context.l10n.tooltipFinishSession : context.l10n.tooltipNextCard,
+                tooltip:
+                    '${isLast ? context.l10n.tooltipFinishSession : context.l10n.tooltipNextCard} (→)',
                 onPressed: onNext,
               ),
             ],
@@ -1121,6 +1237,8 @@ class _MarkButton extends StatefulWidget {
   final bool isActive;
   final Color activeColor;
   final VoidCallback? onTap;
+  // Desktop keyboard hint (#87), e.g. 'K / 1' — shown as a hover tooltip.
+  final String? shortcutHint;
 
   const _MarkButton({
     required this.label,
@@ -1129,6 +1247,7 @@ class _MarkButton extends StatefulWidget {
     required this.isActive,
     required this.activeColor,
     this.onTap,
+    this.shortcutHint,
   });
 
   @override
@@ -1154,30 +1273,36 @@ class _MarkButtonState extends State<_MarkButton> {
     // Listener fires at pointer level without competing with TextButton's
     // gesture recogniser — used only for the press-scale visual.
     // Semantics.toggled announces the active/inactive state to screen readers.
-    return Semantics(
+    final button = Semantics(
       toggled: widget.isActive,
       child: Listener(
-      onPointerDown: (_) {
-        if (widget.onTap != null) setState(() => _pressed = true);
-      },
-      onPointerUp: (_) => setState(() => _pressed = false),
-      onPointerCancel: (_) => setState(() => _pressed = false),
-      child: AnimatedScale(
-        scale: _pressed ? 0.88 : 1.0,
-        duration: const Duration(milliseconds: 80),
-        curve: Curves.easeOut,
-        child: TextButton.icon(
-          onPressed: widget.onTap,
-          style: TextButton.styleFrom(
-            foregroundColor: color,
-            // Keep the active color visible even when disabled (post-reveal nav).
-            disabledForegroundColor: color,
+        onPointerDown: (_) {
+          if (widget.onTap != null) setState(() => _pressed = true);
+        },
+        onPointerUp: (_) => setState(() => _pressed = false),
+        onPointerCancel: (_) => setState(() => _pressed = false),
+        child: AnimatedScale(
+          scale: _pressed ? 0.88 : 1.0,
+          duration: const Duration(milliseconds: 80),
+          curve: Curves.easeOut,
+          child: TextButton.icon(
+            onPressed: widget.onTap,
+            style: TextButton.styleFrom(
+              foregroundColor: color,
+              // Keep the active color visible even when disabled (post-reveal nav).
+              disabledForegroundColor: color,
+            ),
+            icon: Icon(
+              widget.isActive ? widget.activeIcon : widget.icon,
+              color: color,
+            ),
+            label: Text(widget.label, style: TextStyle(color: color)),
           ),
-          icon: Icon(widget.isActive ? widget.activeIcon : widget.icon, color: color),
-          label: Text(widget.label, style: TextStyle(color: color)),
         ),
-      ),
-    ),    // Listener
-    );    // Semantics
+      ), // Listener
+    ); // Semantics
+    return widget.shortcutHint == null
+        ? button
+        : Tooltip(message: widget.shortcutHint, child: button);
   }
 }

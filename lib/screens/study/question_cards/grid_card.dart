@@ -17,8 +17,7 @@ class _GridCard extends StatefulWidget {
   // Resolved display label ("Question N") from the parent; falls back to the
   // question's own prompt when null.
   final String? labelOverride;
-  const _GridCard(
-      {required this.question, this.onResult, this.labelOverride});
+  const _GridCard({required this.question, this.onResult, this.labelOverride});
 
   @override
   State<_GridCard> createState() => _GridCardState();
@@ -33,8 +32,9 @@ class _GridCardState extends State<_GridCard> {
   final Map<int, int> _placement = {}; // hidden linear index -> pool index
   int? _selectedCell;
   AnswerResult? _result;
-  // Text-input mode: one controller per hidden linear cell index.
+  // Text-input mode: one controller (and focus node) per hidden linear cell.
   final Map<int, TextEditingController> _textControllers = {};
+  final Map<int, FocusNode> _focusNodes = {};
 
   @override
   void initState() {
@@ -42,11 +42,27 @@ class _GridCardState extends State<_GridCard> {
     _cells = widget.question.cells ?? const [];
     _cols = widget.question.columnCount;
     _setupRound();
+    // Auto-focus the first cell the moment this question is revealed (#87
+    // follow-up: keyboard-driven study) — this widget is only ever built
+    // once per reveal (see _QuestionReveal), so initState firing exactly
+    // once here can't re-steal focus on an unrelated rebuild.
+    if (widget.question.completionMode == CompletionMode.textInput &&
+        _hiddenOrder.isNotEmpty) {
+      final firstFocus = _focusNodes[_hiddenOrder.first];
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) firstFocus?.requestFocus();
+      });
+    }
   }
 
   @override
   void dispose() {
-    for (final c in _textControllers.values) { c.dispose(); }
+    for (final c in _textControllers.values) {
+      c.dispose();
+    }
+    for (final f in _focusNodes.values) {
+      f.dispose();
+    }
     super.dispose();
   }
 
@@ -65,11 +81,18 @@ class _GridCardState extends State<_GridCard> {
     _selectedCell = _hiddenOrder.isNotEmpty ? _hiddenOrder.first : null;
     _result = null;
     // Text-input mode: create one controller per hidden cell; dispose previous.
-    for (final c in _textControllers.values) { c.dispose(); }
+    for (final c in _textControllers.values) {
+      c.dispose();
+    }
+    for (final f in _focusNodes.values) {
+      f.dispose();
+    }
     _textControllers.clear();
+    _focusNodes.clear();
     if (widget.question.completionMode == CompletionMode.textInput) {
       for (final idx in _hiddenOrder) {
         _textControllers[idx] = TextEditingController();
+        _focusNodes[idx] = FocusNode();
       }
     }
   }
@@ -77,7 +100,8 @@ class _GridCardState extends State<_GridCard> {
   Set<int> get _usedPoolIds => _placement.values.toSet();
   bool get _allFilled => _placement.length == _hiddenOrder.length;
   bool get _allTextFilled => _hiddenOrder.every(
-      (i) => (_textControllers[i]?.text ?? '').trim().isNotEmpty);
+    (i) => (_textControllers[i]?.text ?? '').trim().isNotEmpty,
+  );
 
   int? _firstEmptyCell() {
     for (final c in _hiddenOrder) {
@@ -89,8 +113,9 @@ class _GridCardState extends State<_GridCard> {
   void _onPoolTap(int poolId) {
     if (_result != null || _usedPoolIds.contains(poolId)) return;
     final sel = _selectedCell;
-    final target =
-        (sel != null && !_placement.containsKey(sel)) ? sel : _firstEmptyCell();
+    final target = (sel != null && !_placement.containsKey(sel))
+        ? sel
+        : _firstEmptyCell();
     if (target == null) return;
     setState(() {
       _placement[target] = poolId;
@@ -110,10 +135,13 @@ class _GridCardState extends State<_GridCard> {
     if (widget.question.completionMode == CompletionMode.textInput) {
       var result = AnswerResult.correct;
       for (final idx in _hiddenOrder) {
-        final r = AppHelpers.checkAnswer(
-            _textControllers[idx]?.text ?? '',
-            [_cells[idx ~/ _cols][idx % _cols]]);
-        if (r == AnswerResult.incorrect) { result = AnswerResult.incorrect; break; }
+        final r = AppHelpers.checkAnswer(_textControllers[idx]?.text ?? '', [
+          _cells[idx ~/ _cols][idx % _cols],
+        ]);
+        if (r == AnswerResult.incorrect) {
+          result = AnswerResult.incorrect;
+          break;
+        }
         if (r == AnswerResult.close) result = AnswerResult.close;
       }
       setState(() => _result = result);
@@ -125,7 +153,10 @@ class _GridCardState extends State<_GridCard> {
     for (final idx in _hiddenOrder) {
       final poolId = _placement[idx];
       final placed = poolId != null ? _pool[poolId] : null;
-      if (placed != _cells[idx ~/ _cols][idx % _cols]) { allCorrect = false; break; }
+      if (placed != _cells[idx ~/ _cols][idx % _cols]) {
+        allCorrect = false;
+        break;
+      }
     }
     final result = allCorrect ? AnswerResult.correct : AnswerResult.incorrect;
     setState(() => _result = result);
@@ -147,25 +178,39 @@ class _GridCardState extends State<_GridCard> {
     // Build the table rows.
     final tableRows = <TableRow>[];
     if (hasColHeaders) {
-      tableRows.add(TableRow(children: [
-        if (hasRowHeaders)
-          _headerCell(q.cornerLabel, scheme), // top-left corner label
-        for (final h in q.columnHeaders) _headerCell(h, scheme),
-      ]));
+      tableRows.add(
+        TableRow(
+          children: [
+            if (hasRowHeaders)
+              _headerCell(q.cornerLabel, scheme), // top-left corner label
+            for (final h in q.columnHeaders) _headerCell(h, scheme),
+          ],
+        ),
+      );
     }
     for (var r = 0; r < _cells.length; r++) {
-      tableRows.add(TableRow(children: [
-        if (hasRowHeaders)
-          _headerCell(r < q.rowHeaders.length ? q.rowHeaders[r] : '', scheme),
-        for (var c = 0; c < _cols; c++)
-          _dataCell(r * _cols + c, scheme, appColors),
-      ]));
+      tableRows.add(
+        TableRow(
+          children: [
+            if (hasRowHeaders)
+              _headerCell(
+                r < q.rowHeaders.length ? q.rowHeaders[r] : '',
+                scheme,
+              ),
+            for (var c = 0; c < _cols; c++)
+              _dataCell(r * _cols + c, scheme, appColors),
+          ],
+        ),
+      );
     }
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: _answeredCardColor(context,
-          answered: answered, accepted: isAccepted),
+      color: _answeredCardColor(
+        context,
+        answered: answered,
+        accepted: isAccepted,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -194,7 +239,10 @@ class _GridCardState extends State<_GridCard> {
             if (widget.question.completionMode == CompletionMode.pill &&
                 !answered) ...[
               _WordBankChips(
-                  pool: _pool, usedIds: _usedPoolIds, onTap: _onPoolTap),
+                pool: _pool,
+                usedIds: _usedPoolIds,
+                onTap: _onPoolTap,
+              ),
               const SizedBox(height: 12),
             ],
 
@@ -203,7 +251,8 @@ class _GridCardState extends State<_GridCard> {
               Align(
                 alignment: Alignment.centerRight,
                 child: FilledButton(
-                  onPressed: (widget.question.completionMode ==
+                  onPressed:
+                      (widget.question.completionMode ==
                               CompletionMode.textInput
                           ? _allTextFilled
                           : _allFilled)
@@ -229,19 +278,20 @@ class _GridCardState extends State<_GridCard> {
   // result tint would bleed through the gap. Data cells stay middle-aligned,
   // which gives the row its intrinsic height.
   Widget _headerCell(String text, ColorScheme scheme) => TableCell(
-        verticalAlignment: TableCellVerticalAlignment.fill,
-        child: Container(
-          color: scheme.surfaceContainerHighest,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Text(text,
-              textAlign: TextAlign.center,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.bold)),
-        ),
-      );
+    verticalAlignment: TableCellVerticalAlignment.fill,
+    child: Container(
+      color: scheme.surfaceContainerHighest,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: Theme.of(
+          context,
+        ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+      ),
+    ),
+  );
 
   // A grid data cell: fixed value when visible; pill slot or text field when
   // hidden, depending on completionMode.
@@ -251,9 +301,11 @@ class _GridCardState extends State<_GridCard> {
     if (!_hiddenSet.contains(linearIndex)) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Text(value,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium),
+        child: Text(
+          value,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
       );
     }
 
@@ -279,20 +331,23 @@ class _GridCardState extends State<_GridCard> {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (showEntry)
-                Text(inputTrim.isEmpty ? '—' : inputTrim,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: correct
-                            ? scheme.onSurfaceVariant
-                            : scheme.error,
-                        fontWeight: FontWeight.w600,
-                        decoration:
-                            correct ? null : TextDecoration.lineThrough)),
-              Text(value,
+                Text(
+                  inputTrim.isEmpty ? '—' : inputTrim,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      color: appColors.onCorrectSurface,
-                      fontWeight: FontWeight.w600)),
+                    color: correct ? scheme.onSurfaceVariant : scheme.error,
+                    fontWeight: FontWeight.w600,
+                    decoration: correct ? null : TextDecoration.lineThrough,
+                  ),
+                ),
+              Text(
+                value,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: appColors.onCorrectSurface,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         );
@@ -306,8 +361,10 @@ class _GridCardState extends State<_GridCard> {
         value,
         fieldStyle,
         contentPadding: 6, // grid field uses horizontal:6 contentPadding
-        maxWidth:
-            (MediaQuery.sizeOf(context).width / (_cols + 1)).clamp(56.0, 160.0),
+        maxWidth: (MediaQuery.sizeOf(context).width / (_cols + 1)).clamp(
+          56.0,
+          160.0,
+        ),
       );
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
@@ -315,11 +372,11 @@ class _GridCardState extends State<_GridCard> {
           width: fieldWidth,
           child: TextField(
             controller: _textControllers[linearIndex],
+            focusNode: _focusNodes[linearIndex],
             textAlign: TextAlign.center,
             decoration: const InputDecoration(
               isDense: true,
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+              contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
               border: OutlineInputBorder(),
             ),
             style: fieldStyle,
@@ -344,19 +401,24 @@ class _GridCardState extends State<_GridCard> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(placed ?? '—',
+            Text(
+              placed ?? '—',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: correct ? appColors.onCorrectSurface : scheme.error,
+                fontWeight: FontWeight.w600,
+                decoration: correct ? null : TextDecoration.lineThrough,
+              ),
+            ),
+            if (!correct)
+              Text(
+                value,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: correct ? appColors.onCorrectSurface : scheme.error,
+                  color: appColors.onCorrectSurface,
                   fontWeight: FontWeight.w600,
-                  decoration: correct ? null : TextDecoration.lineThrough,
-                )),
-            if (!correct)
-              Text(value,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: appColors.onCorrectSurface,
-                      fontWeight: FontWeight.w600)),
+                ),
+              ),
           ],
         ),
       );
@@ -376,10 +438,10 @@ class _GridCardState extends State<_GridCard> {
           placed ?? '____',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: placed != null
-                    ? scheme.onSecondaryContainer
-                    : scheme.onSurfaceVariant,
-              ),
+            color: placed != null
+                ? scheme.onSecondaryContainer
+                : scheme.onSurfaceVariant,
+          ),
         ),
       ),
     );

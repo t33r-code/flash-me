@@ -16,8 +16,11 @@ class _FillInTheBlanksCard extends StatefulWidget {
   // Resolved display label ("Question N") from the parent; falls back to the
   // question's own prompt when null.
   final String? labelOverride;
-  const _FillInTheBlanksCard(
-      {required this.question, this.onResult, this.labelOverride});
+  const _FillInTheBlanksCard({
+    required this.question,
+    this.onResult,
+    this.labelOverride,
+  });
 
   @override
   State<_FillInTheBlanksCard> createState() => _FillInTheBlanksCardState();
@@ -26,24 +29,41 @@ class _FillInTheBlanksCard extends StatefulWidget {
 class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
   late List<FillBlankToken> _tokens;
   late List<int> _blankIndices; // token indices that are blanks (reading order)
-  late Set<int> _blankSet;      // same, for fast lookup during render
-  late List<String> _pool;      // pool words (blanked words + distractors)
+  late Set<int> _blankSet; // same, for fast lookup during render
+  late List<String> _pool; // pool words (blanked words + distractors)
   final Map<int, int> _placement = {}; // blankTokenIndex -> pool index
-  int? _selectedBlank;          // blank currently selected to fill
+  int? _selectedBlank; // blank currently selected to fill
   AnswerResult? _result;
-  // Text-input mode: one controller per blank token index.
+  // Text-input mode: one controller (and focus node) per blank token index.
   final Map<int, TextEditingController> _textControllers = {};
+  final Map<int, FocusNode> _focusNodes = {};
 
   @override
   void initState() {
     super.initState();
     _tokens = widget.question.tokens ?? [];
     _setupRound();
+    // Auto-focus the first blank the moment this question is revealed (#87
+    // follow-up: keyboard-driven study) — this widget is only ever built
+    // once per reveal (see _QuestionReveal), so initState firing exactly
+    // once here can't re-steal focus on an unrelated rebuild.
+    if (widget.question.completionMode == CompletionMode.textInput &&
+        _blankIndices.isNotEmpty) {
+      final firstFocus = _focusNodes[_blankIndices.first];
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) firstFocus?.requestFocus();
+      });
+    }
   }
 
   @override
   void dispose() {
-    for (final c in _textControllers.values) { c.dispose(); }
+    for (final c in _textControllers.values) {
+      c.dispose();
+    }
+    for (final f in _focusNodes.values) {
+      f.dispose();
+    }
     super.dispose();
   }
 
@@ -51,7 +71,9 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
   void _setupRound() {
     final eligible = <int>[];
     for (var i = 0; i < _tokens.length; i++) {
-      if (_tokens[i].eligible) { eligible.add(i); }
+      if (_tokens[i].eligible) {
+        eligible.add(i);
+      }
     }
     eligible.shuffle();
     final count = widget.question.blankCount.clamp(0, eligible.length);
@@ -64,12 +86,20 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
     _placement.clear();
     _selectedBlank = _blankIndices.isNotEmpty ? _blankIndices.first : null;
     _result = null;
-    // Text-input mode: create one controller per blank; dispose any previous.
-    for (final c in _textControllers.values) { c.dispose(); }
+    // Text-input mode: create one controller (and focus node) per blank;
+    // dispose any previous.
+    for (final c in _textControllers.values) {
+      c.dispose();
+    }
+    for (final f in _focusNodes.values) {
+      f.dispose();
+    }
     _textControllers.clear();
+    _focusNodes.clear();
     if (widget.question.completionMode == CompletionMode.textInput) {
       for (final i in _blankIndices) {
         _textControllers[i] = TextEditingController();
+        _focusNodes[i] = FocusNode();
       }
     }
   }
@@ -78,7 +108,8 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
   bool get _allFilled => _placement.length == _blankIndices.length;
   // Text-input mode: every blank has a non-empty entry.
   bool get _allTextFilled => _blankIndices.every(
-      (i) => (_textControllers[i]?.text ?? '').trim().isNotEmpty);
+    (i) => (_textControllers[i]?.text ?? '').trim().isNotEmpty,
+  );
 
   int? _firstEmptyBlank() {
     for (final b in _blankIndices) {
@@ -91,8 +122,9 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
   void _onPoolTap(int poolId) {
     if (_result != null || _usedPoolIds.contains(poolId)) return;
     final sel = _selectedBlank;
-    final target =
-        (sel != null && !_placement.containsKey(sel)) ? sel : _firstEmptyBlank();
+    final target = (sel != null && !_placement.containsKey(sel))
+        ? sel
+        : _firstEmptyBlank();
     if (target == null) return;
     setState(() {
       _placement[target] = poolId;
@@ -115,9 +147,13 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
       // all accepted with at least one close → close; all exact → correct.
       var result = AnswerResult.correct;
       for (final b in _blankIndices) {
-        final r = AppHelpers.checkAnswer(
-            _textControllers[b]?.text ?? '', [_tokens[b].word]);
-        if (r == AnswerResult.incorrect) { result = AnswerResult.incorrect; break; }
+        final r = AppHelpers.checkAnswer(_textControllers[b]?.text ?? '', [
+          _tokens[b].word,
+        ]);
+        if (r == AnswerResult.incorrect) {
+          result = AnswerResult.incorrect;
+          break;
+        }
         if (r == AnswerResult.close) result = AnswerResult.close;
       }
       setState(() => _result = result);
@@ -130,7 +166,10 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
     for (final b in _blankIndices) {
       final poolId = _placement[b];
       final placedWord = poolId != null ? _pool[poolId] : null;
-      if (placedWord != _tokens[b].word) { allCorrect = false; break; }
+      if (placedWord != _tokens[b].word) {
+        allCorrect = false;
+        break;
+      }
     }
     final result = allCorrect ? AnswerResult.correct : AnswerResult.incorrect;
     setState(() => _result = result);
@@ -148,8 +187,11 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: _answeredCardColor(context,
-          answered: answered, accepted: isAccepted),
+      color: _answeredCardColor(
+        context,
+        answered: answered,
+        accepted: isAccepted,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -178,8 +220,9 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       child: Text(
-                          '${_tokens[i].leading}${_tokens[i].word}${_tokens[i].trailing}',
-                          style: Theme.of(context).textTheme.bodyLarge),
+                        '${_tokens[i].leading}${_tokens[i].word}${_tokens[i].trailing}',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
                     ),
               ],
             ),
@@ -189,7 +232,10 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
             if (widget.question.completionMode == CompletionMode.pill &&
                 !answered) ...[
               _WordBankChips(
-                  pool: _pool, usedIds: _usedPoolIds, onTap: _onPoolTap),
+                pool: _pool,
+                usedIds: _usedPoolIds,
+                onTap: _onPoolTap,
+              ),
               const SizedBox(height: 12),
             ],
 
@@ -198,7 +244,8 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
               Align(
                 alignment: Alignment.centerRight,
                 child: FilledButton(
-                  onPressed: (widget.question.completionMode ==
+                  onPressed:
+                      (widget.question.completionMode ==
                               CompletionMode.textInput
                           ? _allTextFilled
                           : _allFilled)
@@ -218,11 +265,11 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
                 message: FeedbackPhrases.forResult(_result!, context.l10n),
                 detail: Text(
                   context.l10n.messageAnswerReveal(
-                      widget.question.sentence ?? ''),
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: scheme.onSurfaceVariant),
+                    widget.question.sentence ?? '',
+                  ),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ),
           ],
@@ -257,9 +304,10 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
       final correctWord = _tokens[tokenIndex].word;
       if (placedWord == correctWord) {
         return _slotChip(
-            text: correctWord,
-            bg: appColors.correctSurface,
-            fg: appColors.onCorrectSurface);
+          text: correctWord,
+          bg: appColors.correctSurface,
+          fg: appColors.onCorrectSurface,
+        );
       }
       // Wrong: user's word struck through, followed by the correct word.
       return Padding(
@@ -269,14 +317,16 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             _slotChip(
-                text: placedWord ?? '—',
-                bg: scheme.errorContainer,
-                fg: scheme.onErrorContainer,
-                strike: true),
+              text: placedWord ?? '—',
+              bg: scheme.errorContainer,
+              fg: scheme.onErrorContainer,
+              strike: true,
+            ),
             _slotChip(
-                text: correctWord,
-                bg: appColors.correctSurface,
-                fg: appColors.onCorrectSurface),
+              text: correctWord,
+              bg: appColors.correctSurface,
+              fg: appColors.onCorrectSurface,
+            ),
           ],
         ),
       );
@@ -300,10 +350,10 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
           placedWord ?? '   ',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: placedWord != null
-                    ? scheme.onSecondaryContainer
-                    : scheme.onSurfaceVariant,
-              ),
+            color: placedWord != null
+                ? scheme.onSecondaryContainer
+                : scheme.onSurfaceVariant,
+          ),
         ),
       ),
     );
@@ -312,7 +362,11 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
   // Text-input slot: a compact inline TextField while unanswered; switches to
   // a coloured chip showing the CANONICAL correct word (not the user's input)
   // on reveal so the learner always sees the right form.
-  Widget _buildTextSlot(int tokenIndex, ColorScheme scheme, AppColors appColors) {
+  Widget _buildTextSlot(
+    int tokenIndex,
+    ColorScheme scheme,
+    AppColors appColors,
+  ) {
     final correctWord = _tokens[tokenIndex].word;
     final answered = _result != null;
 
@@ -327,9 +381,10 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
       // Clean exact entry → single correct chip.
       if (exact) {
         return _slotChip(
-            text: correctWord,
-            bg: appColors.correctSurface,
-            fg: appColors.onCorrectSurface);
+          text: correctWord,
+          bg: appColors.correctSurface,
+          fg: appColors.onCorrectSurface,
+        );
       }
 
       // Close acceptance → show the user's entry (neutral, not struck) next to
@@ -342,13 +397,15 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               _slotChip(
-                  text: inputTrim.isEmpty ? '—' : inputTrim,
-                  bg: scheme.secondaryContainer,
-                  fg: scheme.onSecondaryContainer),
+                text: inputTrim.isEmpty ? '—' : inputTrim,
+                bg: scheme.secondaryContainer,
+                fg: scheme.onSecondaryContainer,
+              ),
               _slotChip(
-                  text: correctWord,
-                  bg: appColors.correctSurface,
-                  fg: appColors.onCorrectSurface),
+                text: correctWord,
+                bg: appColors.correctSurface,
+                fg: appColors.onCorrectSurface,
+              ),
             ],
           ),
         );
@@ -362,14 +419,16 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             _slotChip(
-                text: inputTrim.isEmpty ? '—' : inputTrim,
-                bg: scheme.errorContainer,
-                fg: scheme.onErrorContainer,
-                strike: true),
+              text: inputTrim.isEmpty ? '—' : inputTrim,
+              bg: scheme.errorContainer,
+              fg: scheme.onErrorContainer,
+              strike: true,
+            ),
             _slotChip(
-                text: correctWord,
-                bg: appColors.correctSurface,
-                fg: appColors.onCorrectSurface),
+              text: correctWord,
+              bg: appColors.correctSurface,
+              fg: appColors.onCorrectSurface,
+            ),
           ],
         ),
       );
@@ -388,6 +447,7 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
       width: fieldWidth,
       child: TextField(
         controller: _textControllers[tokenIndex],
+        focusNode: _focusNodes[tokenIndex],
         decoration: const InputDecoration(
           isDense: true,
           contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -400,20 +460,26 @@ class _FillInTheBlanksCardState extends State<_FillInTheBlanksCard> {
     );
   }
 
-  Widget _slotChip(
-      {required String text,
-      required Color bg,
-      required Color fg,
-      bool strike = false}) {
+  Widget _slotChip({
+    required String text,
+    required Color bg,
+    required Color fg,
+    bool strike = false,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration:
-          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
-      child: Text(text,
-          style: TextStyle(
-              color: fg,
-              fontWeight: FontWeight.w600,
-              decoration: strike ? TextDecoration.lineThrough : null)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: fg,
+          fontWeight: FontWeight.w600,
+          decoration: strike ? TextDecoration.lineThrough : null,
+        ),
+      ),
     );
   }
 }

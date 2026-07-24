@@ -60,8 +60,11 @@ class _OptionButton extends StatelessWidget {
   final String label;
   final _OptionState state;
   final VoidCallback? onTap;
+  // Wired only for the first option in a question (#87 follow-up) so it can
+  // be auto-focused on reveal — see _WorkbookMultipleChoiceCardState.
+  final FocusNode? focusNode;
   const _OptionButton(
-      {required this.label, required this.state, this.onTap});
+      {required this.label, required this.state, this.onTap, this.focusNode});
 
   @override
   Widget build(BuildContext context) {
@@ -102,6 +105,7 @@ class _OptionButton extends StatelessWidget {
           width: double.infinity,
           child: OutlinedButton(
             onPressed: onTap,
+            focusNode: focusNode,
             style: OutlinedButton.styleFrom(
               backgroundColor: bg,
               side: BorderSide(color: border),

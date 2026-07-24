@@ -87,6 +87,8 @@ After tapping **More**, any interactive fields on the card become active:
 
 On a card with **more than one question**, the questions reveal one at a time so you can work through them at a natural pace. The first question is shown straight away; each later question stays collapsed to just its label until you answer the one before it, then it expands automatically. Questions you've already answered stay open. A question with no label of its own shows **Question 1**, **Question 2**, and so on. Cards with a single question are unaffected.
 
+On a wide window, a text-entry question (or a text-mode fill-in-the-blanks/grid) automatically focuses its field as soon as it's revealed, and moves to the next question's field the moment you answer — you can work straight through a card's questions without reaching for the mouse.
+
 ### Text Input { #study-text-input }
 
 Type your answer and tap **Check** (or press Enter). Agora tells you whether you're correct and, if not, shows the accepted answer(s). Your result is final — move on with the navigation controls at the bottom.
@@ -130,8 +132,8 @@ On a wide window, an entire session can be driven from the keyboard:
 |---|---|
 | **←** / **→** | Previous / next card |
 | **Enter** | Reveal the card (translation and any extra questions, all at once); press again to advance |
-| **K** or **1** | Mark **Skip** |
-| **U** or **2** | Mark **Review** |
+| **K** or **2** | Mark **Skip** |
+| **U** or **1** | Mark **Review** |
 
 Hover the Previous/Next arrows or the Skip/Review buttons to see the shortcut as a tooltip. Shortcuts are automatically disabled while you're typing an answer into a text-input question, so typing a "k" or "u" (or moving your cursor with the arrow keys) never gets mistaken for a shortcut.
 

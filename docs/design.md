@@ -1206,14 +1206,22 @@ The Set Detail screen retains a play-circle icon in the AppBar that navigates di
 |---|---|
 | ← / → | Previous / next card (`_previous()` / `_next()` directly — same as the nav-bar arrows, works regardless of reveal state) |
 | Enter | **Reveal** everything at once (translation + any additional questions — equivalent to tap + **More** together) if not yet revealed; **advance** to the next card if it already is |
-| K / 1 | Mark **Skip** |
-| U / 2 | Mark **Review** |
+| K / 2 | Mark **Skip** |
+| U / 1 | Mark **Review** |
 
 **Reveal granularity.** A flash card normally reveals in two separate taps (tap the card → translation + self-eval; tap **More** → expand additional questions). Enter deliberately collapses this to one press — `_isRevealed` (`_fullyRevealed`, or `questionAsCard` for a workbook card already showing everything) decides whether Enter reveals or advances, so a full card takes exactly two Enter presses regardless of whether it has extra questions. This trades a little step-for-step fidelity to the tap gesture for a faster keyboard review loop (matching Anki/Quizlet-style flashcard apps) — considered and confirmed over the more literal "mirror every tap" alternative, which would have required lifting `_WordCard`'s currently-private reveal state up to the parent screen.
 
 **Text-field safety.** Every shortcut is gated behind `_isTextFieldFocused()` — without it, typing a literal `k`/`u` (or using arrow keys to move the cursor) while answering a text-input question would double as a navigation/marking shortcut. The check is *not* `primaryFocus?.context?.widget is EditableText` — that widget is the `Focus` `EditableText` wraps itself in, never `EditableText` itself, so the check always evaluated false and the guard silently did nothing. The correct form walks up the ancestor chain: `primaryFocus?.context?.findAncestorWidgetOfExactType<EditableText>() != null`. This exact failure mode is what `test/screens/study/study_keyboard_shortcuts_test.dart` exists to catch — a small isolated harness (`Focus` wrapping a `TextField`) that doesn't build the full session screen, since the risk being verified is a general Flutter focus-bubbling behaviour, not anything screen-specific.
 
-**Discoverability.** The nav bar's Previous/Next tooltips and the Skip/Review buttons' (new) tooltips append the shortcut hint (`(←)`, `(K / 1)`, etc.) inline at the call site rather than editing the underlying l10n strings, which are reused in other contexts. A full shortcuts cheatsheet is deferred to #235's own scoping.
+Digits deliberately don't pair with their letter's mnemonic — the nav bar displays **Review** before **Skip** (left to right), so **1** is Review and **2** is Skip, matching display order rather than the K/U pairing.
+
+**Discoverability.** The nav bar's Previous/Next tooltips and the Skip/Review buttons' (new) tooltips append the shortcut hint (`(←)`, `(K / 2)`, etc.) inline at the call site rather than editing the underlying l10n strings, which are reused in other contexts. A full shortcuts cheatsheet is deferred to #235's own scoping.
+
+**Question focus chain (#87 follow-up).** When a card's additional questions are revealed, the first one's text field auto-focuses, and answering it auto-focuses the next one — a keyboard-driven review loop shouldn't require reaching for the mouse between questions. Applies to `_WorkbookTextInputCard` and the `textInput` completion mode of `_FillInTheBlanksCard`/`_GridCard` (each field-per-token/cell gets its own `FocusNode`, keyed the same way as their existing `TextEditingController`s); `multiple_choice`, `word_order`, and pill-mode fill-in-the-blanks/grid have no text field to focus, so they're unaffected.
+
+The mechanism is each question widget's own `initState` requesting focus via `WidgetsBinding.instance.addPostFrameCallback`, deliberately **not** the `TextField.autofocus` property. `_QuestionReveal` never builds a question's real widget until the moment it first expands (staying `null`/a placeholder while collapsed — see `utils/question_reveal.dart`), so each widget's `initState` fires exactly once, at exactly the right moment — first reveal for question 0, or the instant question N+1 replaces its placeholder right after N is answered. No parent-level coordination is needed.
+
+`autofocus: true` was tried first and rejected: it only claims focus if nothing already has it, and by the time any question widget mounts, `StudySessionScreen`'s own `Focus(autofocus: true)` (added for the shortcuts above) has already claimed the screen's focus at initial build — confirmed by a throwaway scratch test before writing the real fix (an ancestor `Focus(autofocus: true)` followed by a later-mounted `TextField(autofocus: true)`; the field never took focus). An explicit `FocusNode.requestFocus()` call unconditionally moves focus regardless of who currently holds it, which is what's needed here.
 
 ---
 

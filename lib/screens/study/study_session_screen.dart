@@ -227,12 +227,15 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
           _next();
         }
         return KeyEventResult.handled;
+      // Digits follow the nav bar's left-to-right display order (Review,
+      // then Skip) rather than pairing with their letter mnemonic — 1 is
+      // Review, 2 is Skip, even though U/Review and K/Skip pair together.
       case LogicalKeyboardKey.keyK:
-      case LogicalKeyboardKey.digit1:
+      case LogicalKeyboardKey.digit2:
         _updateCardMark(markSkip: true);
         return KeyEventResult.handled;
       case LogicalKeyboardKey.keyU:
-      case LogicalKeyboardKey.digit2:
+      case LogicalKeyboardKey.digit1:
         _updateCardMark(markSkip: false);
         return KeyEventResult.handled;
       default:
@@ -1149,7 +1152,7 @@ class _NavigationBar extends StatelessWidget {
                 isActive: isMarkedReview,
                 activeColor: context.appColors.markReview,
                 onTap: onReview,
-                shortcutHint: 'U / 2',
+                shortcutHint: 'U / 1',
               ),
               const SizedBox(width: 32),
               _MarkButton(
@@ -1159,7 +1162,7 @@ class _NavigationBar extends StatelessWidget {
                 isActive: isMarkedSkip,
                 activeColor: context.appColors.markSkip,
                 onTap: onSkip,
-                shortcutHint: 'K / 1',
+                shortcutHint: 'K / 2',
               ),
             ],
           ),

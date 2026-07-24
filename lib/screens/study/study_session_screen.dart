@@ -218,6 +218,12 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
         return KeyEventResult.handled;
       case LogicalKeyboardKey.enter:
       case LogicalKeyboardKey.numpadEnter:
+        // When an answer option button holds focus, let Enter bubble past us
+        // to Flutter's root-level Activate shortcut so it selects the option
+        // (Space already works because we never handle it). Our Focus sits
+        // between the button and that root shortcut, so without this we'd
+        // swallow Enter and advance the card instead of selecting.
+        if (_isButtonFocused()) return KeyEventResult.ignored;
         // One press reveals everything (translation + any extra questions,
         // matching a tap + More together); a second press advances — fewer
         // keystrokes for a fast keyboard-driven review loop.
@@ -256,6 +262,17 @@ class _StudySessionScreenState extends ConsumerState<StudySessionScreen> {
   bool _isTextFieldFocused() =>
       FocusManager.instance.primaryFocus?.context
           ?.findAncestorWidgetOfExactType<EditableText>() !=
+      null;
+
+  // True while an answer option button holds focus (a revealed multiple-choice
+  // question auto-focuses its first option). Same ancestor-walk approach as
+  // _isTextFieldFocused — a focused button's primary-focus context lives inside
+  // the OutlinedButton's own subtree. A disabled (already-answered) button
+  // can't hold focus, so this goes false once the question is answered and
+  // Enter resumes advancing the card.
+  bool _isButtonFocused() =>
+      FocusManager.instance.primaryFocus?.context
+          ?.findAncestorWidgetOfExactType<OutlinedButton>() !=
       null;
 
   void _previous() {

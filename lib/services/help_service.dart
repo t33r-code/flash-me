@@ -6,7 +6,7 @@ enum HelpContext { cards, sets, study, templates, importExport, account }
 
 // Opens the help site at the page corresponding to the current screen context.
 class HelpService {
-  static const _base = 'https://flash-me-7a1a2.web.app';
+  static const _base = 'https://agora-app-help.web.app';
 
   static const _paths = {
     HelpContext.cards: '/cards/',

@@ -73,7 +73,7 @@ jobs:
       - name: Build web release
         run: flutter build web --release
 
-      # Deploys to the `webtest` Hosting target (https://flash-me-test.web.app),
+      # Deploys to the `webtest` Hosting target (https://agora-app-test.web.app),
       # defined in firebase.json/.firebaserc alongside the `docs` (help site)
       # target. Secret required: FIREBASE_SERVICE_ACCOUNT_FLASH_ME_7A1A2
       # (generated via `firebase init hosting:github`).

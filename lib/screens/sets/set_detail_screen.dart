@@ -1253,12 +1253,6 @@ class _FlashCardInSetTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final chip = card.tags.isNotEmpty
-        ? Chip(
-            label: Text(card.tags.first),
-            visualDensity: VisualDensity.compact,
-          )
-        : null;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       color: _tileColor(context, selected, hovering),
@@ -1268,7 +1262,7 @@ class _FlashCardInSetTile extends StatelessWidget {
             : const Icon(Icons.style_outlined),
         title: Text(card.primaryWord),
         subtitle: Text(card.translation),
-        trailing: _tileTrailing(chip, actions, dragHandle),
+        trailing: _tileTrailing(actions, dragHandle),
       ),
     );
   }
@@ -1282,10 +1276,10 @@ Color? _tileColor(BuildContext context, bool selected, bool hovering) {
   return null;
 }
 
-// Combines an optional tag chip, quick-actions, and drag handle for a tile's
-// trailing slot. Returns null when none are present.
-Widget? _tileTrailing(Widget? chip, Widget? actions, Widget? dragHandle) {
-  final parts = [chip, actions, dragHandle].whereType<Widget>().toList();
+// Combines the quick-actions and drag handle for a tile's trailing slot.
+// Returns null when neither is present.
+Widget? _tileTrailing(Widget? actions, Widget? dragHandle) {
+  final parts = [actions, dragHandle].whereType<Widget>().toList();
   if (parts.isEmpty) return null;
   if (parts.length == 1) return parts.first;
   return Row(
@@ -1380,12 +1374,6 @@ class _WorkbookCardInSetTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final chip = card.tags.isNotEmpty
-        ? Chip(
-            label: Text(card.tags.first),
-            visualDensity: VisualDensity.compact,
-          )
-        : null;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       color: _tileColor(context, selected, hovering),
@@ -1395,7 +1383,7 @@ class _WorkbookCardInSetTile extends StatelessWidget {
             : const Icon(Icons.book_outlined),
         title: Text(card.prompt, maxLines: 2, overflow: TextOverflow.ellipsis),
         subtitle: Text(context.l10n.labelQuestionCount(card.questions.length)),
-        trailing: _tileTrailing(chip, actions, dragHandle),
+        trailing: _tileTrailing(actions, dragHandle),
       ),
     );
   }

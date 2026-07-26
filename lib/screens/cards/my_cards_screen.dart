@@ -777,7 +777,7 @@ class _EmptyState extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Single flash card row: primary word, translation, language badge, first tag.
+// Single flash card row: primary word, translation, language badge.
 // ---------------------------------------------------------------------------
 class _FlashCardTile extends StatelessWidget {
   final FlashCard card;
@@ -815,12 +815,7 @@ class _FlashCardTile extends StatelessWidget {
         ),
         title: Text(card.primaryWord),
         subtitle: Text(subtitle),
-        trailing: _tileTrailing(
-          context,
-          card.tags,
-          selectionMode,
-          onSurfaceVariant,
-        ),
+        trailing: _tileTrailing(context, selectionMode, onSurfaceVariant),
         onTap: onTap,
         onLongPress: onLongPress,
       ),
@@ -841,29 +836,20 @@ Widget _tileLeading(
   return Checkbox(value: selected, onChanged: (_) => onTap());
 }
 
-// Tag chip + chevron; the chevron is dropped while selecting since tapping
-// no longer navigates.
+// Chevron affordance; dropped while selecting since tapping no longer
+// navigates. (Tags aren't shown on list tiles — they crowd the primary word
+// on narrow screens; filter/search by tag instead.)
 Widget? _tileTrailing(
   BuildContext context,
-  List<String> tags,
   bool selectionMode,
   Color onSurfaceVariant,
 ) {
-  final chip = tags.isNotEmpty
-      ? Chip(label: Text(tags.first), visualDensity: VisualDensity.compact)
-      : null;
-  if (selectionMode) return chip;
-  return Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      if (chip != null) ...[chip, const SizedBox(width: 4)],
-      Icon(Icons.chevron_right, size: 20, color: onSurfaceVariant),
-    ],
-  );
+  if (selectionMode) return null;
+  return Icon(Icons.chevron_right, size: 20, color: onSurfaceVariant);
 }
 
 // ---------------------------------------------------------------------------
-// Single workbook card row: prompt (truncated), question count, first tag.
+// Single workbook card row: prompt (truncated), question count.
 // ---------------------------------------------------------------------------
 class _WorkbookCardTile extends StatelessWidget {
   final WorkbookCard card;
@@ -896,12 +882,7 @@ class _WorkbookCardTile extends StatelessWidget {
         ),
         title: Text(card.prompt, maxLines: 2, overflow: TextOverflow.ellipsis),
         subtitle: Text(context.l10n.labelQuestionCount(qCount)),
-        trailing: _tileTrailing(
-          context,
-          card.tags,
-          selectionMode,
-          onSurfaceVariant,
-        ),
+        trailing: _tileTrailing(context, selectionMode, onSurfaceVariant),
         onTap: onTap,
         onLongPress: onLongPress,
       ),

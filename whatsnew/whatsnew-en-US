@@ -1,3 +1,3 @@
-Alpha 0.7
+Alpha 0.7.1
 
-Build sets faster with the new in-place set builder: create, drag in, reorder, edit, and remove cards without leaving the set. Set and enforce your own card order for study. Clone a card to enter similar ones quickly, and use templates for Workbook Cards. Select many cards at once to add to a set, tag, set language, or delete. Desktop gains a side navigation rail, hover and right-click menus, and full keyboard support. Also fixes deleting a Workbook Card.
+Fixes a white screen that could appear when opening the web app in a mobile browser. Also cleans up the card rows in your lists so the word stays easy to read on small screens.

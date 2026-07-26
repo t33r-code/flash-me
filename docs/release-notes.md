@@ -2,6 +2,20 @@
 
 ---
 
+## v0.7.1 — Alpha 0.7 — 2026-07-26
+
+### New features
+- None
+
+### Bug fixes
+- Fixed a white screen when opening the web app in a mobile browser (#288)
+- Removed the tag chip from card list rows so the primary word stays readable on narrow screens (#290)
+
+### Known issues
+- None identified
+
+---
+
 ## v0.7.0 — Alpha 0.7 — 2026-07-26
 
 ### New features

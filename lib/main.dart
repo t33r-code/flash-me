@@ -78,15 +78,23 @@ void main() {
     // Google Sign-In requires native support (Android/iOS) or a configured
     // OAuth client ID (web). Skip on desktop; catch on web in case the client
     // ID meta tag is absent — email/password auth still works without it.
-    if (defaultTargetPlatform == TargetPlatform.android ||
-        defaultTargetPlatform == TargetPlatform.iOS) {
-      await GoogleSignIn.instance.initialize();
-    } else if (kIsWeb) {
+    //
+    // IMPORTANT: check kIsWeb FIRST. On web, defaultTargetPlatform reflects the
+    // *browser's* platform, so on a phone it reports android/iOS — meaning
+    // mobile web must NOT fall into the native branch (which calls initialize()
+    // unguarded). Without the web try/catch, the web plugin's null-check on the
+    // absent client ID escapes to the zone handler, runApp() never runs, and
+    // the page stays a white screen. (Desktop web was fine only because it hit
+    // the guarded branch.)
+    if (kIsWeb) {
       try {
         await GoogleSignIn.instance.initialize();
       } catch (_) {
         AppLogger.info('Google Sign-In not configured for web — skipping');
       }
+    } else if (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS) {
+      await GoogleSignIn.instance.initialize();
     }
     AppLogger.success('App initialized');
     // Load prefs before runApp so themeModeProvider can read synchronously —

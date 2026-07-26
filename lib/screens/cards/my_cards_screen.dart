@@ -19,6 +19,7 @@ import 'package:flash_me/widgets/add_cards_to_set.dart';
 import 'package:flash_me/widgets/bulk_card_actions.dart';
 import 'package:flash_me/widgets/context_menu.dart';
 import 'package:flash_me/widgets/hover_highlight.dart';
+import 'package:flash_me/widgets/keyboard_actions.dart';
 
 class MyCardsScreen extends ConsumerStatefulWidget {
   const MyCardsScreen({super.key});
@@ -263,22 +264,26 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.titleDeleteCards),
-        content: Text(l10n.messageDeleteCardsConfirm(idToType.length)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.labelCancel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
+      // Enter confirms the primary action (#235); Esc / tap-away cancels.
+      builder: (ctx) => KeyboardActions(
+        onConfirm: () => Navigator.of(ctx).pop(true),
+        child: AlertDialog(
+          title: Text(l10n.titleDeleteCards),
+          content: Text(l10n.messageDeleteCardsConfirm(idToType.length)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.labelCancel),
             ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.actionDelete),
-          ),
-        ],
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error,
+              ),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.actionDelete),
+            ),
+          ],
+        ),
       ),
     );
     if (confirmed != true || !mounted) return;

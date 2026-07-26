@@ -6,6 +6,8 @@ import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/question_template_provider.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
+import 'package:flash_me/widgets/keyboard_actions.dart';
+
 // Characters that are valid in a templateId (alphanumeric, hyphen, underscore).
 final _templateIdPattern = RegExp(r'^[a-zA-Z0-9_-]+$');
 
@@ -29,11 +31,11 @@ class _QuestionState {
   });
 
   factory _QuestionState.empty() => _QuestionState(
-        type: AppConstants.fieldTypeTextInput,
-        promptController: TextEditingController(),
-        textHintController: TextEditingController(),
-        optionControllers: [TextEditingController(), TextEditingController()],
-      );
+    type: AppConstants.fieldTypeTextInput,
+    promptController: TextEditingController(),
+    textHintController: TextEditingController(),
+    optionControllers: [TextEditingController(), TextEditingController()],
+  );
 
   // Initialise from an existing CardQuestion (answers are ignored).
   factory _QuestionState.fromQuestion(CardQuestion q) {
@@ -187,41 +189,51 @@ class _QuestionTemplateFormScreenState
       if (newTemplateId != null) {
         final existing =
             ref.read(userQuestionTemplatesProvider).asData?.value ?? [];
-        final conflict = existing.any((t) =>
-            t.templateId == newTemplateId &&
-            t.id != (widget.template?.id ?? ''));
+        final conflict = existing.any(
+          (t) =>
+              t.templateId == newTemplateId &&
+              t.id != (widget.template?.id ?? ''),
+        );
         if (conflict) {
           setState(() => _isSaving = false);
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(context.l10n.messageImportIdConflict(newTemplateId)),
-          ));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                context.l10n.messageImportIdConflict(newTemplateId),
+              ),
+            ),
+          );
           return;
         }
       }
 
       if (!_isEditing) {
-        await repo.createTemplate(QuestionTemplate(
-          id: '',
-          createdBy: uid,
-          name: _nameController.text.trim(),
-          description: _descController.text.trim().isEmpty
-              ? null
-              : _descController.text.trim(),
-          question: question,
-          templateId: newTemplateId,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        ));
+        await repo.createTemplate(
+          QuestionTemplate(
+            id: '',
+            createdBy: uid,
+            name: _nameController.text.trim(),
+            description: _descController.text.trim().isEmpty
+                ? null
+                : _descController.text.trim(),
+            question: question,
+            templateId: newTemplateId,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        );
       } else {
-        await repo.updateTemplate(widget.template!.copyWith(
-          name: _nameController.text.trim(),
-          description: _descController.text.trim().isEmpty
-              ? null
-              : _descController.text.trim(),
-          question: question,
-          templateId: newTemplateId,
-          updatedAt: DateTime.now(),
-        ));
+        await repo.updateTemplate(
+          widget.template!.copyWith(
+            name: _nameController.text.trim(),
+            description: _descController.text.trim().isEmpty
+                ? null
+                : _descController.text.trim(),
+            question: question,
+            templateId: newTemplateId,
+            updatedAt: DateTime.now(),
+          ),
+        );
       }
       if (mounted) {
         setState(() => _isSaving = false);
@@ -230,8 +242,9 @@ class _QuestionTemplateFormScreenState
     } catch (_) {
       if (mounted) {
         setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(context.l10n.errorFailedSaveTemplate)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.errorFailedSaveTemplate)),
+        );
       }
     }
   }
@@ -240,23 +253,28 @@ class _QuestionTemplateFormScreenState
     final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.titleDeleteQuestionTemplate),
-        content: Text(
-          l10n.messageDeleteQuestionTemplateConfirm(widget.template!.name),
+      // Enter confirms the primary action (#235); Esc / tap-away cancels.
+      builder: (ctx) => KeyboardActions(
+        onConfirm: () => Navigator.of(ctx).pop(true),
+        child: AlertDialog(
+          title: Text(l10n.titleDeleteQuestionTemplate),
+          content: Text(
+            l10n.messageDeleteQuestionTemplateConfirm(widget.template!.name),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.labelCancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error,
+              ),
+              child: Text(l10n.labelDelete),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.labelCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error),
-            child: Text(l10n.labelDelete),
-          ),
-        ],
       ),
     );
     if (confirmed != true || !mounted) return;
@@ -272,8 +290,9 @@ class _QuestionTemplateFormScreenState
     } catch (_) {
       if (mounted) {
         setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(context.l10n.errorFailedDeleteTemplate)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.errorFailedDeleteTemplate)),
+        );
       }
     }
   }
@@ -311,8 +330,10 @@ class _QuestionTemplateFormScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l10n.labelOptionsPreFilled,
-            style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          l10n.labelOptionsPreFilled,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
         const SizedBox(height: 8),
         ...List.generate(_question.optionControllers.length, (i) {
           return Padding(
@@ -326,8 +347,9 @@ class _QuestionTemplateFormScreenState
                       labelText: l10n.labelOptionNumber(i + 1),
                       border: const OutlineInputBorder(),
                     ),
-                    validator: (v) =>
-                        v?.trim().isEmpty ?? true ? l10n.validatorOptionTextRequired : null,
+                    validator: (v) => v?.trim().isEmpty ?? true
+                        ? l10n.validatorOptionTextRequired
+                        : null,
                   ),
                 ),
                 if (_question.optionControllers.length > 2)
@@ -351,169 +373,190 @@ class _QuestionTemplateFormScreenState
 
   // word_order templates store only the prompt; word bank is filled in per card.
   Widget _buildWordOrderContent() => Text(
-        context.l10n.messageTplWordOrderNote,
-        style: Theme.of(context)
-            .textTheme
-            .bodySmall
-            ?.copyWith(color: Theme.of(context).colorScheme.outline),
-      );
+    context.l10n.messageTplWordOrderNote,
+    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+      color: Theme.of(context).colorScheme.outline,
+    ),
+  );
 
   // --- main build -----------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing
-            ? l10n.titleEditQuestionTemplate
-            : l10n.titleNewQuestionTemplate),
-        actions: [
-          if (_isEditing)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              tooltip: l10n.tooltipDeleteTemplate,
-              onPressed: _isSaving ? null : _confirmDelete,
-            ),
-        ],
-      ),
-      body: Form(
-        key: _formKey,
-        child: IgnorePointer(
-          ignoring: _isSaving,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // --- Template metadata ---
-                Text(l10n.titleTemplateDetails,
-                    style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: l10n.labelTemplateNameRequired,
-                    hintText: l10n.hintTemplateNameQTExample,
-                    border: const OutlineInputBorder(),
+    // Esc cancels (#235); Enter-to-submit deferred to Ctrl/Cmd+S (#278).
+    return KeyboardActions(
+      onCancel: _isSaving ? null : () => Navigator.of(context).pop(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            _isEditing
+                ? l10n.titleEditQuestionTemplate
+                : l10n.titleNewQuestionTemplate,
+          ),
+          actions: [
+            if (_isEditing)
+              IconButton(
+                icon: const Icon(Icons.delete_outline),
+                tooltip: l10n.tooltipDeleteTemplate,
+                onPressed: _isSaving ? null : _confirmDelete,
+              ),
+          ],
+        ),
+        body: Form(
+          key: _formKey,
+          child: IgnorePointer(
+            ignoring: _isSaving,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // --- Template metadata ---
+                  Text(
+                    l10n.titleTemplateDetails,
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  validator: (v) =>
-                      v?.trim().isEmpty ?? true ? l10n.validatorTemplateNameRequired : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _descController,
-                  decoration: InputDecoration(
-                    labelText: l10n.labelDescriptionOptional,
-                    border: const OutlineInputBorder(),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      labelText: l10n.labelTemplateNameRequired,
+                      hintText: l10n.hintTemplateNameQTExample,
+                      border: const OutlineInputBorder(),
+                    ),
+                    validator: (v) => v?.trim().isEmpty ?? true
+                        ? l10n.validatorTemplateNameRequired
+                        : null,
                   ),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _templateIdController,
-                  decoration: InputDecoration(
-                    labelText: l10n.labelImportIdOptional,
-                    hintText: l10n.hintImportIdExample,
-                    helperText: l10n.messageImportIdHelperText,
-                    border: const OutlineInputBorder(),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _descController,
+                    decoration: InputDecoration(
+                      labelText: l10n.labelDescriptionOptional,
+                      border: const OutlineInputBorder(),
+                    ),
+                    maxLines: 2,
                   ),
-                  // Only alphanumeric, hyphens, underscores — no spaces or ##.
-                  validator: (v) {
-                    final s = v?.trim() ?? '';
-                    if (s.isEmpty) return null;
-                    if (!_templateIdPattern.hasMatch(s)) {
-                      return l10n.validatorImportIdInvalid;
-                    }
-                    return null;
-                  },
-                ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _templateIdController,
+                    decoration: InputDecoration(
+                      labelText: l10n.labelImportIdOptional,
+                      hintText: l10n.hintImportIdExample,
+                      helperText: l10n.messageImportIdHelperText,
+                      border: const OutlineInputBorder(),
+                    ),
+                    // Only alphanumeric, hyphens, underscores — no spaces or ##.
+                    validator: (v) {
+                      final s = v?.trim() ?? '';
+                      if (s.isEmpty) return null;
+                      if (!_templateIdPattern.hasMatch(s)) {
+                        return l10n.validatorImportIdInvalid;
+                      }
+                      return null;
+                    },
+                  ),
 
-                // --- Question config ---
-                const SizedBox(height: 24),
-                Text(l10n.titleQuestionSection,
-                    style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 12),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextFormField(
-                          controller: _question.promptController,
-                          decoration: InputDecoration(
-                            labelText: l10n.labelQuestionLabelOptional,
-                            hintText: l10n.hintQuestionLabelExample,
-                            border: const OutlineInputBorder(),
+                  // --- Question config ---
+                  const SizedBox(height: 24),
+                  Text(
+                    l10n.titleQuestionSection,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TextFormField(
+                            controller: _question.promptController,
+                            decoration: InputDecoration(
+                              labelText: l10n.labelQuestionLabelOptional,
+                              hintText: l10n.hintQuestionLabelExample,
+                              border: const OutlineInputBorder(),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        DropdownButtonFormField<String>(
-                          initialValue: _question.type,
-                          decoration: InputDecoration(
-                            labelText: l10n.labelQuestionType,
-                            border: const OutlineInputBorder(),
-                          ),
-                          items: [
-                            DropdownMenuItem(
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            initialValue: _question.type,
+                            decoration: InputDecoration(
+                              labelText: l10n.labelQuestionType,
+                              border: const OutlineInputBorder(),
+                            ),
+                            items: [
+                              DropdownMenuItem(
                                 value: AppConstants.fieldTypeTextInput,
-                                child: Text(l10n.labelQuestionTypeTextInput)),
-                            DropdownMenuItem(
+                                child: Text(l10n.labelQuestionTypeTextInput),
+                              ),
+                              DropdownMenuItem(
                                 value: AppConstants.fieldTypeMultipleChoice,
-                                child: Text(l10n.labelQuestionTypeMultipleChoice)),
-                            DropdownMenuItem(
+                                child: Text(
+                                  l10n.labelQuestionTypeMultipleChoice,
+                                ),
+                              ),
+                              DropdownMenuItem(
                                 value: AppConstants.questionTypeWordOrder,
-                                child: Text(l10n.labelQuestionTypeWordOrder)),
-                          ],
-                          onChanged: (v) {
-                            if (v != null) setState(() => _question.type = v);
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        if (_question.type == AppConstants.fieldTypeTextInput)
-                          _buildTextInputContent(),
-                        if (_question.type ==
-                            AppConstants.fieldTypeMultipleChoice)
-                          _buildMultipleChoiceContent(),
-                        if (_question.type == AppConstants.questionTypeWordOrder)
-                          _buildWordOrderContent(),
-                      ],
+                                child: Text(l10n.labelQuestionTypeWordOrder),
+                              ),
+                            ],
+                            onChanged: (v) {
+                              if (v != null) setState(() => _question.type = v);
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          if (_question.type == AppConstants.fieldTypeTextInput)
+                            _buildTextInputContent(),
+                          if (_question.type ==
+                              AppConstants.fieldTypeMultipleChoice)
+                            _buildMultipleChoiceContent(),
+                          if (_question.type ==
+                              AppConstants.questionTypeWordOrder)
+                            _buildWordOrderContent(),
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
-                // --- Save / Cancel ---
-                const SizedBox(height: 32),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed:
-                            _isSaving ? null : () => Navigator.of(context).pop(),
-                        child: Text(l10n.labelCancel),
+                  // --- Save / Cancel ---
+                  const SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _isSaving
+                              ? null
+                              : () => Navigator.of(context).pop(),
+                          child: Text(l10n.labelCancel),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: _isSaving ? null : _save,
-                        child: _isSaving
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
-                              )
-                            : Text(_isEditing
-                                ? l10n.actionSaveChanges
-                                : l10n.actionCreateTemplate),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: _isSaving ? null : _save,
+                          child: _isSaving
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Text(
+                                  _isEditing
+                                      ? l10n.actionSaveChanges
+                                      : l10n.actionCreateTemplate,
+                                ),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
         ),

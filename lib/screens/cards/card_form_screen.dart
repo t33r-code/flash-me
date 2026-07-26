@@ -21,6 +21,7 @@ import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/screens/templates/template_form_screen.dart';
 import 'package:flash_me/widgets/language_picker.dart';
 import 'package:flash_me/widgets/template_picker_sheet.dart';
+import 'package:flash_me/widgets/keyboard_actions.dart';
 
 // ---------------------------------------------------------------------------
 // _QuestionState — mutable holder for one question while the form is open.
@@ -628,22 +629,28 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
     final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.titleDeleteCard),
-        content: Text(l10n.messageDeleteCardConfirm(widget.card!.primaryWord)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.labelCancel),
+      // Enter confirms the primary action (#235); Esc / tap-away cancels.
+      builder: (ctx) => KeyboardActions(
+        onConfirm: () => Navigator.of(ctx).pop(true),
+        child: AlertDialog(
+          title: Text(l10n.titleDeleteCard),
+          content: Text(
+            l10n.messageDeleteCardConfirm(widget.card!.primaryWord),
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.labelCancel),
             ),
-            child: Text(l10n.labelDelete),
-          ),
-        ],
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error,
+              ),
+              child: Text(l10n.labelDelete),
+            ),
+          ],
+        ),
       ),
     );
 
@@ -1195,46 +1202,52 @@ class _CardFormScreenState extends State<CardFormScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing ? l10n.titleEditCard : l10n.titleNewCard),
-        actions: [
-          if (_isEditing)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              tooltip: l10n.tooltipDeleteCard,
-              onPressed: _saving
-                  ? null
-                  : () => _bodyKey.currentState?.confirmDelete(),
-            ),
-          PopupMenuButton<String>(
-            onSelected: (v) {
-              if (v == 'save_as_template') {
-                _bodyKey.currentState?.saveAsTemplate();
-              }
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                value: 'save_as_template',
-                child: ListTile(
-                  leading: const Icon(Icons.copy_all_outlined),
-                  title: Text(l10n.actionSaveAsTemplate),
-                  contentPadding: EdgeInsets.zero,
-                ),
+    // Esc cancels the editor (#235), matching the Cancel/back affordance.
+    // Enter-to-submit is intentionally not wired here — a card editor has many
+    // fields and multi-line inputs; Ctrl/Cmd+S to save is tracked as #278.
+    return KeyboardActions(
+      onCancel: _saving ? null : () => Navigator.of(context).pop(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_isEditing ? l10n.titleEditCard : l10n.titleNewCard),
+          actions: [
+            if (_isEditing)
+              IconButton(
+                icon: const Icon(Icons.delete_outline),
+                tooltip: l10n.tooltipDeleteCard,
+                onPressed: _saving
+                    ? null
+                    : () => _bodyKey.currentState?.confirmDelete(),
               ),
-            ],
-          ),
-        ],
-      ),
-      body: CardEditorBody(
-        key: _bodyKey,
-        card: widget.card,
-        parentSet: widget.parentSet,
-        cloneFrom: widget.cloneFrom,
-        onSaved: () => Navigator.of(context).pop(),
-        onCancel: () => Navigator.of(context).pop(),
-        onDeleted: () => Navigator.of(context).pop(),
-        onSavingChanged: (v) => setState(() => _saving = v),
+            PopupMenuButton<String>(
+              onSelected: (v) {
+                if (v == 'save_as_template') {
+                  _bodyKey.currentState?.saveAsTemplate();
+                }
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'save_as_template',
+                  child: ListTile(
+                    leading: const Icon(Icons.copy_all_outlined),
+                    title: Text(l10n.actionSaveAsTemplate),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        body: CardEditorBody(
+          key: _bodyKey,
+          card: widget.card,
+          parentSet: widget.parentSet,
+          cloneFrom: widget.cloneFrom,
+          onSaved: () => Navigator.of(context).pop(),
+          onCancel: () => Navigator.of(context).pop(),
+          onDeleted: () => Navigator.of(context).pop(),
+          onSavingChanged: (v) => setState(() => _saving = v),
+        ),
       ),
     );
   }

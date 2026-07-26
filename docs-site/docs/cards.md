@@ -122,6 +122,9 @@ On a wide window, hovering over a card highlights the row, and **right-clicking*
 
 Tap any card in the **Cards** list to open it in the editor. All fields, languages, and tags can be changed. Tap **Save** to confirm.
 
+!!! tip "Keyboard (desktop)"
+    In any editor, press **Esc** to cancel and close without saving. In confirmation dialogs (delete, remove, replace, and similar), press **Enter** to confirm the highlighted action and **Esc** to cancel.
+
 ### Deleting a Flash Card { #delete-card }
 
 Open the card for editing, then tap the :material-delete-outline: **delete icon** in the top-right corner. You'll be asked to confirm. Deleting a card removes it from all sets it belongs to; the sets themselves are unaffected.

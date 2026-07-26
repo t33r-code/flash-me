@@ -8,6 +8,7 @@ import 'package:flash_me/widgets/help_menu_button.dart';
 import 'package:flash_me/providers/theme_provider.dart';
 import 'package:flash_me/screens/data/data_screen.dart';
 import 'package:flash_me/utils/helpers.dart';
+import 'package:flash_me/widgets/keyboard_actions.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -37,9 +38,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     FocusScope.of(context).unfocus();
     setState(() => _isLoading = true);
     try {
-      await ref.read(authRepositoryProvider).updateUserProfile(
-        displayName: _displayNameController.text.trim(),
-      );
+      await ref
+          .read(authRepositoryProvider)
+          .updateUserProfile(displayName: _displayNameController.text.trim());
       if (mounted) {
         setState(() => _isEditing = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -78,24 +79,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        icon: Icon(Icons.warning_rounded,
-            color: Theme.of(ctx).colorScheme.error, size: 36),
-        title: Text(l10n.titleDeleteAccount),
-        content: Text(l10n.messageDeleteAccountConfirm),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.labelCancel),
+      // Enter confirms the primary action (#235); Esc / tap-away cancels.
+      builder: (ctx) => KeyboardActions(
+        onConfirm: () => Navigator.of(ctx).pop(true),
+        child: AlertDialog(
+          icon: Icon(
+            Icons.warning_rounded,
+            color: Theme.of(ctx).colorScheme.error,
+            size: 36,
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
+          title: Text(l10n.titleDeleteAccount),
+          content: Text(l10n.messageDeleteAccountConfirm),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.labelCancel),
             ),
-            child: Text(l10n.actionDeleteMyAccount),
-          ),
-        ],
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error,
+              ),
+              child: Text(l10n.actionDeleteMyAccount),
+            ),
+          ],
+        ),
       ),
     );
     if (confirmed != true) return;
@@ -116,8 +124,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final message = e.code == 'requires-recent-login'
           ? context.l10n.messageRecentLoginRequired
           : context.l10n.messageFailedDeleteAccountError(e.message);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } catch (_) {
       if (!mounted) return;
       setState(() => _isDeletingAccount = false);
@@ -178,8 +187,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(ctx.l10n.messageAddEmailPasswordInfo,
-                      style: Theme.of(ctx).textTheme.bodySmall),
+                  Text(
+                    ctx.l10n.messageAddEmailPasswordInfo,
+                    style: Theme.of(ctx).textTheme.bodySmall,
+                  ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: emailController,
@@ -200,11 +211,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       prefixIcon: const Icon(Icons.lock_outlined),
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
-                        icon: Icon(obscurePassword
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined),
-                        onPressed: () =>
-                            setDialogState(() => obscurePassword = !obscurePassword),
+                        icon: Icon(
+                          obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                        onPressed: () => setDialogState(
+                          () => obscurePassword = !obscurePassword,
+                        ),
                       ),
                     ),
                     validator: AppValidators.validatePassword,
@@ -213,16 +227,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   TextFormField(
                     controller: confirmController,
                     obscureText: obscureConfirm,
+                    // Enter from the last field submits the dialog (#235).
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) {
+                      if (formKey.currentState!.validate()) {
+                        Navigator.of(ctx).pop(true);
+                      }
+                    },
                     decoration: InputDecoration(
                       labelText: ctx.l10n.labelConfirmPassword,
                       prefixIcon: const Icon(Icons.lock_outlined),
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
-                        icon: Icon(obscureConfirm
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined),
-                        onPressed: () =>
-                            setDialogState(() => obscureConfirm = !obscureConfirm),
+                        icon: Icon(
+                          obscureConfirm
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                        onPressed: () => setDialogState(
+                          () => obscureConfirm = !obscureConfirm,
+                        ),
                       ),
                     ),
                     validator: (v) => v != passwordController.text
@@ -255,7 +279,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     setState(() => _isLinking = true);
     try {
-      await ref.read(authRepositoryProvider).linkWithEmailPassword(
+      await ref
+          .read(authRepositoryProvider)
+          .linkWithEmailPassword(
             email: emailController.text.trim(),
             password: passwordController.text,
           );
@@ -283,32 +309,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _confirmUnlink(String providerId, String providerName) async {
     // Guard: never leave the account with zero sign-in methods.
-    final providers =
-        ref.read(authRepositoryProvider).getLinkedProviderIds();
+    final providers = ref.read(authRepositoryProvider).getLinkedProviderIds();
     if (providers.length <= 1) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(context.l10n.errorCannotUnlinkOnlyMethod),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.errorCannotUnlinkOnlyMethod)),
+      );
       return;
     }
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(ctx.l10n.titleConfirmUnlink),
-        content: Text(ctx.l10n.messageConfirmUnlink(providerName)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(ctx.l10n.labelCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error),
-            child: Text(ctx.l10n.actionUnlink),
-          ),
-        ],
+      // Enter confirms the primary action (#235); Esc / tap-away cancels.
+      builder: (ctx) => KeyboardActions(
+        onConfirm: () => Navigator.of(ctx).pop(true),
+        child: AlertDialog(
+          title: Text(ctx.l10n.titleConfirmUnlink),
+          content: Text(ctx.l10n.messageConfirmUnlink(providerName)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(ctx.l10n.labelCancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error,
+              ),
+              child: Text(ctx.l10n.actionUnlink),
+            ),
+          ],
+        ),
       ),
     );
     if (confirmed != true || !mounted) return;
@@ -359,7 +389,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
       body: appUser.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => Center(child: Text(context.l10n.errorFailedLoadProfile)),
+        error: (_, _) =>
+            Center(child: Text(context.l10n.errorFailedLoadProfile)),
         data: (user) => SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -446,54 +477,64 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                   child: Text(
                     context.l10n.titleLinkedAccounts,
-                    style: theme.textTheme.labelLarge
-                        ?.copyWith(color: scheme.primary),
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: scheme.primary,
+                    ),
                   ),
                 ),
-                Builder(builder: (_) {
-                  final providers = ref
-                      .read(authRepositoryProvider)
-                      .getLinkedProviderIds();
-                  return Column(
-                    children: [
-                      _ProviderTile(
-                        icon: Icons.g_mobiledata_rounded,
-                        label: context.l10n.labelGoogle,
-                        isLinked: providers.contains('google.com'),
-                        // Link/unlink only possible on mobile and web.
-                        canAct: _canLinkGoogle,
-                        isBusy: _isLinking,
-                        onLink: _linkGoogle,
-                        onUnlink: () => _confirmUnlink(
-                            'google.com', context.l10n.labelGoogle),
-                      ),
-                      _ProviderTile(
-                        icon: Icons.email_outlined,
-                        label: context.l10n.labelEmailPassword,
-                        isLinked: providers.contains('password'),
-                        canAct: true,
-                        isBusy: _isLinking,
-                        onLink: () => _showLinkEmailPasswordDialog(
-                            user?.email ?? ''),
-                        onUnlink: () => _confirmUnlink(
-                            'password', context.l10n.labelEmailPassword),
-                      ),
-                    ],
-                  );
-                }),
+                Builder(
+                  builder: (_) {
+                    final providers = ref
+                        .read(authRepositoryProvider)
+                        .getLinkedProviderIds();
+                    return Column(
+                      children: [
+                        _ProviderTile(
+                          icon: Icons.g_mobiledata_rounded,
+                          label: context.l10n.labelGoogle,
+                          isLinked: providers.contains('google.com'),
+                          // Link/unlink only possible on mobile and web.
+                          canAct: _canLinkGoogle,
+                          isBusy: _isLinking,
+                          onLink: _linkGoogle,
+                          onUnlink: () => _confirmUnlink(
+                            'google.com',
+                            context.l10n.labelGoogle,
+                          ),
+                        ),
+                        _ProviderTile(
+                          icon: Icons.email_outlined,
+                          label: context.l10n.labelEmailPassword,
+                          isLinked: providers.contains('password'),
+                          canAct: true,
+                          isBusy: _isLinking,
+                          onLink: () =>
+                              _showLinkEmailPasswordDialog(user?.email ?? ''),
+                          onUnlink: () => _confirmUnlink(
+                            'password',
+                            context.l10n.labelEmailPassword,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
                 const Divider(),
                 ListTile(
                   leading: const Icon(Icons.import_export_outlined),
                   title: Text(context.l10n.labelImportExport),
                   subtitle: Text(context.l10n.messageImportExportSubtitle),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const DataScreen()),
-                  ),
+                  onTap: () => Navigator.of(
+                    context,
+                  ).push(MaterialPageRoute(builder: (_) => const DataScreen())),
                 ),
                 const Divider(),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -501,8 +542,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         children: [
                           const Icon(Icons.brightness_6_outlined),
                           const SizedBox(width: 16),
-                          Text(context.l10n.labelTheme,
-                              style: Theme.of(context).textTheme.bodyLarge),
+                          Text(
+                            context.l10n.labelTheme,
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -536,7 +579,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ],
               const SizedBox(height: 32),
               OutlinedButton.icon(
-                onPressed: _isSigningOut || _isDeletingAccount ? null : _signOut,
+                onPressed: _isSigningOut || _isDeletingAccount
+                    ? null
+                    : _signOut,
                 icon: _isSigningOut
                     ? const SizedBox(
                         width: 16,
@@ -567,7 +612,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 label: Text(context.l10n.actionDeleteAccount),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: theme.colorScheme.error,
-                  side: BorderSide(color: theme.colorScheme.error.withValues(alpha: 0.4)),
+                  side: BorderSide(
+                    color: theme.colorScheme.error.withValues(alpha: 0.4),
+                  ),
                   minimumSize: const Size(double.infinity, 48),
                 ),
               ),
@@ -584,7 +631,7 @@ class _ProviderTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool isLinked;
-  final bool canAct;   // false on desktop for Google (no GSI support)
+  final bool canAct; // false on desktop for Google (no GSI support)
   final bool isBusy;
   final VoidCallback onLink;
   final VoidCallback onUnlink;
@@ -615,15 +662,17 @@ class _ProviderTile extends StatelessWidget {
       ),
       trailing: canAct
           ? isLinked
-              ? TextButton(
-                  onPressed: isBusy ? null : onUnlink,
-                  child: Text(l10n.actionUnlink,
-                      style: TextStyle(color: scheme.error)),
-                )
-              : FilledButton.tonal(
-                  onPressed: isBusy ? null : onLink,
-                  child: Text(l10n.actionLink),
-                )
+                ? TextButton(
+                    onPressed: isBusy ? null : onUnlink,
+                    child: Text(
+                      l10n.actionUnlink,
+                      style: TextStyle(color: scheme.error),
+                    ),
+                  )
+                : FilledButton.tonal(
+                    onPressed: isBusy ? null : onLink,
+                    child: Text(l10n.actionLink),
+                  )
           : null,
     );
   }

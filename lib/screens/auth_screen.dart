@@ -122,69 +122,76 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         // Declared in the showDialog closure so it persists across rebuilds.
         bool sending = false;
         return StatefulBuilder(
-          builder: (sbContext, setSbState) => AlertDialog(
-            title: Text(sbContext.l10n.titleResetPassword),
-            content: Form(
-              key: formKey,
-              child: TextFormField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                autofocus: true,
-                decoration: InputDecoration(
-                  labelText: sbContext.l10n.labelEmail,
-                  border: const OutlineInputBorder(),
+          builder: (sbContext, setSbState) {
+            // Shared submit path so both the Send button and Enter in the
+            // email field trigger the reset the same way (#235).
+            Future<void> submit() async {
+              if (sending) return;
+              if (!formKey.currentState!.validate()) return;
+              setSbState(() => sending = true);
+              try {
+                await ref
+                    .read(authRepositoryProvider)
+                    .resetPassword(emailController.text.trim());
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                }
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(context.l10n.messagePasswordResetSent),
+                    ),
+                  );
+                }
+              } catch (_) {
+                setSbState(() => sending = false);
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(context.l10n.messageFailedSendResetEmail),
+                    ),
+                  );
+                }
+              }
+            }
+
+            return AlertDialog(
+              title: Text(sbContext.l10n.titleResetPassword),
+              content: Form(
+                key: formKey,
+                child: TextFormField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  autofocus: true,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => submit(),
+                  decoration: InputDecoration(
+                    labelText: sbContext.l10n.labelEmail,
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator: AppValidators.validateEmail,
                 ),
-                validator: AppValidators.validateEmail,
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: sending
-                    ? null
-                    : () => Navigator.of(dialogContext).pop(),
-                child: Text(dialogContext.l10n.labelCancel),
-              ),
-              FilledButton(
-                onPressed: sending
-                    ? null
-                    : () async {
-                        if (!formKey.currentState!.validate()) return;
-                        setSbState(() => sending = true);
-                        try {
-                          await ref
-                              .read(authRepositoryProvider)
-                              .resetPassword(emailController.text.trim());
-                          if (dialogContext.mounted) {
-                            Navigator.of(dialogContext).pop();
-                          }
-                          if (mounted) {
-                            messenger.showSnackBar(SnackBar(
-                              content: Text(
-                                context.l10n.messagePasswordResetSent,
-                              ),
-                            ));
-                          }
-                        } catch (_) {
-                          setSbState(() => sending = false);
-                          if (mounted) {
-                            messenger.showSnackBar(SnackBar(
-                              content: Text(
-                                context.l10n.messageFailedSendResetEmail,
-                              ),
-                            ));
-                          }
-                        }
-                      },
-                child: sending
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(sbContext.l10n.actionSendResetEmail),
-              ),
-            ],
-          ),
+              actions: [
+                TextButton(
+                  onPressed: sending
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
+                  child: Text(dialogContext.l10n.labelCancel),
+                ),
+                FilledButton(
+                  onPressed: sending ? null : submit,
+                  child: sending
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(sbContext.l10n.actionSendResetEmail),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -217,7 +224,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                _isSignIn ? context.l10n.messageSignInToContinue : context.l10n.messageCreateYourAccount,
+                _isSignIn
+                    ? context.l10n.messageSignInToContinue
+                    : context.l10n.messageCreateYourAccount,
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -345,7 +354,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Text(_isSignIn ? context.l10n.actionSignIn : context.l10n.actionSignUp),
+                    : Text(
+                        _isSignIn
+                            ? context.l10n.actionSignIn
+                            : context.l10n.actionSignUp,
+                      ),
               ),
               const SizedBox(height: 24),
               Row(
@@ -394,7 +407,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    child: Text(_isSignIn ? context.l10n.actionSignUp : context.l10n.actionSignIn),
+                    child: Text(
+                      _isSignIn
+                          ? context.l10n.actionSignUp
+                          : context.l10n.actionSignIn,
+                    ),
                   ),
                 ],
               ),

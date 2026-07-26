@@ -7,6 +7,7 @@ import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/workbook_card_provider.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
+import 'package:flash_me/widgets/keyboard_actions.dart';
 
 // Three-way result for the "set language?" dialog.
 enum _LangChoice { setAndAdd, addOnly, cancel }
@@ -66,17 +67,19 @@ Future<bool> addCardsWithLanguageCheck(
         .toList();
     if (flashIds.isNotEmpty) {
       await repo.addCardsToSet(
-          setId: setId,
-          cardIds: flashIds,
-          userId: userId,
-          cardType: AppConstants.cardTypeFlashcard);
+        setId: setId,
+        cardIds: flashIds,
+        userId: userId,
+        cardType: AppConstants.cardTypeFlashcard,
+      );
     }
     if (workbookIds.isNotEmpty) {
       await repo.addCardsToSet(
-          setId: setId,
-          cardIds: workbookIds,
-          userId: userId,
-          cardType: AppConstants.cardTypeWorkbook);
+        setId: setId,
+        cardIds: workbookIds,
+        userId: userId,
+        cardType: AppConstants.cardTypeWorkbook,
+      );
     }
     return true;
   }
@@ -84,8 +87,9 @@ Future<bool> addCardsWithLanguageCheck(
   // No language metadata on any card being added — nothing to check.
   if (selectedPairs.isEmpty) return commit();
 
-  final (String, String)? setLang =
-      (setTarget != null && setNative != null) ? (setTarget, setNative) : null;
+  final (String, String)? setLang = (setTarget != null && setNative != null)
+      ? (setTarget, setNative)
+      : null;
 
   if (setLang == null) {
     if (selectedPairs.length == 1) {
@@ -94,20 +98,27 @@ Future<bool> addCardsWithLanguageCheck(
       final label = '${pair.$1.toUpperCase()} → ${pair.$2.toUpperCase()}';
       final choice = await showDialog<_LangChoice>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(l10n.titleSetLanguage),
-          content: Text(l10n.messageSetLanguagePrompt(neutralCount, label)),
-          actions: [
-            TextButton(
+        // Enter confirms the primary action (#235); Esc / tap-away cancels.
+        builder: (ctx) => KeyboardActions(
+          onConfirm: () => Navigator.of(ctx).pop(_LangChoice.setAndAdd),
+          child: AlertDialog(
+            title: Text(l10n.titleSetLanguage),
+            content: Text(l10n.messageSetLanguagePrompt(neutralCount, label)),
+            actions: [
+              TextButton(
                 onPressed: () => Navigator.of(ctx).pop(_LangChoice.cancel),
-                child: Text(l10n.labelCancel)),
-            TextButton(
+                child: Text(l10n.labelCancel),
+              ),
+              TextButton(
                 onPressed: () => Navigator.of(ctx).pop(_LangChoice.addOnly),
-                child: Text(l10n.actionAddOnly)),
-            FilledButton(
+                child: Text(l10n.actionAddOnly),
+              ),
+              FilledButton(
                 onPressed: () => Navigator.of(ctx).pop(_LangChoice.setAndAdd),
-                child: Text(l10n.actionSetLanguageAndAdd)),
-          ],
+                child: Text(l10n.actionSetLanguageAndAdd),
+              ),
+            ],
+          ),
         ),
       );
       if (!context.mounted || choice == null || choice == _LangChoice.cancel) {
@@ -116,9 +127,13 @@ Future<bool> addCardsWithLanguageCheck(
       if (choice == _LangChoice.setAndAdd) {
         final currentSet = ref.read(setByIdProvider(setId));
         if (currentSet != null) {
-          await ref.read(cardSetRepositoryProvider).updateSet(
+          await ref
+              .read(cardSetRepositoryProvider)
+              .updateSet(
                 currentSet.copyWith(
-                    targetLanguage: pair.$1, nativeLanguage: pair.$2),
+                  targetLanguage: pair.$1,
+                  nativeLanguage: pair.$2,
+                ),
               );
         }
       }
@@ -126,17 +141,23 @@ Future<bool> addCardsWithLanguageCheck(
       // Spans multiple pairs — warn.
       final proceed = await showDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(l10n.titleMixedLanguages),
-          content: Text(l10n.messageMixedLanguages),
-          actions: [
-            TextButton(
+        // Enter confirms the primary action (#235); Esc / tap-away cancels.
+        builder: (ctx) => KeyboardActions(
+          onConfirm: () => Navigator.of(ctx).pop(true),
+          child: AlertDialog(
+            title: Text(l10n.titleMixedLanguages),
+            content: Text(l10n.messageMixedLanguages),
+            actions: [
+              TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
-                child: Text(l10n.labelCancel)),
-            FilledButton(
+                child: Text(l10n.labelCancel),
+              ),
+              FilledButton(
                 onPressed: () => Navigator.of(ctx).pop(true),
-                child: Text(l10n.actionAddAnyway)),
-          ],
+                child: Text(l10n.actionAddAnyway),
+              ),
+            ],
+          ),
         ),
       );
       if (!context.mounted || proceed != true) return false;
@@ -149,17 +170,23 @@ Future<bool> addCardsWithLanguageCheck(
           '${setLang.$1.toUpperCase()} → ${setLang.$2.toUpperCase()}';
       final proceed = await showDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(l10n.titleDifferentLanguage),
-          content: Text(l10n.messageDifferentLanguage(setLabel)),
-          actions: [
-            TextButton(
+        // Enter confirms the primary action (#235); Esc / tap-away cancels.
+        builder: (ctx) => KeyboardActions(
+          onConfirm: () => Navigator.of(ctx).pop(true),
+          child: AlertDialog(
+            title: Text(l10n.titleDifferentLanguage),
+            content: Text(l10n.messageDifferentLanguage(setLabel)),
+            actions: [
+              TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
-                child: Text(l10n.labelCancel)),
-            FilledButton(
+                child: Text(l10n.labelCancel),
+              ),
+              FilledButton(
                 onPressed: () => Navigator.of(ctx).pop(true),
-                child: Text(l10n.actionAddAnyway)),
-          ],
+                child: Text(l10n.actionAddAnyway),
+              ),
+            ],
+          ),
         ),
       );
       if (!context.mounted || proceed != true) return false;

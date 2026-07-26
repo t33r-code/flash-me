@@ -16,6 +16,7 @@ import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/widgets/language_picker.dart';
 import 'package:flash_me/widgets/tag_input_field.dart';
 import 'package:flash_me/widgets/template_picker_sheet.dart';
+import 'package:flash_me/widgets/keyboard_actions.dart';
 
 // ---------------------------------------------------------------------------
 // _QuestionState — mutable holder for one workbook question while the form
@@ -933,22 +934,26 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
     final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.titleDeleteWorkbookCard),
-        content: Text(l10n.messageDeleteWorkbookCardConfirm),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.labelCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
+      // Enter confirms the primary action (#235); Esc / tap-away cancels.
+      builder: (ctx) => KeyboardActions(
+        onConfirm: () => Navigator.of(ctx).pop(true),
+        child: AlertDialog(
+          title: Text(l10n.titleDeleteWorkbookCard),
+          content: Text(l10n.messageDeleteWorkbookCardConfirm),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.labelCancel),
             ),
-            child: Text(l10n.labelDelete),
-          ),
-        ],
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error,
+              ),
+              child: Text(l10n.labelDelete),
+            ),
+          ],
+        ),
       ),
     );
     if (confirmed != true || !mounted) return;
@@ -2046,35 +2051,39 @@ class _WorkbookCardFormScreenState extends State<WorkbookCardFormScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _isEditing
-              ? l10n.titleEditWorkbookCard
-              : widget.cloneFrom != null
-              ? l10n.titleCloneCard
-              : l10n.titleNewWorkbookCard,
+    // Esc cancels (#235); Enter-to-submit deferred to Ctrl/Cmd+S (#278).
+    return KeyboardActions(
+      onCancel: _saving ? null : () => Navigator.of(context).pop(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            _isEditing
+                ? l10n.titleEditWorkbookCard
+                : widget.cloneFrom != null
+                ? l10n.titleCloneCard
+                : l10n.titleNewWorkbookCard,
+          ),
+          actions: [
+            if (_isEditing)
+              IconButton(
+                icon: const Icon(Icons.delete_outline),
+                tooltip: l10n.tooltipDeleteCard,
+                onPressed: _saving
+                    ? null
+                    : () => _bodyKey.currentState?.confirmDelete(),
+              ),
+          ],
         ),
-        actions: [
-          if (_isEditing)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              tooltip: l10n.tooltipDeleteCard,
-              onPressed: _saving
-                  ? null
-                  : () => _bodyKey.currentState?.confirmDelete(),
-            ),
-        ],
-      ),
-      body: WorkbookEditorBody(
-        key: _bodyKey,
-        card: widget.card,
-        parentSet: widget.parentSet,
-        cloneFrom: widget.cloneFrom,
-        onSaved: () => Navigator.of(context).pop(),
-        onCancel: () => Navigator.of(context).pop(),
-        onDeleted: () => Navigator.of(context).pop(),
-        onSavingChanged: (v) => setState(() => _saving = v),
+        body: WorkbookEditorBody(
+          key: _bodyKey,
+          card: widget.card,
+          parentSet: widget.parentSet,
+          cloneFrom: widget.cloneFrom,
+          onSaved: () => Navigator.of(context).pop(),
+          onCancel: () => Navigator.of(context).pop(),
+          onDeleted: () => Navigator.of(context).pop(),
+          onSavingChanged: (v) => setState(() => _saving = v),
+        ),
       ),
     );
   }

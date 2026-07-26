@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/widgets/help_menu_button.dart';
+import 'package:flash_me/widgets/keyboard_actions.dart';
 
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/import_diff.dart';
@@ -47,7 +48,10 @@ class _DataScreenState extends ConsumerState<DataScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           // ── Import ──────────────────────────────────────────────────────
-          _SectionHeader(title: context.l10n.titleImport, icon: Icons.upload_file_outlined),
+          _SectionHeader(
+            title: context.l10n.titleImport,
+            icon: Icons.upload_file_outlined,
+          ),
           const SizedBox(height: 8),
           Text(
             context.l10n.messageImportDescription,
@@ -70,7 +74,10 @@ class _DataScreenState extends ConsumerState<DataScreen> {
           const SizedBox(height: 32),
           const Divider(),
           const SizedBox(height: 16),
-          _SectionHeader(title: context.l10n.titleExport, icon: Icons.download_outlined),
+          _SectionHeader(
+            title: context.l10n.titleExport,
+            icon: Icons.download_outlined,
+          ),
           const SizedBox(height: 8),
           Text(
             context.l10n.messageExportDescription,
@@ -78,10 +85,8 @@ class _DataScreenState extends ConsumerState<DataScreen> {
           ),
           const SizedBox(height: 12),
           ...setsAsync.when(
-            loading: () =>
-                [const Center(child: CircularProgressIndicator())],
-            error: (_, _) =>
-                [Text(context.l10n.errorFailedLoadSets)],
+            loading: () => [const Center(child: CircularProgressIndicator())],
+            error: (_, _) => [Text(context.l10n.errorFailedLoadSets)],
             data: (sets) => _buildExportSection(sets, theme),
           ),
         ],
@@ -96,8 +101,9 @@ class _DataScreenState extends ConsumerState<DataScreen> {
       return [
         Text(
           l10n.messageNoSetsYetExport,
-          style: theme.textTheme.bodyMedium
-              ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ),
       ];
     }
@@ -112,20 +118,23 @@ class _DataScreenState extends ConsumerState<DataScreen> {
             onPressed: _exporting
                 ? null
                 : () => setState(() {
-                      if (allSelected) {
-                        _selectedSetIds.clear();
-                      } else {
-                        _selectedSetIds.addAll(sets.map((s) => s.id));
-                      }
-                    }),
-            child: Text(allSelected ? l10n.actionDeselectAll : l10n.actionSelectAll),
+                    if (allSelected) {
+                      _selectedSetIds.clear();
+                    } else {
+                      _selectedSetIds.addAll(sets.map((s) => s.id));
+                    }
+                  }),
+            child: Text(
+              allSelected ? l10n.actionDeselectAll : l10n.actionSelectAll,
+            ),
           ),
           Text(
             _selectedSetIds.isEmpty
                 ? l10n.labelNoneSelected
                 : l10n.labelNOfMSelected(_selectedSetIds.length, sets.length),
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -138,12 +147,12 @@ class _DataScreenState extends ConsumerState<DataScreen> {
           onChanged: _exporting
               ? null
               : (checked) => setState(() {
-                    if (checked == true) {
-                      _selectedSetIds.add(s.id);
-                    } else {
-                      _selectedSetIds.remove(s.id);
-                    }
-                  }),
+                  if (checked == true) {
+                    _selectedSetIds.add(s.id);
+                  } else {
+                    _selectedSetIds.remove(s.id);
+                  }
+                }),
           secondary: const Icon(Icons.library_books_outlined),
           title: Text(s.name, overflow: TextOverflow.ellipsis),
           subtitle: Text(l10n.labelCardCount(s.cardCount)),
@@ -158,12 +167,13 @@ class _DataScreenState extends ConsumerState<DataScreen> {
                 width: 16,
                 height: 16,
                 child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Colors.white),
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
               )
             : const Icon(Icons.download_outlined),
         label: Text(l10n.actionExportN(_selectedSetIds.length)),
-        onPressed:
-            (_selectedSetIds.isEmpty || _exporting) ? null : _runExport,
+        onPressed: (_selectedSetIds.isEmpty || _exporting) ? null : _runExport,
       ),
     ];
   }
@@ -173,8 +183,9 @@ class _DataScreenState extends ConsumerState<DataScreen> {
     final l10n = context.l10n;
 
     final allSets = ref.read(userSetsProvider).asData?.value ?? [];
-    final selected =
-        allSets.where((s) => _selectedSetIds.contains(s.id)).toList();
+    final selected = allSets
+        .where((s) => _selectedSetIds.contains(s.id))
+        .toList();
     final uid = ref.read(authStateProvider).asData?.value ?? '';
 
     if (!mounted) return;
@@ -183,11 +194,13 @@ class _DataScreenState extends ConsumerState<DataScreen> {
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        content: Row(children: [
-          const CircularProgressIndicator(),
-          const SizedBox(width: 20),
-          Text(l10n.messageExporting),
-        ]),
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 20),
+            Text(l10n.messageExporting),
+          ],
+        ),
       ),
     );
 
@@ -203,7 +216,9 @@ class _DataScreenState extends ConsumerState<DataScreen> {
           .read(questionTemplateRepositoryProvider)
           .getUserTemplates(uid);
 
-      final path = await ref.read(exportServiceProvider).exportSets(
+      final path = await ref
+          .read(exportServiceProvider)
+          .exportSets(
             sets: selected,
             userId: uid,
             cardSetRepo: ref.read(cardSetRepositoryProvider),
@@ -213,15 +228,21 @@ class _DataScreenState extends ConsumerState<DataScreen> {
 
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(
-            path != null ? l10n.messageExportSavedTo(path) : l10n.messageExportReady),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            path != null
+                ? l10n.messageExportSavedTo(path)
+                : l10n.messageExportReady,
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.errorExportFailed)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorExportFailed)));
     } finally {
       if (mounted) setState(() => _exporting = false);
     }
@@ -248,22 +269,25 @@ class _DataScreenState extends ConsumerState<DataScreen> {
         context: context,
         barrierDismissible: false,
         builder: (_) => AlertDialog(
-          content: Row(children: [
-            const CircularProgressIndicator(),
-            const SizedBox(width: 20),
-            Text(l10n.messageAnalysingArchive),
-          ]),
+          content: Row(
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(width: 20),
+              Text(l10n.messageAnalysingArchive),
+            ],
+          ),
         ),
       );
 
       final uid = ref.read(authStateProvider).asData?.value ?? '';
-      final analysis = await ref.read(importServiceProvider).analyze(
+      final analysis = await ref
+          .read(importServiceProvider)
+          .analyze(
             zipBytes: bytes,
             userId: uid,
             cardSetRepo: ref.read(cardSetRepositoryProvider),
             cardRepo: ref.read(cardRepositoryProvider),
-            questionTemplateRepo:
-                ref.read(questionTemplateRepositoryProvider),
+            questionTemplateRepo: ref.read(questionTemplateRepositoryProvider),
             templateRepo: ref.read(templateRepositoryProvider),
           );
 
@@ -273,11 +297,8 @@ class _DataScreenState extends ConsumerState<DataScreen> {
       // Show preview dialog; returns a summary when the user confirms import.
       final summary = await showDialog<_ImportSummaryData>(
         context: context,
-        builder: (_) => _ImportPreviewDialog(
-          analysis: analysis,
-          userId: uid,
-          ref: ref,
-        ),
+        builder: (_) =>
+            _ImportPreviewDialog(analysis: analysis, userId: uid, ref: ref),
       );
 
       if (!context.mounted || summary == null) return;
@@ -288,15 +309,15 @@ class _DataScreenState extends ConsumerState<DataScreen> {
     } on AppException catch (e) {
       if (!context.mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
       if (!context.mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorFailedReadArchive)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorFailedReadArchive)));
     } finally {
       if (mounted) setState(() => _analyzing = false);
     }
@@ -329,7 +350,9 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
   Future<void> _runImport() async {
     setState(() => _importing = true);
     try {
-      await widget.ref.read(importServiceProvider).execute(
+      await widget.ref
+          .read(importServiceProvider)
+          .execute(
             analysis: widget.analysis,
             deleteNotInImport: _deleteNotInImport,
             skipUpdates: _skipUpdates,
@@ -337,8 +360,9 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
             cardSetRepo: widget.ref.read(cardSetRepositoryProvider),
             cardRepo: widget.ref.read(cardRepositoryProvider),
             templateRepo: widget.ref.read(templateRepositoryProvider),
-            questionTemplateRepo:
-                widget.ref.read(questionTemplateRepositoryProvider),
+            questionTemplateRepo: widget.ref.read(
+              questionTemplateRepositoryProvider,
+            ),
             tagRepo: widget.ref.read(tagRepositoryProvider),
           );
       // Force all cardsInSetProvider streams to re-subscribe so updated card
@@ -349,24 +373,27 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
       widget.ref.invalidate(userTemplatesProvider);
       widget.ref.invalidate(userQuestionTemplatesProvider);
       if (mounted) {
-        Navigator.of(context).pop(_ImportSummaryData(
-          totalSets: widget.analysis.setDiffs.length,
-          newSets: widget.analysis.setDiffs.where((d) => d.isNewSet).length,
-          cardsAdded: widget.analysis.totalNewCards,
-          cardsLinked: widget.analysis.totalLibraryLinkCards,
-          cardsUpdated: _skipUpdates ? 0 : widget.analysis.totalUpdatedCards,
-          cardsRemoved:
-              _deleteNotInImport ? widget.analysis.totalDeletableCards : 0,
-          cardTemplatesCreated: widget.analysis.totalNewCardTemplates,
-          questionTemplatesCreated: widget.analysis.totalNewQuestionTemplates,
-        ));
+        Navigator.of(context).pop(
+          _ImportSummaryData(
+            totalSets: widget.analysis.setDiffs.length,
+            newSets: widget.analysis.setDiffs.where((d) => d.isNewSet).length,
+            cardsAdded: widget.analysis.totalNewCards,
+            cardsLinked: widget.analysis.totalLibraryLinkCards,
+            cardsUpdated: _skipUpdates ? 0 : widget.analysis.totalUpdatedCards,
+            cardsRemoved: _deleteNotInImport
+                ? widget.analysis.totalDeletableCards
+                : 0,
+            cardTemplatesCreated: widget.analysis.totalNewCardTemplates,
+            questionTemplatesCreated: widget.analysis.totalNewQuestionTemplates,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _importing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.errorImportFailed)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(context.l10n.errorImportFailed)));
       }
     }
   }
@@ -376,80 +403,90 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
     final diffs = widget.analysis.setDiffs;
 
     final l10n = context.l10n;
-    return AlertDialog(
-      title: Text(l10n.titleImportPreview),
-      contentPadding: const EdgeInsets.fromLTRB(0, 16, 0, 0),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Options.
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                children: [
-                  SwitchListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(l10n.labelSkipCardUpdates),
-                    subtitle: Text(l10n.messageSkipCardUpdatesSubtitle),
-                    value: _skipUpdates,
-                    onChanged:
-                        _importing ? null : (v) => setState(() => _skipUpdates = v),
-                  ),
-                  SwitchListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(l10n.labelRemoveCardsNotInImport),
-                    subtitle: Text(l10n.messageRemoveCardsNotInImportSubtitle),
-                    value: _deleteNotInImport,
-                    onChanged: _importing
-                        ? null
-                        : (v) => setState(() => _deleteNotInImport = v),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(),
-
-            // Templates + per-set diffs in one scrollable list.
-            Flexible(
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  if (widget.analysis.totalNewCardTemplates > 0 ||
-                      widget.analysis.totalNewQuestionTemplates > 0)
-                    _TemplateDiffSection(analysis: widget.analysis),
-                  for (final diff in diffs)
-                    _SetDiffTile(
-                      diff: diff,
-                      showDeletable: _deleteNotInImport,
-                      skipUpdates: _skipUpdates,
+    // Enter runs the import (#235) unless already importing; Esc / tap-away
+    // cancels.
+    return KeyboardActions(
+      onConfirm: _importing ? null : _runImport,
+      child: AlertDialog(
+        title: Text(l10n.titleImportPreview),
+        contentPadding: const EdgeInsets.fromLTRB(0, 16, 0, 0),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Options.
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    SwitchListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(l10n.labelSkipCardUpdates),
+                      subtitle: Text(l10n.messageSkipCardUpdatesSubtitle),
+                      value: _skipUpdates,
+                      onChanged: _importing
+                          ? null
+                          : (v) => setState(() => _skipUpdates = v),
                     ),
-                ],
+                    SwitchListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(l10n.labelRemoveCardsNotInImport),
+                      subtitle: Text(
+                        l10n.messageRemoveCardsNotInImportSubtitle,
+                      ),
+                      value: _deleteNotInImport,
+                      onChanged: _importing
+                          ? null
+                          : (v) => setState(() => _deleteNotInImport = v),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              const Divider(),
+
+              // Templates + per-set diffs in one scrollable list.
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    if (widget.analysis.totalNewCardTemplates > 0 ||
+                        widget.analysis.totalNewQuestionTemplates > 0)
+                      _TemplateDiffSection(analysis: widget.analysis),
+                    for (final diff in diffs)
+                      _SetDiffTile(
+                        diff: diff,
+                        showDeletable: _deleteNotInImport,
+                        skipUpdates: _skipUpdates,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: _importing ? null : () => Navigator.of(context).pop(),
+            child: Text(l10n.labelCancel),
+          ),
+          FilledButton(
+            onPressed: _importing ? null : _runImport,
+            child: _importing
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(l10n.actionImport),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: _importing ? null : () => Navigator.of(context).pop(),
-          child: Text(l10n.labelCancel),
-        ),
-        FilledButton(
-          onPressed: _importing ? null : _runImport,
-          child: _importing
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
-                )
-              : Text(l10n.actionImport),
-        ),
-      ],
     );
   }
 }
@@ -497,12 +534,16 @@ class _SetDiffTileState extends State<_SetDiffTile> {
               const Icon(Icons.library_books_outlined, size: 18),
               const SizedBox(width: 6),
               Expanded(
-                child: Text(diff.setName,
-                    style: theme.textTheme.titleSmall,
-                    overflow: TextOverflow.ellipsis),
+                child: Text(
+                  diff.setName,
+                  style: theme.textTheme.titleSmall,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               Chip(
-                label: Text(diff.isNewSet ? l10n.labelNewSet : l10n.labelExistingSet),
+                label: Text(
+                  diff.isNewSet ? l10n.labelNewSet : l10n.labelExistingSet,
+                ),
                 visualDensity: VisualDensity.compact,
                 backgroundColor: diff.isNewSet
                     ? theme.colorScheme.primaryContainer
@@ -521,10 +562,12 @@ class _SetDiffTileState extends State<_SetDiffTile> {
               expanded: _newExpanded,
               onTap: () => setState(() => _newExpanded = !_newExpanded),
               children: diff.newCards
-                  .map((e) => _CardSummaryTile(
-                        primary: e.data.primaryWord,
-                        secondary: e.data.translation,
-                      ))
+                  .map(
+                    (e) => _CardSummaryTile(
+                      primary: e.data.primaryWord,
+                      secondary: e.data.translation,
+                    ),
+                  )
                   .toList(),
             ),
 
@@ -535,13 +578,14 @@ class _SetDiffTileState extends State<_SetDiffTile> {
               color: theme.colorScheme.secondary,
               label: l10n.labelNFromLibrary(diff.libraryLinkCards.length),
               expanded: _libraryExpanded,
-              onTap: () =>
-                  setState(() => _libraryExpanded = !_libraryExpanded),
+              onTap: () => setState(() => _libraryExpanded = !_libraryExpanded),
               children: diff.libraryLinkCards
-                  .map((e) => _CardSummaryTile(
-                        primary: e.existingCard.primaryWord,
-                        secondary: e.existingCard.translation,
-                      ))
+                  .map(
+                    (e) => _CardSummaryTile(
+                      primary: e.existingCard.primaryWord,
+                      secondary: e.existingCard.translation,
+                    ),
+                  )
                   .toList(),
             ),
 
@@ -549,20 +593,19 @@ class _SetDiffTileState extends State<_SetDiffTile> {
           if (diff.updatedCards.isNotEmpty)
             _ExpandableCountRow(
               icon: Icons.edit_outlined,
-              color: widget.skipUpdates
-                  ? theme.disabledColor
-                  : warningColor,
+              color: widget.skipUpdates ? theme.disabledColor : warningColor,
               label: widget.skipUpdates
                   ? l10n.labelNUpdatedSkipped(diff.updatedCards.length)
                   : l10n.labelNUpdated(diff.updatedCards.length),
               expanded: _updatedExpanded,
-              onTap: () =>
-                  setState(() => _updatedExpanded = !_updatedExpanded),
+              onTap: () => setState(() => _updatedExpanded = !_updatedExpanded),
               children: diff.updatedCards
-                  .map((e) => _UpdatedCardTile(
-                        entry: e,
-                        currentSetName: diff.setName,
-                      ))
+                  .map(
+                    (e) => _UpdatedCardTile(
+                      entry: e,
+                      currentSetName: diff.setName,
+                    ),
+                  )
                   .toList(),
             ),
 
@@ -573,13 +616,14 @@ class _SetDiffTileState extends State<_SetDiffTile> {
               color: theme.colorScheme.error,
               label: l10n.labelNToRemove(diff.deletableCards.length),
               expanded: _deletedExpanded,
-              onTap: () =>
-                  setState(() => _deletedExpanded = !_deletedExpanded),
+              onTap: () => setState(() => _deletedExpanded = !_deletedExpanded),
               children: diff.deletableCards
-                  .map((c) => _CardSummaryTile(
-                        primary: c.primaryWord,
-                        secondary: c.translation,
-                      ))
+                  .map(
+                    (c) => _CardSummaryTile(
+                      primary: c.primaryWord,
+                      secondary: c.translation,
+                    ),
+                  )
                   .toList(),
             ),
 
@@ -636,8 +680,7 @@ class _TemplateDiffSectionState extends State<_TemplateDiffSection> {
               color: successColor,
               label: l10n.labelNNewCardTemplates(cts.length),
               expanded: _cardTplExpanded,
-              onTap: () =>
-                  setState(() => _cardTplExpanded = !_cardTplExpanded),
+              onTap: () => setState(() => _cardTplExpanded = !_cardTplExpanded),
               children: cts.map((t) {
                 final name = t['name'] as String? ?? '';
                 final qs = (t['questions'] as List?)?.length ?? 0;
@@ -655,8 +698,8 @@ class _TemplateDiffSectionState extends State<_TemplateDiffSection> {
               color: successColor,
               label: l10n.labelNNewQuestionTemplates(qts.length),
               expanded: _questionTplExpanded,
-              onTap: () => setState(
-                  () => _questionTplExpanded = !_questionTplExpanded),
+              onTap: () =>
+                  setState(() => _questionTplExpanded = !_questionTplExpanded),
               children: qts.map((t) {
                 final name = t['name'] as String? ?? '';
                 final importId = t['templateId'] as String?;
@@ -717,13 +760,10 @@ class _ExpandableCountRow extends StatelessWidget {
               children: [
                 Icon(icon, size: 16, color: color),
                 const SizedBox(width: 6),
-                Text(label,
-                    style: TextStyle(color: color, fontSize: 13)),
+                Text(label, style: TextStyle(color: color, fontSize: 13)),
                 const Spacer(),
                 Icon(
-                  expanded
-                      ? Icons.expand_less
-                      : Icons.expand_more,
+                  expanded ? Icons.expand_less : Icons.expand_more,
                   size: 16,
                 ),
               ],
@@ -757,16 +797,19 @@ class _CardSummaryTile extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(primary,
-                style: theme.textTheme.bodySmall,
-                overflow: TextOverflow.ellipsis),
+            child: Text(
+              primary,
+              style: theme.textTheme.bodySmall,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               secondary,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -801,8 +844,9 @@ class _UpdatedCardTile extends StatelessWidget {
         children: [
           Text(
             entry.existing.primaryWord,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(fontWeight: FontWeight.w600),
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
           ...entry.changes.map(
             (c) => Padding(
@@ -872,94 +916,114 @@ class _ImportSummaryDialog extends StatelessWidget {
     final successColor = context.appColors.statusSuccess;
     final warningColor = context.appColors.statusWarning;
     final s = summary;
-    final hasChanges = s.cardsAdded > 0 || s.cardsLinked > 0 ||
-        s.cardsUpdated > 0 || s.cardsRemoved > 0 ||
-        s.cardTemplatesCreated > 0 || s.questionTemplatesCreated > 0;
+    final hasChanges =
+        s.cardsAdded > 0 ||
+        s.cardsLinked > 0 ||
+        s.cardsUpdated > 0 ||
+        s.cardsRemoved > 0 ||
+        s.cardTemplatesCreated > 0 ||
+        s.questionTemplatesCreated > 0;
 
-    return AlertDialog(
-      title: Row(
-        children: [
-          Icon(Icons.check_circle_outline, color: successColor),
-          const SizedBox(width: 8),
-          Text(l10n.titleImportComplete),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _summaryRow(
-            theme,
-            Icons.library_books_outlined,
-            '${l10n.messageSetsProcessed(s.totalSets)}'
-                '${s.newSets > 0 ? ' ${l10n.labelNewCount(s.newSets)}' : ''}',
-          ),
-          if (!hasChanges)
-            _summaryRow(theme, Icons.info_outline, l10n.messageNoChangesApplied),
-          if (s.cardsAdded > 0)
-            _summaryRow(
-              theme,
-              Icons.add_circle_outline,
-              l10n.messageCardsAdded(s.cardsAdded),
-              color: successColor,
-            ),
-          if (s.cardsLinked > 0)
-            _summaryRow(
-              theme,
-              Icons.link,
-              l10n.messageCardsLinked(s.cardsLinked),
-              color: theme.colorScheme.secondary,
-            ),
-          if (s.cardsUpdated > 0)
-            _summaryRow(
-              theme,
-              Icons.edit_outlined,
-              l10n.messageCardsUpdated(s.cardsUpdated),
-              color: warningColor,
-            ),
-          if (s.cardsRemoved > 0)
-            _summaryRow(
-              theme,
-              Icons.remove_circle_outline,
-              l10n.messageCardsRemovedFromSets(s.cardsRemoved),
-              color: theme.colorScheme.error,
-            ),
-          if (s.cardTemplatesCreated > 0)
-            _summaryRow(
-              theme,
-              Icons.copy_all_outlined,
-              l10n.messageCardTemplatesCreated(s.cardTemplatesCreated),
-              color: successColor,
-            ),
-          if (s.questionTemplatesCreated > 0)
-            _summaryRow(
-              theme,
-              Icons.quiz_outlined,
-              l10n.messageQuestionTemplatesCreated(s.questionTemplatesCreated),
-              color: successColor,
-            ),
-        ],
-      ),
-      actions: [
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.actionDone),
+    // Enter dismisses the summary (#235); Esc / tap-away does too.
+    return KeyboardActions(
+      onConfirm: () => Navigator.of(context).pop(),
+      child: AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.check_circle_outline, color: successColor),
+            const SizedBox(width: 8),
+            Text(l10n.titleImportComplete),
+          ],
         ),
-      ],
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _summaryRow(
+              theme,
+              Icons.library_books_outlined,
+              '${l10n.messageSetsProcessed(s.totalSets)}'
+              '${s.newSets > 0 ? ' ${l10n.labelNewCount(s.newSets)}' : ''}',
+            ),
+            if (!hasChanges)
+              _summaryRow(
+                theme,
+                Icons.info_outline,
+                l10n.messageNoChangesApplied,
+              ),
+            if (s.cardsAdded > 0)
+              _summaryRow(
+                theme,
+                Icons.add_circle_outline,
+                l10n.messageCardsAdded(s.cardsAdded),
+                color: successColor,
+              ),
+            if (s.cardsLinked > 0)
+              _summaryRow(
+                theme,
+                Icons.link,
+                l10n.messageCardsLinked(s.cardsLinked),
+                color: theme.colorScheme.secondary,
+              ),
+            if (s.cardsUpdated > 0)
+              _summaryRow(
+                theme,
+                Icons.edit_outlined,
+                l10n.messageCardsUpdated(s.cardsUpdated),
+                color: warningColor,
+              ),
+            if (s.cardsRemoved > 0)
+              _summaryRow(
+                theme,
+                Icons.remove_circle_outline,
+                l10n.messageCardsRemovedFromSets(s.cardsRemoved),
+                color: theme.colorScheme.error,
+              ),
+            if (s.cardTemplatesCreated > 0)
+              _summaryRow(
+                theme,
+                Icons.copy_all_outlined,
+                l10n.messageCardTemplatesCreated(s.cardTemplatesCreated),
+                color: successColor,
+              ),
+            if (s.questionTemplatesCreated > 0)
+              _summaryRow(
+                theme,
+                Icons.quiz_outlined,
+                l10n.messageQuestionTemplatesCreated(
+                  s.questionTemplatesCreated,
+                ),
+                color: successColor,
+              ),
+          ],
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.actionDone),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _summaryRow(ThemeData theme, IconData icon, String label,
-      {Color? color}) {
+  Widget _summaryRow(
+    ThemeData theme,
+    IconData icon,
+    String label, {
+    Color? color,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: color ?? theme.colorScheme.onSurfaceVariant),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(label, style: theme.textTheme.bodyMedium),
+          Icon(
+            icon,
+            size: 18,
+            color: color ?? theme.colorScheme.onSurfaceVariant,
           ),
+          const SizedBox(width: 8),
+          Expanded(child: Text(label, style: theme.textTheme.bodyMedium)),
         ],
       ),
     );

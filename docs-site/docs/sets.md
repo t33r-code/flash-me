@@ -22,7 +22,7 @@ On a wide window, creating or editing a card also happens right in that pane: ta
 
 These options are available on the create and edit screens:
 
-- **Colour** — pick from a predefined palette. The colour appears as an accent bar on the set tile in your Sets list, making sets easy to tell apart at a glance.
+- **Colour** — pick from a predefined palette. The colour appears as an accent bar on the set tile in your Sets list, making sets easy to tell apart at a glance. On desktop you can Tab to the swatches and press **Enter** or **Space** to choose one — the focused swatch shows a ring.
 - **Tags** — start typing to see suggestions from tags already in use; tap one to add it, or press **Enter** to create a new tag. Tags are lowercased with spaces turned into hyphens so the same tag always matches. Tags help you filter and organise sets.
 - **Native language / Target language** — tag the set with its language pair. Cards created directly within this set will inherit these languages automatically.
 - **Enforce card order** — when on, the set is always studied in the order its cards are arranged, and learners can't shuffle it. Leave it off (the default) to let anyone studying the set randomise the order. Turn it on for sets that tell a story or build up step by step.

@@ -9,6 +9,7 @@ import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/widgets/tag_input_field.dart';
 import 'package:flash_me/widgets/language_picker.dart';
 import 'package:flash_me/widgets/keyboard_actions.dart';
+import 'package:flash_me/widgets/color_picker_swatch.dart';
 
 // ---------------------------------------------------------------------------
 // SetFormScreen — create or edit a CardSet.
@@ -171,56 +172,15 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
       runSpacing: 0,
       children: _colorPalette.map((hex) {
         final selected = _selectedColor == hex;
-        final itemColor = hex == null ? Colors.transparent : _hexColor(hex);
         final colorLabel = colorLabels[hex] ?? hex ?? '';
-        // Semantics label announces colour name and selection state.
-        // SizedBox expands the hit area to 48dp without changing the 36dp visual.
-        return Semantics(
-          label: selected
+        return ColorPickerSwatch(
+          color: hex == null ? null : _hexColor(hex),
+          selected: selected,
+          // Semantics label announces colour name and selection state.
+          semanticLabel: selected
               ? l10n.semanticsColorSelected(colorLabel)
               : colorLabel,
-          button: true,
-          child: GestureDetector(
-            onTap: _isSaving
-                ? null
-                : () => setState(() => _selectedColor = hex),
-            child: SizedBox(
-              width: 48,
-              height: 48,
-              child: Center(
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: itemColor,
-                    border: Border.all(
-                      color: hex == null
-                          ? Theme.of(context).colorScheme.outline
-                          : itemColor,
-                      width: selected ? 3 : 1,
-                    ),
-                  ),
-                  child: selected
-                      ? Icon(
-                          Icons.check,
-                          size: 20,
-                          color: hex == null
-                              ? Theme.of(context).colorScheme.onSurface
-                              : Colors.white,
-                        )
-                      // "None" option shows a slash icon when unselected.
-                      : hex == null
-                      ? Icon(
-                          Icons.block,
-                          size: 18,
-                          color: Theme.of(context).colorScheme.outline,
-                        )
-                      : null,
-                ),
-              ),
-            ),
-          ),
+          onTap: _isSaving ? null : () => setState(() => _selectedColor = hex),
         );
       }).toList(),
     );

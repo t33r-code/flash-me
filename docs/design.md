@@ -1240,6 +1240,12 @@ Covered by `test/widgets/keyboard_actions_test.dart` (Enter confirms; Esc cancel
 
 **Coverage.** Esc-to-cancel: the flash-card, workbook-card, set, template, and question-template editors (Enter-to-submit there is intentionally left to Ctrl/Cmd+S, #278, because they're multi-field/multi-line). Enter-to-confirm: the confirmation and choice dialogs across the app — delete card/set/account/template, remove-from-set, remove-from-market, unlink, replace-questions, import preview/summary, the add-to-set language dialogs, and the bulk-language dialog — plus `onFieldSubmitted` on the forgot-password and link-email entry dialogs. The bulk-*tag* dialog is intentionally left alone: its tag-entry field owns Enter (to add a tag), and Esc already dismisses it. Progress-spinner dialogs (export/analyse) have no confirm action and are untouched.
 
+### Focus visibility & tab order in the editors (#235)
+
+Audit finding: both editors are almost entirely built from standard Material widgets (`TextFormField`, `DropdownButtonFormField`, `Radio`/`RadioGroup`, `SwitchListTile`, `IconButton`, the `InkWell`-based `LanguagePicker`, buttons), which are already keyboard-focusable with the framework's default focus highlights, laid out top-to-bottom so the default reading-order traversal is already sensible. Two custom `GestureDetector`s existed: the card editor's image thumbnail (fine — it has a redundant, focusable *Add/Replace image* button beside it, so keyboard users aren't blocked) and the **set editor's colour picker**, which had *no* keyboard path at all.
+
+The colour picker's swatches were extracted into `widgets/color_picker_swatch.dart` (`ColorPickerSwatch` — named to avoid clashing with Flutter's built-in `ColorSwatch` type). Each swatch is a `FocusableActionDetector` (focus node + tab-traversal + `ActivateIntent` mapped to its `onTap`, so Enter *and* Space select it) with a `GestureDetector` for pointer taps. `onShowFocusHighlight` toggles a 2 dp primary-colour ring drawn on a 44 dp layer behind the 36 dp swatch — and because that callback fires only for keyboard/traversal focus (not a mouse click), the ring appears exactly when a keyboard user tabs onto a swatch and never on a plain click. Covered by `test/widgets/color_picker_swatch_test.dart` (Tab focuses; Enter and Space activate; pointer tap still works; a disabled swatch doesn't fire).
+
 ---
 
 ## Use Flash Card Sets

@@ -2,6 +2,27 @@
 
 ---
 
+## v0.7.0 — Alpha 0.7 — 2026-07-26
+
+### New features
+- In-place set builder — build a set without leaving the editor: create new cards in the set, drag existing cards in from a library drawer, drag to reorder, edit cards in place, and remove them, all on one screen (#232, #233, #234, #245, #247, #259, #260)
+- Multi-pane set view — a master–detail layout on wider screens so you can see the set and a card side by side (#236)
+- Author-controlled card order — arrange the cards in a set, with an option to enforce that order (#244); study honours the enforced order and turns off shuffle when it's on (#246)
+- Clone a card to quickly enter similar ones — for both Flash Cards (#231) and Workbook Cards (#274)
+- Use Question and Card Templates when adding or editing Workbook Cards (#248)
+- Multi-select in the card library for bulk actions — add to a set, delete, tag, or set language on many cards at once (#238)
+- Hover states and right-click context menus for cards and sets on desktop (#237)
+- Side navigation rail on landscape and desktop layouts for quicker navigation (#230)
+- Desktop keyboard support — study shortcuts (arrow keys, Enter, mark Skip/Review), Enter-to-confirm / Esc-to-cancel in editors and dialogs, and a keyboard-navigable colour picker (#87, #235)
+
+### Bug fixes
+- Fixed a permission error when deleting a Workbook Card (#201)
+
+### Known issues
+- None identified
+
+---
+
 ## v0.6.0 — Alpha 0.6 — 2026-07-04
 
 ### New features

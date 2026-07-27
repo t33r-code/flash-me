@@ -17,11 +17,6 @@ bool isWideWidth(double width) => width >= kWideLayoutBreakpoint;
 // drawer tucks away and the list goes full-width until the pane widens again.
 const double kLibraryDrawerMinPaneWidth = 620;
 
-// Below this pane width the set-detail toolbar can't fit all its icon actions,
-// so the set-management ones (market/export/delete/edit) collapse into a single
-// overflow (⋮) menu. Keeps the builder actions (+, library, study) visible.
-const double kSetToolbarOverflowWidth = 520;
-
 // Master-detail (My Sets) column sizing. The set list takes [kSetListWidth] when
 // there's room but shrinks toward [kMinSetListWidth] first, so the detail pane
 // keeps at least [kMinDetailPaneWidth] even at the narrow end of a wide layout.

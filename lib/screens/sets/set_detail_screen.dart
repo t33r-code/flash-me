@@ -110,17 +110,21 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
       if (_typeById[id] != null) id: _typeById[id]!,
   };
 
-  // Row tap: modifier-click starts a selection while browsing; in selection
-  // mode taps toggle and Shift extends the range.
-  void _onTapRow(String cardId) {
+  // Row tap: outside selection a plain tap opens the card (#292) and a
+  // modifier-click starts a selection; in selection mode taps toggle and Shift
+  // extends the range. [onOpen] is the row's open/edit action (null for the
+  // checkbox toggle, which only ever fires while selecting).
+  void _onTapRow(String cardId, {VoidCallback? onOpen}) {
     final keys = HardwareKeyboard.instance;
     final multi = keys.isControlPressed || keys.isMetaPressed;
     final range = keys.isShiftPressed;
 
     if (!_selection.mode) {
-      // A plain tap outside selection mode stays a no-op — rows are opened by
-      // double-click (#259) or the row's Edit action (#260).
-      if (multi || range) setState(() => _selection.enterWith(cardId));
+      if (multi || range) {
+        setState(() => _selection.enterWith(cardId));
+      } else {
+        onOpen?.call();
+      }
       return;
     }
     setState(() {
@@ -130,11 +134,6 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
         _selection.toggle(cardId);
       }
     });
-  }
-
-  void _onLongPressRow(String cardId) {
-    if (_selection.mode) return;
-    setState(() => _selection.enterWith(cardId));
   }
 
   // Bulk remove-from-set: one confirmation, then drop each join doc. The cards
@@ -355,19 +354,14 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     }
   }
 
-  // Right-click menu for a card row (#237) — the same two actions as the
-  // hover-reveal quick-actions (#260), just reachable without hovering first.
+  // Long-press / right-click menu for a card row (#237, #292) — the single home
+  // for per-card actions. No Edit entry: a plain tap opens the card now (#292).
   List<ContextMenuAction> _rowContextActions(
     ({String cardId, FlashCard? flash, WorkbookCard? workbook}) entry,
     SetCard link,
   ) {
     final l10n = context.l10n;
     return [
-      ContextMenuAction(
-        icon: Icons.edit_outlined,
-        label: l10n.tooltipEditCard,
-        onSelected: () => _editCardRow(entry),
-      ),
       // Clone (#231 Flash, #274 Workbook).
       ContextMenuAction(
         icon: Icons.copy_outlined,
@@ -788,27 +782,11 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                   ),
                 );
 
-          // Edit + Remove-from-set quick-actions (#260). On wide/pane layouts
-          // they hover-reveal; on narrow/touch they're always visible (no
-          // hover concept, and no other way to reach Edit there).
-          final actionsVisible =
-              widget.onExit == null || _hoveredCardId == entry.cardId;
-          final actions = selecting
-              ? null
-              : _rowQuickActions(
-                  visible: actionsVisible,
-                  editTooltip: ctx.l10n.tooltipEditCard,
-                  removeTooltip: ctx.l10n.tooltipRemoveFromSet,
-                  onEdit: () => _editCardRow(entry),
-                  onRemove: () => _removeCard(linkById[entry.cardId]!),
-                  // Clone (#231 Flash, #274 Workbook).
-                  cloneTooltip: ctx.l10n.tooltipCloneCard,
-                  onClone: () => _cloneCardRow(entry),
-                );
+          // No on-face card actions anymore (#292) — Edit/Clone/Remove live in
+          // the long-press / right-click menu below; only the drag handle stays.
 
-          // Hover tint (#237) reuses the same _hoveredCardId tracking as the
-          // quick-actions reveal below — only ever true on wide/pane, since
-          // narrow/touch has no MouseRegion wired up to set it.
+          // Hover tint (#237) — only ever true on wide/pane, since narrow/touch
+          // has no MouseRegion wired up to set _hoveredCardId.
           final hovering =
               widget.onExit != null && _hoveredCardId == entry.cardId;
 
@@ -816,7 +794,6 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
               ? _FlashCardInSetTile(
                   card: entry.flash!,
                   dragHandle: handle,
-                  actions: actions,
                   selectionMode: selecting,
                   selected: _selection.contains(entry.cardId),
                   hovering: hovering,
@@ -825,7 +802,6 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
               : _WorkbookCardInSetTile(
                   card: entry.workbook!,
                   dragHandle: handle,
-                  actions: actions,
                   selectionMode: selecting,
                   selected: _selection.contains(entry.cardId),
                   hovering: hovering,
@@ -833,16 +809,19 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                 );
 
           // Taps live here rather than on the ListTile so the row keeps its
-          // no-ripple feel and double-click-to-edit (#259) isn't disturbed.
-          // Double-tap is dropped while selecting so taps toggle immediately
-          // (with onDoubleTap set, onTap waits out the double-tap timeout).
-          // Right-click (#237) is likewise dropped while selecting.
+          // no-ripple feel. A plain tap opens/edits the card (#292); long-press
+          // and right-click open the card menu. All are dropped while selecting
+          // so taps toggle the checkbox instead.
           final tappable = GestureDetector(
-            onTap: () => _onTapRow(entry.cardId),
-            onLongPress: () => _onLongPressRow(entry.cardId),
-            onDoubleTap: (!selecting && widget.onExit != null)
-                ? () => _editCardRow(entry)
-                : null,
+            onTap: () =>
+                _onTapRow(entry.cardId, onOpen: () => _editCardRow(entry)),
+            onLongPressStart: selecting
+                ? null
+                : (details) => showContextMenu(
+                    context,
+                    details.globalPosition,
+                    _rowContextActions(entry, linkById[entry.cardId]!),
+                  ),
             onSecondaryTapDown: selecting
                 ? null
                 : (details) => showContextMenu(
@@ -984,11 +963,6 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Narrow pane: collapse the set-management actions into a ⋮ menu so the
-        // AppBar action row can't overflow (only relevant in the wide pane).
-        final narrowPane =
-            widget.onExit != null &&
-            constraints.maxWidth < kSetToolbarOverflowWidth;
         final scaffold = Scaffold(
           appBar: _selection.mode
               ? _selectionAppBar(l10n)
@@ -1021,7 +995,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                             ),
                           ),
                         ]
-                      : _setModeActions(l10n, liveSet, narrowPane),
+                      : _setModeActions(l10n, liveSet),
                 ),
           body: body,
           // Mobile-only affordance — hidden in the wide pane, where "Add card"
@@ -1053,14 +1027,11 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     );
   }
 
-  // Set-mode toolbar actions. When [narrowPane], the set-management actions
-  // (market/export/edit/delete) fold into the top of the existing ⋮ Help menu
-  // so the AppBar can't overflow; the builder actions (+, library, study) stay.
-  List<Widget> _setModeActions(
-    AppLocalizations l10n,
-    CardSet liveSet,
-    bool narrowPane,
-  ) {
+  // Set-mode toolbar actions (#292): only Edit and Study are top-level icons so
+  // the set title isn't crowded. Select and the management actions (market /
+  // export / delete) live in the ⋮ overflow. The in-place builder pane keeps
+  // its Add-card + library buttons, which are core to building a set.
+  List<Widget> _setModeActions(AppLocalizations l10n, CardSet liveSet) {
     final management = _setManagementActions(l10n, liveSet);
 
     return [
@@ -1093,50 +1064,36 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
           tooltip: l10n.actionAddExistingCards,
           onPressed: () => setState(() => _libraryOpen = !_libraryOpen),
         ),
-      // On the wide pane there's always room for a dedicated Select button —
-      // even when the pane narrows, management folds into the ⋮ menu below and
-      // frees up the space. Only the truly tight narrow/full-screen toolbar
-      // (no equivalent fold to lean on) keeps Select in the menu instead.
-      if (widget.onExit != null && _orderedIds.isNotEmpty)
-        IconButton(
-          icon: const Icon(Icons.checklist),
-          tooltip: l10n.actionSelect,
-          onPressed: () => setState(() => _selection.mode = true),
-        ),
-      // Roomy pane: management actions inline. Narrow: they move into the ⋮ menu.
-      if (!narrowPane)
-        for (final a in management)
-          IconButton(
-            icon: Icon(a.icon),
-            tooltip: a.label,
-            onPressed: a.enabled ? a.onSelected : null,
-          ),
-      // Quick-study shortcut — bypasses the Study tab set picker.
+      // Edit the set — always visible (#292).
+      IconButton(
+        icon: const Icon(Icons.edit_outlined),
+        tooltip: l10n.tooltipEditSet,
+        onPressed: () => openEditSet(context, liveSet),
+      ),
+      // Quick-study shortcut — always visible; bypasses the Study tab picker.
       IconButton(
         icon: const Icon(Icons.play_circle_outline),
         tooltip: l10n.tooltipStudyThisSet,
         onPressed: _study,
       ),
+      // Overflow: Select plus the set-management actions.
       HelpMenuButton(
         HelpContext.sets,
         extraActions: [
-          // Narrow/full-screen has no dedicated Select button (see above) —
-          // long-press and Ctrl/Shift+click still work without it; this just
-          // gives mouse users without modifiers a discoverable way in.
-          if (widget.onExit == null && _orderedIds.isNotEmpty)
+          if (_orderedIds.isNotEmpty)
             HelpMenuAction(
               icon: Icons.checklist,
               label: l10n.actionSelect,
               onSelected: () => setState(() => _selection.mode = true),
             ),
-          if (narrowPane) ...management,
+          ...management,
         ],
       ),
     ];
   }
 
-  // Set-management actions (market/export/edit/delete), rendered either as
-  // inline toolbar IconButtons or as ⋮ menu items depending on pane width.
+  // Set-management actions folded into the ⋮ overflow (#292): market toggle,
+  // export, delete. (Edit is a top-level toolbar icon, not here.)
   List<HelpMenuAction> _setManagementActions(
     AppLocalizations l10n,
     CardSet liveSet,
@@ -1158,11 +1115,6 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
         label: l10n.tooltipExportSet,
         enabled: !_isExporting,
         onSelected: () => _exportSet(liveSet),
-      ),
-      HelpMenuAction(
-        icon: Icons.edit_outlined,
-        label: l10n.tooltipEditSet,
-        onSelected: () => openEditSet(context, liveSet),
       ),
       HelpMenuAction(
         icon: Icons.delete_outline,
@@ -1231,20 +1183,15 @@ class _FlashCardInSetTile extends StatelessWidget {
   final FlashCard card;
   // Optional reorder handle rendered at the trailing edge (set detail only).
   final Widget? dragHandle;
-  // Optional Edit / Remove-from-set quick-actions (#260), already
-  // opacity/hit-test-gated by the caller for hover-reveal.
-  final Widget? actions;
   // Multi-select (#238 part 2) — leading swaps to a checkbox while selecting.
   final bool selectionMode;
   final bool selected;
-  // Hover tint (#237) — driven by the same _hoveredCardId that reveals the
-  // quick-actions above, so it's only ever true on wide/pane layouts.
+  // Hover tint (#237) — only ever true on wide/pane layouts.
   final bool hovering;
   final VoidCallback? onToggle;
   const _FlashCardInSetTile({
     required this.card,
     this.dragHandle,
-    this.actions,
     this.selectionMode = false,
     this.selected = false,
     this.hovering = false,
@@ -1262,7 +1209,7 @@ class _FlashCardInSetTile extends StatelessWidget {
             : const Icon(Icons.style_outlined),
         title: Text(card.primaryWord),
         subtitle: Text(card.translation),
-        trailing: _tileTrailing(actions, dragHandle),
+        trailing: dragHandle,
       ),
     );
   }
@@ -1276,76 +1223,6 @@ Color? _tileColor(BuildContext context, bool selected, bool hovering) {
   return null;
 }
 
-// Combines the quick-actions and drag handle for a tile's trailing slot.
-// Returns null when neither is present.
-Widget? _tileTrailing(Widget? actions, Widget? dragHandle) {
-  final parts = [actions, dragHandle].whereType<Widget>().toList();
-  if (parts.isEmpty) return null;
-  if (parts.length == 1) return parts.first;
-  return Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      for (var i = 0; i < parts.length; i++) ...[
-        if (i > 0) const SizedBox(width: 4),
-        parts[i],
-      ],
-    ],
-  );
-}
-
-// Row of Edit / Remove-from-set quick-actions (#260). When [visible] is
-// false (hover-reveal, wide layouts only) the row is faded out AND excluded
-// from hit-testing so it can't intercept taps meant for the row underneath.
-Widget _rowQuickActions({
-  required bool visible,
-  required String editTooltip,
-  required String removeTooltip,
-  required VoidCallback onEdit,
-  required VoidCallback onRemove,
-  // Clone (#231 Flash, #274 Workbook) — available on both card types.
-  required String cloneTooltip,
-  required VoidCallback onClone,
-}) {
-  return IgnorePointer(
-    ignoring: !visible,
-    child: AnimatedOpacity(
-      opacity: visible ? 1 : 0,
-      duration: const Duration(milliseconds: 120),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.edit_outlined, size: 20),
-            tooltip: editTooltip,
-            visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            onPressed: onEdit,
-          ),
-          const SizedBox(width: 12),
-          IconButton(
-            icon: const Icon(Icons.copy_outlined, size: 20),
-            tooltip: cloneTooltip,
-            visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            onPressed: onClone,
-          ),
-          const SizedBox(width: 12),
-          IconButton(
-            icon: const Icon(Icons.remove_circle_outline, size: 20),
-            tooltip: removeTooltip,
-            visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            onPressed: onRemove,
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Workbook card row inside the set detail list.
 // ---------------------------------------------------------------------------
@@ -1353,9 +1230,6 @@ class _WorkbookCardInSetTile extends StatelessWidget {
   final WorkbookCard card;
   // Optional reorder handle rendered at the trailing edge (set detail only).
   final Widget? dragHandle;
-  // Optional Edit / Remove-from-set quick-actions (#260), already
-  // opacity/hit-test-gated by the caller for hover-reveal.
-  final Widget? actions;
   // Multi-select (#238 part 2) — leading swaps to a checkbox while selecting.
   final bool selectionMode;
   final bool selected;
@@ -1365,7 +1239,6 @@ class _WorkbookCardInSetTile extends StatelessWidget {
   const _WorkbookCardInSetTile({
     required this.card,
     this.dragHandle,
-    this.actions,
     this.selectionMode = false,
     this.selected = false,
     this.hovering = false,
@@ -1383,7 +1256,7 @@ class _WorkbookCardInSetTile extends StatelessWidget {
             : const Icon(Icons.book_outlined),
         title: Text(card.prompt, maxLines: 2, overflow: TextOverflow.ellipsis),
         subtitle: Text(context.l10n.labelQuestionCount(card.questions.length)),
-        trailing: _tileTrailing(actions, dragHandle),
+        trailing: dragHandle,
       ),
     );
   }

@@ -4,7 +4,7 @@ Sets are collections of cards that you study together. A card can belong to mult
 
 On a **wide window** (desktop, or a tablet/phone in landscape), the **My Sets** list and the set you pick appear **side by side** — choose a set on the left and its cards show in a pane on the right. On a phone, tapping a set opens it full-screen as before.
 
-On a wide window, creating or editing a card also happens right in that pane: tap **Add card** in the toolbar, or open an existing card by **double-clicking** its row (or hovering it and tapping the **edit icon** next to the reorder handle), and the pane switches to an editor with **Cancel** / **Save** in place of the usual set actions. Saving or cancelling returns you to the card list. On a phone, tapping the same edit icon opens the card in the full-screen editor instead. (Deleting a card entirely is only available from the **Cards** tab — the set pane can only add or remove-from-set.)
+On a wide window, creating or editing a card also happens right in that pane: tap **Add card** in the toolbar, or open an existing card by **tapping** its row, and the pane switches to an editor with **Cancel** / **Save** in place of the usual set actions. Saving or cancelling returns you to the card list. On a phone, tapping a card row opens it in the full-screen editor instead. (Deleting a card entirely is only available from the **Cards** tab — the set pane can only add or remove-from-set.)
 
 ---
 
@@ -84,7 +84,7 @@ This order is what learners follow when they study the set. If you've turned on 
 
 Just like [in the card library](cards.md#card-multi-select), you can select several cards in a set at once and act on all of them together.
 
-**To start selecting:** **long-press** a card (phone or tablet), **Ctrl+click** it (**⌘+click** on a Mac), or tap **Select** — on a wide window it's its own button in the toolbar; on a phone it's in the **⋮** menu.
+**To start selecting:** tap **Select** in the **⋮** menu, or **Ctrl+click** a card (**⌘+click** on a Mac). (Long-press no longer starts a selection — it opens the card's [action menu](#set-card-context-menu) instead.)
 
 While selecting, each row shows a checkbox instead of its icon, and dragging to reorder or swiping to remove is turned off for the moment — tap the **✕** to leave selection mode and get them back. Tapping, Shift+clicking, and Select all all work the same way as in the card library.
 
@@ -95,7 +95,14 @@ With a selection made, the toolbar offers:
 
 There's no bulk Delete here — deleting a card entirely is only available from the **Cards** tab.
 
-On a wide window, hovering over a card row highlights it, and **right-clicking** it opens a menu with **Edit**, **Clone**, and **Remove from set** — the same actions as the row's hover icons, just reachable without hovering first.
+### The card action menu (long-press / right-click) { #set-card-context-menu }
+
+Open a card row's action menu without entering selection mode:
+
+- **Long-press** the row on a phone or tablet, or
+- **Right-click** it on desktop (hovering also highlights the row).
+
+The menu offers **Clone** and **Remove from set**. There's no **Edit** entry because a plain **tap** on the row already opens the card. The reorder handle stays on the row itself; every other action lives in this menu.
 
 ---
 

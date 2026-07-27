@@ -82,8 +82,9 @@ When you want to do the same thing to a lot of cards, use selection mode on the 
 **To start selecting:**
 
 - Tap the :material-checkbox-multiple-marked-outline: **Select** button in the top-right corner, or
-- **Long-press** any card (on a phone or tablet), or
 - **Ctrl+click** a card (**⌘+click** on a Mac).
+
+(Long-press no longer starts a selection — it opens the card's [action menu](#card-context-menu) instead.)
 
 **While selecting**, a checkbox appears on every card and the toolbar shows how many you've picked:
 
@@ -114,9 +115,14 @@ A couple of things don't carry over:
 
 Cloning is available for both **Flash Cards** and **Workbook Cards**.
 
-### Right-Click a Card { #card-context-menu }
+### Card action menu (long-press / right-click) { #card-context-menu }
 
-On a wide window, hovering over a card highlights the row, and **right-clicking** it opens a menu with **Edit**, **Clone**, **Add to set**, **Tag**, **Set language**, and **Delete** — the same single-card actions available above, without first entering selection mode. This is a desktop-only convenience; touch devices keep using tap and long-press.
+Open a card's action menu without entering selection mode:
+
+- **Long-press** the card on a phone or tablet, or
+- **Right-click** it on desktop (hovering also highlights the row).
+
+The menu offers **Clone**, **Add to set**, **Tag**, **Set language**, and **Delete** — the same single-card actions as the selection toolbar, for one card at a time. There's no **Edit** entry because a plain **tap** on the card already opens it for editing.
 
 ### Editing a Flash Card { #edit-card }
 

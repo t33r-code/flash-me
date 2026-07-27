@@ -33,8 +33,9 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
   String _searchQuery = '';
   String? _selectedTag; // null = show all
 
-  // Multi-select (#238). Mode is explicit: entered via the Select button,
-  // long-press (touch), or Ctrl/Shift+click (desktop); only ✕ leaves it.
+  // Multi-select (#238). Mode is explicit: entered via the Select button or
+  // Ctrl/Shift+click (desktop); only ✕ leaves it. Long-press now opens the
+  // card context menu instead of entering selection (#293).
   final _selection = SelectionModel();
   bool _isBusy = false; // a bulk action is running; actions are disabled
 
@@ -155,26 +156,17 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
     });
   }
 
-  void _onLongPressCard(String id) {
-    if (_selection.mode) return;
-    setState(() => _selection.enterWith(id));
-  }
-
   void _toggleSelectAll() =>
       setState(() => _selection.toggleSelectAll(_orderedIds));
 
-  // Right-click menu for a single card (#237) — reuses the exact same bulk
-  // helpers as the selection toolbar, just with a one-entry map, so a single
-  // right-click action and a multi-select bulk action always behave alike.
+  // Long-press / right-click menu for a single card (#237, #293) — reuses the
+  // exact same bulk helpers as the selection toolbar, just with a one-entry
+  // map, so a single-card action and a multi-select bulk action always behave
+  // alike. No Edit entry: a plain tap already opens the editor (#293).
   List<ContextMenuAction> _cardContextActions(String id, String cardType) {
     final l10n = context.l10n;
     final entry = {id: cardType};
     return [
-      ContextMenuAction(
-        icon: Icons.edit_outlined,
-        label: l10n.tooltipEditCard,
-        onSelected: () => _openCard(id),
-      ),
       // Clone (#231 Flash, #274 Workbook).
       ContextMenuAction(
         icon: Icons.copy_outlined,
@@ -659,32 +651,33 @@ class _MyCardsScreenState extends ConsumerState<MyCardsScreen> {
             : AppConstants.cardTypeWorkbook;
         // Taps route through the parent so Ctrl/Shift and mode are handled once.
         void onTap() => _onTapCard(id);
-        void onLongPress() => _onLongPressCard(id);
         final tile = isFlash
             ? _FlashCardTile(
                 card: cards[i],
                 selectionMode: _selection.mode,
                 selected: _selection.contains(id),
                 onTap: onTap,
-                onLongPress: onLongPress,
               )
             : _WorkbookCardTile(
                 card: workbookCards[i - cards.length],
                 selectionMode: _selection.mode,
                 selected: _selection.contains(id),
                 onTap: onTap,
-                onLongPress: onLongPress,
               );
-        // Right-click and hover (#237) — additive on top of the existing tap
-        // handling above; secondary-tap doesn't compete with the primary-tap
-        // recognizers ListTile/InkWell already use internally.
+        // Long-press (touch) and right-click (desktop) both open the card
+        // context menu (#293) — the single home for per-card actions. Both are
+        // suppressed while selecting, where the toolbar drives bulk actions.
+        // These are additive on top of the tap handling above; neither competes
+        // with the primary-tap recognizer ListTile/InkWell uses internally.
+        void openMenu(Offset pos) {
+          if (_selection.mode) return;
+          showContextMenu(context, pos, _cardContextActions(id, cardType));
+        }
+
         return HoverHighlight(
           child: GestureDetector(
-            onSecondaryTapDown: (details) => showContextMenu(
-              context,
-              details.globalPosition,
-              _cardContextActions(id, cardType),
-            ),
+            onSecondaryTapDown: (d) => openMenu(d.globalPosition),
+            onLongPressStart: (d) => openMenu(d.globalPosition),
             child: tile,
           ),
         );
@@ -784,13 +777,11 @@ class _FlashCardTile extends StatelessWidget {
   final bool selectionMode;
   final bool selected;
   final VoidCallback onTap;
-  final VoidCallback onLongPress;
   const _FlashCardTile({
     required this.card,
     required this.selectionMode,
     required this.selected,
     required this.onTap,
-    required this.onLongPress,
   });
 
   @override
@@ -817,7 +808,6 @@ class _FlashCardTile extends StatelessWidget {
         subtitle: Text(subtitle),
         trailing: _tileTrailing(context, selectionMode, onSurfaceVariant),
         onTap: onTap,
-        onLongPress: onLongPress,
       ),
     );
   }
@@ -856,13 +846,11 @@ class _WorkbookCardTile extends StatelessWidget {
   final bool selectionMode;
   final bool selected;
   final VoidCallback onTap;
-  final VoidCallback onLongPress;
   const _WorkbookCardTile({
     required this.card,
     required this.selectionMode,
     required this.selected,
     required this.onTap,
-    required this.onLongPress,
   });
 
   @override
@@ -884,7 +872,6 @@ class _WorkbookCardTile extends StatelessWidget {
         subtitle: Text(context.l10n.labelQuestionCount(qCount)),
         trailing: _tileTrailing(context, selectionMode, onSurfaceVariant),
         onTap: onTap,
-        onLongPress: onLongPress,
       ),
     );
   }

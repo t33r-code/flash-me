@@ -16,7 +16,7 @@ directly depends on.
 
 | ID | Severity | Area | Finding |
 |----|----------|------|---------|
-| F1 | **High** | Auth / privacy (M3/M6) | Any authenticated user can read every other user's **email** (and photoUrl/timestamps) via `users/{uid}` |
+| F1 | **High** — ✅ fixed (#297) | Auth / privacy (M3/M6) | Any authenticated user can read every other user's **email** (and photoUrl/timestamps) via `users/{uid}` |
 | F2 | **Medium** | Import (M4) | Archive size guard checks entry **count**, not bytes — ineffective against a zip bomb / oversized archive (client OOM / DoS) |
 | F3 | **Low** | Import (M4) | Malformed-but-valid JSON (wrong types) throws an uncaught `CastError` instead of a handled `AppException` |
 | F4 | **Low** | Import (M4) | Untrusted file extension from the import flows into the Storage object name (stays under `users/{uid}/`, so no cross-user write — cosmetic/hardening) |
@@ -35,9 +35,16 @@ storage), and unlink is guarded against removing the only sign-in method.
 
 ---
 
-## F1 — Cross-user email exposure via `users/{uid}` **[High]**
+## F1 — Cross-user email exposure via `users/{uid}` **[High]** — ✅ Fixed in #297
 
-**Evidence.**
+**Fix shipped:** `CardSet.authorDisplayName` is now denormalized onto the set at
+publish time (`toggleMarketPublish` in `widgets/set_actions.dart`); `_MarketSetTile`
+reads it directly instead of calling the now-removed `getUserDisplayName`;
+`firestore.rules` tightened to `allow read: if isUser(userId)`; existing public sets
+backfilled via `scripts/backfill_author_display_names.js`. See the design doc's
+[Market Tab / Security Rules](../design.md#market-tab) section for the deployed model.
+
+**Evidence (original finding).**
 - `firestore.rules` — `match /users/{userId} { allow read: if isAuth(); … }`: **any**
   authenticated user can read **any** user document.
 - The user document contains `email`, `displayName`, `photoUrl`, `createdAt`,

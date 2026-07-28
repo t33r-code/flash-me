@@ -198,9 +198,15 @@ Future<void> toggleMarketPublish(
     );
     if (confirmed != true || !context.mounted) return;
     try {
+      // Denormalize the owner's display name onto the set so Market tiles can
+      // show a creator name without the client reading another user's
+      // private users/{uid} doc (#297).
+      final displayName = ref.read(appUserProvider).asData?.value?.displayName;
       await ref
           .read(cardSetRepositoryProvider)
-          .updateSet(set.copyWith(isPublic: true));
+          .updateSet(
+            set.copyWith(isPublic: true, authorDisplayName: displayName),
+          );
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(

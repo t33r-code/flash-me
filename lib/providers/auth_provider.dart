@@ -24,13 +24,6 @@ final appUserProvider = StreamProvider<AppUser?>((ref) {
   return ref.watch(authRepositoryProvider).watchUser(uid);
 });
 
-// Fetches the display name of any user by uid — used by Market tiles to show
-// the creator's name. Riverpod caches the result per uid for the session.
-final creatorDisplayNameProvider =
-    FutureProvider.family<String?, String>((ref, userId) {
-  return ref.read(authRepositoryProvider).getUserDisplayName(userId);
-});
-
 // Service that orchestrates full account deletion across Firestore, Storage,
 // and Firebase Auth. Kept here rather than in a separate provider file since
 // it depends on auth lifecycle and is closely related to auth state.

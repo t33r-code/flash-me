@@ -4,7 +4,6 @@ import 'package:flash_me/l10n/app_localizations.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/widgets/help_menu_button.dart';
-import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/set_acquisition_provider.dart';
 import 'package:flash_me/screens/sets/clone_confirmation_screen.dart';
@@ -818,9 +817,10 @@ class _MarketSetTile extends ConsumerWidget {
     final hasLanguage =
         cardSet.targetLanguage != null && cardSet.nativeLanguage != null;
 
-    // Fetch creator name; falls back to '…' while the Firestore read is in-flight.
-    final creatorAsync = ref.watch(creatorDisplayNameProvider(cardSet.userId));
-    final creatorName = creatorAsync.asData?.value ?? '…';
+    // Denormalized onto the set at publish time (#297) — never a client read
+    // of another user's private users/{uid} doc. Falls back to '…' for sets
+    // published before this field existed (see the backfill migration script).
+    final creatorName = cardSet.authorDisplayName ?? '…';
 
     // Look up whether the current user has already acquired this set.
     final acquisitions =

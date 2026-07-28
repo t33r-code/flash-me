@@ -6,10 +6,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class CardSet {
   final String id; // Firestore document ID
   final String userId; // uid of the owning user
+  // Denormalized copy of the owner's displayName, written when the set is
+  // published to the Market. Lets Market tiles show the creator's name
+  // without the client reading another user's users/{uid} doc (#297) — that
+  // doc is otherwise private. May be stale if the owner renames afterwards;
+  // null for sets that have never been public (or predate this field).
+  final String? authorDisplayName;
   final String name; // e.g. "Spanish Verbs"
-  final String? description; // markdown-formatted text; rendered with flutter_markdown_plus
+  final String?
+  description; // markdown-formatted text; rendered with flutter_markdown_plus
   final int cardCount; // denormalized: kept in sync by CardSetService
-  final int acquisitionCount; // denormalized: incremented on each clone/subscription, never decremented
+  final int
+  acquisitionCount; // denormalized: incremented on each clone/subscription, never decremented
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isPublic; // true = visible in the Market tab
@@ -31,6 +39,7 @@ class CardSet {
   const CardSet({
     required this.id,
     required this.userId,
+    this.authorDisplayName,
     required this.name,
     this.description,
     required this.cardCount,
@@ -71,6 +80,7 @@ class CardSet {
     return CardSet(
       id: doc.id,
       userId: data['userId'] as String? ?? '',
+      authorDisplayName: data['authorDisplayName'] as String?,
       name: data['name'] as String? ?? '',
       description: data['description'] as String?,
       cardCount: data['cardCount'] as int? ?? 0,
@@ -87,37 +97,39 @@ class CardSet {
   }
 
   Map<String, dynamic> toFirestore() => {
-        'userId': userId,
-        'name': name,
-        'description': description,
-        'cardCount': cardCount,
-        'acquisitionCount': acquisitionCount,
-        'createdAt': Timestamp.fromDate(createdAt),
-        'updatedAt': Timestamp.fromDate(updatedAt),
-        'isPublic': isPublic,
-        'tags': tags,
-        'color': color,
-        'nativeLanguage': nativeLanguage,
-        'targetLanguage': targetLanguage,
-        'enforceOrder': enforceOrder,
-      };
+    'userId': userId,
+    'authorDisplayName': authorDisplayName,
+    'name': name,
+    'description': description,
+    'cardCount': cardCount,
+    'acquisitionCount': acquisitionCount,
+    'createdAt': Timestamp.fromDate(createdAt),
+    'updatedAt': Timestamp.fromDate(updatedAt),
+    'isPublic': isPublic,
+    'tags': tags,
+    'color': color,
+    'nativeLanguage': nativeLanguage,
+    'targetLanguage': targetLanguage,
+    'enforceOrder': enforceOrder,
+  };
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'userId': userId,
-        'name': name,
-        'description': description,
-        'cardCount': cardCount,
-        'acquisitionCount': acquisitionCount,
-        'createdAt': createdAt.toIso8601String(),
-        'updatedAt': updatedAt.toIso8601String(),
-        'isPublic': isPublic,
-        'tags': tags,
-        'color': color,
-        'nativeLanguage': nativeLanguage,
-        'targetLanguage': targetLanguage,
-        'enforceOrder': enforceOrder,
-      };
+    'id': id,
+    'userId': userId,
+    'authorDisplayName': authorDisplayName,
+    'name': name,
+    'description': description,
+    'cardCount': cardCount,
+    'acquisitionCount': acquisitionCount,
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+    'isPublic': isPublic,
+    'tags': tags,
+    'color': color,
+    'nativeLanguage': nativeLanguage,
+    'targetLanguage': targetLanguage,
+    'enforceOrder': enforceOrder,
+  };
 
   // Returns validation errors for user-entered fields; empty list means safe to save.
   List<String> validate() {
@@ -129,6 +141,7 @@ class CardSet {
   CardSet copyWith({
     String? id,
     String? userId,
+    String? authorDisplayName,
     String? name,
     String? description,
     int? cardCount,
@@ -143,23 +156,23 @@ class CardSet {
     bool? enforceOrder,
     bool? isSynthetic,
     List<String>? memberCardIds,
-  }) =>
-      CardSet(
-        id: id ?? this.id,
-        userId: userId ?? this.userId,
-        name: name ?? this.name,
-        description: description ?? this.description,
-        cardCount: cardCount ?? this.cardCount,
-        acquisitionCount: acquisitionCount ?? this.acquisitionCount,
-        createdAt: createdAt ?? this.createdAt,
-        updatedAt: updatedAt ?? this.updatedAt,
-        isPublic: isPublic ?? this.isPublic,
-        tags: tags ?? this.tags,
-        color: color ?? this.color,
-        nativeLanguage: nativeLanguage ?? this.nativeLanguage,
-        targetLanguage: targetLanguage ?? this.targetLanguage,
-        enforceOrder: enforceOrder ?? this.enforceOrder,
-        isSynthetic: isSynthetic ?? this.isSynthetic,
-        memberCardIds: memberCardIds ?? this.memberCardIds,
-      );
+  }) => CardSet(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    authorDisplayName: authorDisplayName ?? this.authorDisplayName,
+    name: name ?? this.name,
+    description: description ?? this.description,
+    cardCount: cardCount ?? this.cardCount,
+    acquisitionCount: acquisitionCount ?? this.acquisitionCount,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    isPublic: isPublic ?? this.isPublic,
+    tags: tags ?? this.tags,
+    color: color ?? this.color,
+    nativeLanguage: nativeLanguage ?? this.nativeLanguage,
+    targetLanguage: targetLanguage ?? this.targetLanguage,
+    enforceOrder: enforceOrder ?? this.enforceOrder,
+    isSynthetic: isSynthetic ?? this.isSynthetic,
+    memberCardIds: memberCardIds ?? this.memberCardIds,
+  );
 }

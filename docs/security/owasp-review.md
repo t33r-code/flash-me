@@ -6,13 +6,13 @@ Review of the app/client and end-to-end posture against the **OWASP Mobile Top 1
 *client* relies on server-side rules, and flags one confirmed rule-level exposure it
 directly depends on.
 
-- **Scope of this pass:** P1 surfaces — untrusted (Market) content rendering,
-  import parsing & media, and auth/authorization/account-deletion.
-- **Deferred (P2/P3):** supply-chain advisory scan, privacy/Data-Safety
-  reconciliation, web-build specifics (source maps/CSP), comms/config hardening.
-  See #286 for the full plan.
+- **Scope:** the full plan (P1–P3) — untrusted (Market) content rendering, import
+  parsing & media, auth/authorization/account-deletion (P1); supply chain, web build,
+  privacy/Data-Safety (P2); comms/config, secrets (P3).
+- **Out of scope:** Firestore/Storage **rules** (owned by #285) — this review only
+  confirms client reliance on them and flags one confirmed rule-level exposure (F1).
 
-## Summary of findings (P1)
+## Summary of findings
 
 | ID | Severity | Area | Finding |
 |----|----------|------|---------|
@@ -23,6 +23,7 @@ directly depends on.
 | F5 | **Low** | Privacy (M6) | User **email** written to device logs in auth flows |
 | F6 | **Low** | Privacy (M6) | Account deletion doesn't remove **feedback** submissions; tombstone retention isn't documented for Play Data Safety |
 | F7 | **Info** | Supply chain (M2) | `flutter_markdown_plus` and `http` are declared but **unused** (dead deps) |
+| F8 | **Low** | Web build (M8) | No security response headers on the web app — no CSP, no clickjacking protection (`frame-ancestors`/`X-Frame-Options`), no HSTS |
 
 **Good news (no action):** the app has essentially **no untrusted-content injection
 surface** — no `WebView`/`HtmlElementView`/iframe, no markdown/HTML rendering
@@ -157,15 +158,61 @@ as plain `Text`.)
 descriptions, it must disable raw HTML and restrict link schemes (no `javascript:`),
 since descriptions are untrusted other-user content.
 
+## F8 — No web security response headers **[Low]**
+
+**Evidence.** `firebase.json` configures no `headers` on any hosting target
+(`webtest` = the app, `docs` = the help site). `web/index.html` has no CSP meta. So the
+web app is served with no **Content-Security-Policy**, no clickjacking protection
+(`X-Frame-Options` / CSP `frame-ancestors`), and no **HSTS**.
+
+**Impact.** Defence-in-depth gaps for the web build: without `frame-ancestors 'none'`
+the authed app can be iframed (clickjacking); without a CSP there's no backstop against
+injected script if a content-injection bug is ever introduced. Low today (there's no
+current injection sink — see P1.1), but cheap to add.
+
+**Remediation.** Add a `headers` block to the `webtest` hosting target in `firebase.json`:
+`Content-Security-Policy` (allow `'self'`, Firebase/Google endpoints, and the CanvasKit
+`wasm-unsafe-eval` + `https://www.gstatic.com` it needs), `X-Frame-Options: DENY` /
+`frame-ancestors 'none'`, `Strict-Transport-Security`, and `X-Content-Type-Options:
+nosniff`. Test the auth + CanvasKit render path after tightening the CSP.
+
 ---
 
-## Out of scope / deferred
+## Verified good (P2 / P3 — no action)
 
-- **Firestore/Storage rules** — owned by **#285**. F1 depends on the `users/{uid}` read
-  rule and is cross-referenced there.
-- **P2:** supply-chain advisory scan (`flutter pub outdated` + advisories, extra
-  scrutiny on the `flutter_markdown_plus` fork), privacy/Data-Safety reconciliation,
-  web build (source maps in `build/web`, CSP, `firebase_options` client-restricted keys,
-  authorized domains — ties to #289).
-- **P3:** comms/config (cleartext, Android `network_security_config`, Crashlytics data
-  scope).
+- **Secrets (P3):** `scripts/serviceAccountKey.json` (a real, high-privilege Firebase
+  service-account key) is **gitignored** (`.gitignore:67`), **never committed**
+  (`git log --all` empty), and lives only in `scripts/` dev tooling — not shipped in
+  `lib/`. No hardcoded secrets in the app. `firebase_options.dart` keys are the
+  intentional, platform/bundle-restricted client keys. *Hygiene reminder:* rotate the
+  service-account key periodically and keep it out of git.
+- **Comms (M5, P3):** no cleartext — no `http://` endpoints in `lib/`; all traffic is
+  Firebase (HTTPS) plus the fixed HTTPS help URL. No `usesCleartextTraffic`/
+  `networkSecurityConfig` present, and modern Android `targetSdk` defaults to no
+  cleartext. (Optional: set `android:usesCleartextTraffic="false"` explicitly.)
+- **Web source maps (P2):** `flutter build web --release` emits **no** `.map` files —
+  none present in `build/web`, so no source-map exposure.
+- **Supply chain (M2, P2):** `flutter pub outdated` shows all direct deps only slightly
+  behind (patch/minor; `share_plus` one major behind) — no ancient or unmaintained pin,
+  no version flagged as known-vulnerable. Actions: remove the dead deps (F7), keep up
+  routine bumps, and add an OSV/Dependabot advisory scan to CI.
+- **Crashlytics (P3):** records exception + stack, release-only
+  (`setCrashlyticsCollectionEnabled(!kDebugMode)`), with no `setUserId` linkage. Ensure
+  exception messages don't embed PII (ties to F5).
+
+## Privacy / Data Safety inventory (P2, M6)
+
+Data the app stores per user: account (`email`, `displayName`, `photoUrl`, first/last
+seen), user content (cards incl. image/audio media, sets, templates, study sessions,
+card marks, question results, tags), and **feedback** messages. Diagnostics via
+Crashlytics (device info + crash stacks). No third-party sharing beyond Google/Firebase
+(processor). **TAKE ACTION (Play Console):** reconcile this inventory with the Data
+Safety declaration — especially *email*, *photos/media*, and *in-app feedback* — and the
+tombstone/feedback retention noted in F6.
+
+---
+
+## Out of scope
+
+**Firestore/Storage rules** — owned by **#285**. F1 depends on the `users/{uid}` read
+rule and is cross-referenced there. This review is otherwise complete (P1–P3).

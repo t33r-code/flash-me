@@ -174,7 +174,7 @@ Field types: `reveal` | `text_input` | `multiple_choice` (constants in `AppConst
 - Query all sets for a card: `where('cardId', isEqualTo: x)`
 - `cardCount` on the set document is a denormalized counter — increment/decrement on link create/delete
 - Firestore indexes needed: composite on `(setId, addedAt)` and `(cardId, addedAt)`
-- Security rules: `setCards` document is writable only by the user who owns both the card and the set (`userId` field enforces this)
+- Security rules: `setCards` creation requires the link's own `userId` field **and** verifies via `get()` that the referenced `setId` and `cardId` are actually owned by the creator (hardened in #285 — the `userId` field alone was previously the only check, which didn't stop linking another user's set/card)
 
 ### CardField content — sealed class hierarchy
 - `sealed class CardFieldContent` with subtypes: `RevealContent`, `TextInputContent`, `MultipleChoiceContent`

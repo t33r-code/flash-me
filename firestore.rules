@@ -45,8 +45,16 @@ service cloud.firestore {
       );
       allow update, delete: if isAuth() &&
           resource.data.userId == request.auth.uid;
+      // Beyond the link's own userId field, verify the referenced set and card
+      // are actually owned by the creator (#285 R1) — otherwise a user could
+      // attach another user's card into their own set without going through
+      // Clone (which copies the card and records provenance separately).
       allow create: if isAuth() &&
-          request.resource.data.userId == request.auth.uid;
+          request.resource.data.userId == request.auth.uid &&
+          get(/databases/$(database)/documents/sets/$(request.resource.data.setId)).data.userId == request.auth.uid &&
+          (request.resource.data.cardType == 'workbook'
+            ? get(/databases/$(database)/documents/workbookCards/$(request.resource.data.cardId)).data.createdBy == request.auth.uid
+            : get(/databases/$(database)/documents/cards/$(request.resource.data.cardId)).data.createdBy == request.auth.uid);
     }
 
     // Cards are readable by any authenticated user — card IDs are not
@@ -55,8 +63,11 @@ service cloud.firestore {
     // can read it.  Write operations remain restricted to the creator.
     match /cards/{cardId} {
       allow read: if isAuth();
+      // #285 R3: default to null (never equals a real uid) rather than
+      // request.auth.uid, so a document missing createdBy fails CLOSED
+      // (uneditable until backfilled) instead of open (editable by anyone).
       allow update, delete: if isAuth() &&
-          resource.data.get('createdBy', request.auth.uid) == request.auth.uid;
+          resource.data.get('createdBy', null) == request.auth.uid;
       allow create: if isAuth() &&
           request.resource.data.createdBy == request.auth.uid;
     }
@@ -74,9 +85,14 @@ service cloud.firestore {
           resource.data.isPublic == true);
       allow update: if isAuth() && (
           resource.data.userId == request.auth.uid ||
-          // Allow any authenticated user to increment acquisitionCount only
-          // (written by the clone operation on behalf of the acquirer).
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['acquisitionCount'])
+          // Allow any authenticated user to increment acquisitionCount by
+          // exactly 1 on a PUBLIC set only (written by the clone operation on
+          // behalf of the acquirer) — #285 R2: previously this had no isPublic
+          // gate or delta check, so any set (public or private) could have its
+          // acquisitionCount set to an arbitrary value by any signed-in user.
+          (resource.data.isPublic == true &&
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['acquisitionCount']) &&
+           request.resource.data.acquisitionCount == resource.data.acquisitionCount + 1)
       );
       allow delete: if isAuth() &&
           resource.data.userId == request.auth.uid;
@@ -117,7 +133,12 @@ service cloud.firestore {
     match /templates/{templateId} {
       allow read: if isAuth() &&
           (resource == null || resource.data.createdBy == request.auth.uid);
-      allow update, delete: if isAuth() &&
+      // createdBy is immutable on update (#285 R5, consistency with tags below)
+      // — otherwise an owner could reassign their own template to another uid.
+      allow update: if isAuth() &&
+          resource.data.createdBy == request.auth.uid &&
+          request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if isAuth() &&
           resource.data.createdBy == request.auth.uid;
       allow create: if isAuth() &&
           request.resource.data.createdBy == request.auth.uid;
@@ -128,7 +149,11 @@ service cloud.firestore {
     match /questionTemplates/{templateId} {
       allow read: if isAuth() &&
           (resource == null || resource.data.createdBy == request.auth.uid);
-      allow update, delete: if isAuth() &&
+      // See the createdBy immutability comment on templates above (#285 R5).
+      allow update: if isAuth() &&
+          resource.data.createdBy == request.auth.uid &&
+          request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if isAuth() &&
           resource.data.createdBy == request.auth.uid;
       allow create: if isAuth() &&
           request.resource.data.createdBy == request.auth.uid;
@@ -144,10 +169,15 @@ service cloud.firestore {
           && request.resource.data.createdBy == request.auth.uid
           && request.resource.data.usageCount == 1;
       // displayName, createdBy, and normalizedName are immutable after creation.
+      // usageCount may only change by exactly +1 (upsertTag) or -1
+      // (decrementTag) per write — #285 R4: previously unconstrained, so a
+      // client could set it to an arbitrary value in one write.
       allow update: if isAuth()
           && request.resource.data.displayName == resource.data.displayName
           && request.resource.data.createdBy  == resource.data.createdBy
-          && request.resource.data.normalizedName == resource.data.normalizedName;
+          && request.resource.data.normalizedName == resource.data.normalizedName
+          && (request.resource.data.usageCount == resource.data.usageCount + 1 ||
+              request.resource.data.usageCount == resource.data.usageCount - 1);
       allow delete: if false;
     }
 
@@ -162,8 +192,9 @@ service cloud.firestore {
     // Workbook cards follow the same read policy as flash cards above.
     match /workbookCards/{cardId} {
       allow read: if isAuth();
+      // See the createdBy fail-closed comment on cards above (#285 R3).
       allow update, delete: if isAuth() &&
-          resource.data.get('createdBy', request.auth.uid) == request.auth.uid;
+          resource.data.get('createdBy', null) == request.auth.uid;
       allow create: if isAuth() &&
           request.resource.data.createdBy == request.auth.uid;
     }

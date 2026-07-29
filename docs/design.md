@@ -159,7 +159,7 @@ cards/{cardId}
 Note: legacy documents written before the unification may use a `fields` key instead of `questions`. `FlashCard.fromFirestore` reads `questions ?? fields` for backward compatibility.
 Set membership is tracked in `setCards` (see Card-Set Relationship below), not on the card document itself.
 
-**Read permissions:** Card reads are open to any authenticated user. Card IDs are not guessable, and future sharing and marketplace features require that a user who has legitimately obtained a card ID (e.g. from a shared or subscribed set) can read it. Write operations (create, update, delete) remain restricted to the `createdBy` user. The security rule uses `.get('createdBy', request.auth.uid)` as a fallback for legacy documents that predate this field.
+**Read permissions:** Card reads are open to any authenticated user. Card IDs are not guessable, and future sharing and marketplace features require that a user who has legitimately obtained a card ID (e.g. from a shared or subscribed set) can read it. Write operations (create, update, delete) remain restricted to the `createdBy` user. The security rule uses `.get('createdBy', null)` as the fallback for legacy documents that predate this field — deliberately `null` rather than `request.auth.uid` (#285 R3), so a document missing `createdBy` fails **closed** (uneditable by anyone until backfilled) instead of open.
 
 **Media lifecycle:** When a card is deleted, `firebase_card_repository` fetches the card document first, deletes both Storage files (if present) via `refFromURL`, then removes all `setCards` links and the card document in a Firestore batch. Deletion errors on Storage files are logged as warnings and do not block the card deletion.
 
@@ -863,11 +863,15 @@ match /tags/{tagId} {
       && request.resource.data.createdBy == request.auth.uid
       && request.resource.data.usageCount == 1;
 
-  // usageCount increments and decrements only; displayName and createdBy are immutable.
+  // displayName, createdBy, and normalizedName are immutable. usageCount may
+  // only move by exactly +1 or -1 per write (#285 R4) — previously
+  // unconstrained, so a client could set it to an arbitrary value in one write.
   allow update: if isAuth()
       && request.resource.data.displayName == resource.data.displayName
       && request.resource.data.createdBy  == resource.data.createdBy
-      && request.resource.data.normalizedName == resource.data.normalizedName;
+      && request.resource.data.normalizedName == resource.data.normalizedName
+      && (request.resource.data.usageCount == resource.data.usageCount + 1 ||
+          request.resource.data.usageCount == resource.data.usageCount - 1);
 
   // Tags are never hard-deleted by clients.
   allow delete: if false;
@@ -1659,7 +1663,7 @@ The bottom sheet will gain more options (subscription, pricing) in Beta 0.1.
 
 ### Security Rules
 
-- `sets`: read allowed for any authenticated user when `resource.data.isPublic == true`; write remains owner-only
+- `sets`: read allowed for any authenticated user when `resource.data.isPublic == true`; write is owner-only, **except** a non-owner may bump `acquisitionCount` by exactly +1 on a set that is currently public (Firebase rules review #285 R2 — previously this exception had no `isPublic` gate or delta check, so any authenticated user could set *any* set's `acquisitionCount`, public or private, to an arbitrary value)
 - `setAcquisitions`: any authenticated user can create a record for themselves; read and delete restricted to the involved user IDs
 - `users`: **owner-only read** (`allow read: if isUser(userId)`) — the user document contains `email`, which must never be readable by another account (OWASP review #286, finding F1). Before #297 this was `allow read: if isAuth()` (any signed-in user) specifically so Market tiles could read another user's `displayName`; that let any account harvest every user's email. Fixed by denormalizing the display name onto the set itself instead (below), removing the need for that cross-user read entirely.
 

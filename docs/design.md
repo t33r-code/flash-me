@@ -559,6 +559,8 @@ Users can organize flash cards into sets and manage card membership within those
 ```
 sets/{setId}
   - userId: string (owner of the set)
+  - authorDisplayName: string? (denormalized copy of the owner's displayName, written when the set
+                                is first published to the Market — see #297 below. null until then.)
   - name: string (required, e.g., "Spanish Verbs")
   - description: string (optional, e.g., "Regular and irregular verbs")
   - cardCount: integer (denormalized counter; increment/decrement on setCards link create/delete)
@@ -1659,12 +1661,13 @@ The bottom sheet will gain more options (subscription, pricing) in Beta 0.1.
 
 - `sets`: read allowed for any authenticated user when `resource.data.isPublic == true`; write remains owner-only
 - `setAcquisitions`: any authenticated user can create a record for themselves; read and delete restricted to the involved user IDs
+- `users`: **owner-only read** (`allow read: if isUser(userId)`) — the user document contains `email`, which must never be readable by another account (OWASP review #286, finding F1). Before #297 this was `allow read: if isAuth()` (any signed-in user) specifically so Market tiles could read another user's `displayName`; that let any account harvest every user's email. Fixed by denormalizing the display name onto the set itself instead (below), removing the need for that cross-user read entirely.
 
 ### Market Tab
 
 The Sets section is split into two tabs: **My Sets** and **Market**. The Market tab shows all public sets from all users, sorted newest-published first. Each tile shows:
 - Set name, description, tags, card count, language pair
-- Creator display name (from their user profile)
+- Creator display name — `CardSet.authorDisplayName`, denormalized onto the set document the moment it's first published (`toggleMarketPublish` in `widgets/set_actions.dart`, reading the current user's own `appUserProvider`). The client never reads another user's `users/{uid}` doc to resolve this (#297); sets published before this field existed were backfilled via `scripts/backfill_author_display_names.js` (Admin SDK, run once). Falls back to `…` if still absent (e.g. the owner had no displayName set at publish time).
 - Acquisition count
 
 Filtering and search within the Market tab are deferred to Beta 0.1 (requires full-text search infrastructure).

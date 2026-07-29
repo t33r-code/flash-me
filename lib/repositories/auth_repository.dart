@@ -59,7 +59,4 @@ abstract class AuthRepository {
 
   // Stream the full AppUser document from persistent storage for [userId].
   Stream<AppUser?> watchUser(String userId);
-
-  // One-shot fetch of any user's display name — used by Market tile to show creator.
-  Future<String?> getUserDisplayName(String userId);
 }

@@ -10,10 +10,13 @@ service cloud.firestore {
       return isAuth() && request.auth.uid == uid;
     }
 
-    // User profiles: any signed-in user can read (display names are shown in
-    // the Market); only the owner can write.
+    // User profiles are private to the owner. Market author names are
+    // denormalized onto the set document at publish time (CardSet.
+    // authorDisplayName, #297) specifically so no client ever needs to read
+    // another user's doc here — this collection holds email, which must not
+    // be readable cross-user.
     match /users/{userId} {
-      allow read: if isAuth();
+      allow read: if isUser(userId);
       allow write: if isUser(userId);
 
       // Study sessions are private to the owning user.

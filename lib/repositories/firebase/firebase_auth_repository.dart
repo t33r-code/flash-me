@@ -139,8 +139,10 @@ class FirebaseAuthRepository implements AuthRepository {
   }) async {
     try {
       _logger.i('Linking email/password to existing account');
-      final credential =
-          EmailAuthProvider.credential(email: email, password: password);
+      final credential = EmailAuthProvider.credential(
+        email: email,
+        password: password,
+      );
       await _auth.currentUser!.linkWithCredential(credential);
     } on FirebaseAuthException catch (e) {
       _logger.e('Email/password link failed: ${e.code}');
@@ -169,10 +171,7 @@ class FirebaseAuthRepository implements AuthRepository {
   Future<void> signOut() async {
     try {
       _logger.i('Signing out');
-      await Future.wait([
-        _auth.signOut(),
-        GoogleSignIn.instance.signOut(),
-      ]);
+      await Future.wait([_auth.signOut(), GoogleSignIn.instance.signOut()]);
     } catch (e) {
       _logger.e('Sign-out failed: $e');
       throw AppException('Sign-out failed', code: 'sign-out-failed');
@@ -204,7 +203,10 @@ class FirebaseAuthRepository implements AuthRepository {
   // --- User profile operations -----------------------------------------------
 
   @override
-  Future<void> updateUserProfile({String? displayName, String? photoUrl}) async {
+  Future<void> updateUserProfile({
+    String? displayName,
+    String? photoUrl,
+  }) async {
     final user = _auth.currentUser;
     if (user == null) return;
     try {
@@ -217,18 +219,11 @@ class FirebaseAuthRepository implements AuthRepository {
           .update({'displayName': displayName, 'photoUrl': photoUrl});
     } catch (e) {
       _logger.e('Profile update failed: $e');
-      throw AppException('Failed to update profile', code: 'update-profile-failed');
+      throw AppException(
+        'Failed to update profile',
+        code: 'update-profile-failed',
+      );
     }
-  }
-
-  // One-shot read of any user's displayName — used by Market tiles.
-  @override
-  Future<String?> getUserDisplayName(String userId) async {
-    final doc = await _firestore
-        .collection(AppConstants.usersCollection)
-        .doc(userId)
-        .get();
-    return doc.data()?['displayName'] as String?;
   }
 
   // Stream the Firestore user document; used by appUserProvider.

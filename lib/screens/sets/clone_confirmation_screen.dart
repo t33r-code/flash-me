@@ -337,7 +337,10 @@ class _SetHeader extends StatelessWidget {
           if (hasLanguage) ...[
             const SizedBox(width: 16),
             Text(
-              '${set.targetLanguage!.toUpperCase()} → ${set.nativeLanguage!.toUpperCase()}',
+              AppHelpers.formatLanguagePair(
+                set.targetLanguage!,
+                set.nativeLanguage!,
+              ),
               style: textTheme.bodySmall
                   ?.copyWith(color: scheme.onSurfaceVariant),
             ),

@@ -523,10 +523,7 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
 
       // Normalise tags before writing to Firestore so the stored value
       // matches the global tags/{normalizedName} document ID.
-      final normalizedTags = _tags
-          .map(AppHelpers.normalizeTag)
-          .where((t) => t.isNotEmpty)
-          .toList();
+      final normalizedTags = AppHelpers.normalizeTags(_tags);
 
       if (!_isEditing) {
         await ref
@@ -658,10 +655,7 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
     _setSaving(true);
     try {
       // Capture tags before deleting — decrement fire-and-forget after.
-      final tagsToDecrement = widget.card!.tags
-          .map(AppHelpers.normalizeTag)
-          .where((t) => t.isNotEmpty)
-          .toList();
+      final tagsToDecrement = AppHelpers.normalizeTags(widget.card!.tags);
       final tagRepo = ref.read(tagRepositoryProvider);
       await ref.read(cardRepositoryProvider).deleteCard(widget.card!.id);
       for (final norm in tagsToDecrement) {

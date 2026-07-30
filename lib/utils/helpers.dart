@@ -89,6 +89,12 @@ class AppHelpers {
     return input.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '-');
   }
 
+  // Normalise a list of raw tags and drop any that end up empty — the
+  // "normalize then filter" pair every save path applies before writing tags
+  // to Firestore (#287 RF-3).
+  static List<String> normalizeTags(List<String> tags) =>
+      tags.map(normalizeTag).where((t) => t.isNotEmpty).toList();
+
   // Diff two tag lists and return which tags were added and which removed.
   // Both sides are normalised before comparison so casing differences are
   // treated as the same tag.  Returns (toUpsert, toDecrement) where:
@@ -105,6 +111,13 @@ class AppHelpers {
       oldNorm.difference(newNorm).toList(),
     );
   }
+
+  // Formats a target/native language pair for display, e.g. "ES → EN".
+  // Callers still own their own null-guard (a set/card without a language
+  // pair simply omits this label) — this only covers the once-duplicated
+  // formatting itself (#287 RF-2).
+  static String formatLanguagePair(String target, String native) =>
+      '${target.toUpperCase()} → ${native.toUpperCase()}';
 
   // Log a non-fatal tag write failure. Called from fire-and-forget upsert/
   // decrement paths where the error must not propagate to the caller.

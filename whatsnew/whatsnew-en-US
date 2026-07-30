@@ -1,3 +1,3 @@
-Alpha 0.7.1
+Alpha 0.8
 
-Fixes a white screen that could appear when opening the web app in a mobile browser. Also cleans up the card rows in your lists so the word stays easy to read on small screens.
+Cards now behave the same way everywhere: tap to open one, long-press (or right-click) for actions like Clone. Long-press no longer accidentally starts a multi-select. Also fixes an issue where another account's email could be exposed through a set's author name in the Market.

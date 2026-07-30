@@ -2,6 +2,19 @@
 
 ---
 
+## v0.8.0 — Alpha 0.8 — 2026-07-30
+
+### New features
+- Cards now behave consistently everywhere you see them: tap a card to open it, and long-press (or right-click on desktop) for actions like Clone — no more accidentally starting a multi-select when you meant to open a card (#291, #292, #293)
+
+### Bug fixes
+- Fixed an issue where another account's email address could be exposed through a set's author name in the Market (#297)
+
+### Known issues
+- None identified
+
+---
+
 ## v0.7.1 — Alpha 0.7 — 2026-07-26
 
 ### New features

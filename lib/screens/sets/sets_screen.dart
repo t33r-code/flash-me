@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/l10n/app_localizations.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/utils/extensions.dart';
+import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/widgets/help_menu_button.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/set_acquisition_provider.dart';
@@ -631,7 +632,10 @@ class _SetTile extends StatelessWidget {
                             ),
                           if (hasLanguage)
                             Text(
-                              '${cardSet.targetLanguage!.toUpperCase()} → ${cardSet.nativeLanguage!.toUpperCase()}',
+                              AppHelpers.formatLanguagePair(
+                                cardSet.targetLanguage!,
+                                cardSet.nativeLanguage!,
+                              ),
                               style: textTheme.labelSmall?.copyWith(
                                 color: scheme.onSurfaceVariant,
                               ),
@@ -929,7 +933,10 @@ class _MarketSetTile extends ConsumerWidget {
                       children: [
                         if (hasLanguage)
                           Text(
-                            '${cardSet.targetLanguage!.toUpperCase()} → ${cardSet.nativeLanguage!.toUpperCase()}',
+                            AppHelpers.formatLanguagePair(
+                              cardSet.targetLanguage!,
+                              cardSet.nativeLanguage!,
+                            ),
                             style: textTheme.labelSmall?.copyWith(
                               color: scheme.onSurfaceVariant,
                             ),

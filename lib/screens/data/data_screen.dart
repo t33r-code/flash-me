@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flash_me/widgets/help_menu_button.dart';
 import 'package:flash_me/widgets/keyboard_actions.dart';
+import 'package:flash_me/widgets/progress_dialog.dart';
 
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/import_diff.dart';
@@ -190,19 +191,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
 
     if (!mounted) return;
 
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        content: Row(
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(width: 20),
-            Text(l10n.messageExporting),
-          ],
-        ),
-      ),
-    );
+    showProgressDialog(context, l10n.messageExporting);
 
     try {
       // Fetch templates directly from repositories — don't rely on cached
@@ -265,19 +254,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
       if (!context.mounted) return;
 
       // Show progress while analyzing.
-      showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => AlertDialog(
-          content: Row(
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(width: 20),
-              Text(l10n.messageAnalysingArchive),
-            ],
-          ),
-        ),
-      );
+      showProgressDialog(context, l10n.messageAnalysingArchive);
 
       final uid = ref.read(authStateProvider).asData?.value ?? '';
       final analysis = await ref

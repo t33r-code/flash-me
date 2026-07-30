@@ -7,6 +7,7 @@ import 'package:flash_me/providers/card_set_provider.dart';
 import 'package:flash_me/providers/workbook_card_provider.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
+import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/widgets/keyboard_actions.dart';
 
 // Three-way result for the "set language?" dialog.
@@ -95,7 +96,7 @@ Future<bool> addCardsWithLanguageCheck(
     if (selectedPairs.length == 1) {
       // All share one pair — offer to adopt it as the set's language.
       final pair = selectedPairs.first;
-      final label = '${pair.$1.toUpperCase()} → ${pair.$2.toUpperCase()}';
+      final label = AppHelpers.formatLanguagePair(pair.$1, pair.$2);
       final choice = await showDialog<_LangChoice>(
         context: context,
         // Enter confirms the primary action (#235); Esc / tap-away cancels.
@@ -166,8 +167,7 @@ Future<bool> addCardsWithLanguageCheck(
     // Set has a language — warn on conflict.
     final hasConflict = selectedPairs.any((p) => p != setLang);
     if (hasConflict) {
-      final setLabel =
-          '${setLang.$1.toUpperCase()} → ${setLang.$2.toUpperCase()}';
+      final setLabel = AppHelpers.formatLanguagePair(setLang.$1, setLang.$2);
       final proceed = await showDialog<bool>(
         context: context,
         // Enter confirms the primary action (#235); Esc / tap-away cancels.

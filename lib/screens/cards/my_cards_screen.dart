@@ -14,6 +14,7 @@ import 'package:flash_me/screens/cards/card_form_screen.dart';
 import 'package:flash_me/screens/cards/workbook_card_form_screen.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/extensions.dart';
+import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/utils/selection.dart';
 import 'package:flash_me/widgets/add_cards_to_set.dart';
 import 'package:flash_me/widgets/bulk_card_actions.dart';
@@ -715,7 +716,7 @@ class _SetPickerDialog extends StatelessWidget {
               title: Text(set.name),
               subtitle: Text(
                 hasLang
-                    ? '${set.cardCount} · ${set.targetLanguage!.toUpperCase()} → ${set.nativeLanguage!.toUpperCase()}'
+                    ? '${set.cardCount} · ${AppHelpers.formatLanguagePair(set.targetLanguage!, set.nativeLanguage!)}'
                     : '${set.cardCount}',
               ),
               onTap: () => Navigator.of(ctx).pop(set),
@@ -790,7 +791,7 @@ class _FlashCardTile extends StatelessWidget {
     final hasLanguage =
         card.targetLanguage != null && card.nativeLanguage != null;
     final subtitle = hasLanguage
-        ? '${card.translation}  ·  ${card.targetLanguage!.toUpperCase()} → ${card.nativeLanguage!.toUpperCase()}'
+        ? '${card.translation}  ·  ${AppHelpers.formatLanguagePair(card.targetLanguage!, card.nativeLanguage!)}'
         : card.translation;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

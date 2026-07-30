@@ -12,6 +12,7 @@ import 'package:flash_me/screens/study/study_setup_screen.dart';
 import 'package:flash_me/utils/extensions.dart';
 import 'package:flash_me/utils/helpers.dart';
 import 'package:flash_me/widgets/keyboard_actions.dart';
+import 'package:flash_me/widgets/progress_dialog.dart';
 
 // ---------------------------------------------------------------------------
 // Set-management actions (delete/export/market/study/edit) shared by
@@ -58,10 +59,7 @@ Future<bool> deleteSetWithConfirm(
 
   try {
     final uid = ref.read(authStateProvider).asData?.value ?? '';
-    final tagsToDecrement = set.tags
-        .map(AppHelpers.normalizeTag)
-        .where((t) => t.isNotEmpty)
-        .toList();
+    final tagsToDecrement = AppHelpers.normalizeTags(set.tags);
     final tagRepo = ref.read(tagRepositoryProvider);
     await ref.read(cardSetRepositoryProvider).deleteSet(set.id, uid);
     for (final norm in tagsToDecrement) {
@@ -98,19 +96,7 @@ Future<void> exportSetWithProgress(
       .getUserTemplates(uid);
 
   if (!context.mounted) return;
-  showDialog<void>(
-    context: context,
-    barrierDismissible: false,
-    builder: (ctx) => AlertDialog(
-      content: Row(
-        children: [
-          const CircularProgressIndicator(),
-          const SizedBox(width: 20),
-          Text(ctx.l10n.messagePreparingExport),
-        ],
-      ),
-    ),
-  );
+  showProgressDialog(context, l10n.messagePreparingExport);
 
   try {
     final savedPath = await ref

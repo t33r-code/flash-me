@@ -80,10 +80,7 @@ class _SetFormScreenState extends ConsumerState<SetFormScreen> {
       final repo = ref.read(cardSetRepositoryProvider);
       final tagRepo = ref.read(tagRepositoryProvider);
 
-      final normalizedTags = _tags
-          .map(AppHelpers.normalizeTag)
-          .where((t) => t.isNotEmpty)
-          .toList();
+      final normalizedTags = AppHelpers.normalizeTags(_tags);
 
       if (!_isEditing) {
         await repo.createSet(

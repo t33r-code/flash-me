@@ -483,17 +483,10 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
 
   // Appends a single question from a QuestionTemplate with a fresh questionId.
   void _appendQuestionFromTemplate(QuestionTemplate qt) {
-    final freshQuestion = switch (qt.question) {
-      TextInputQuestion q => q.copyWith(questionId: CardQuestion.generateId()),
-      MultipleChoiceQuestion q => q.copyWith(
-        questionId: CardQuestion.generateId(),
-      ),
-      WordOrderQuestion q => q.copyWith(questionId: CardQuestion.generateId()),
-      FillInTheBlanksQuestion q => q.copyWith(
-        questionId: CardQuestion.generateId(),
-      ),
-      GridQuestion q => q.copyWith(questionId: CardQuestion.generateId()),
-    };
+    // #287 RF-5: use the shared re-keying helper (already used at line 411)
+    // instead of a local per-type switch — the two had drifted (this one only
+    // ever bumped questionId, but a shared helper avoids that risk entirely).
+    final freshQuestion = withFreshQuestionId(qt.question);
     setState(() {
       _questions.add(_QuestionState.fromQuestion(freshQuestion));
       if (_questions.length != 1) _questionAsCard = false;
@@ -849,10 +842,7 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
       final questions = _questions.map((q) => q.toQuestion()).toList();
 
       // Normalise tags so stored values match tags/{normalizedName} doc IDs.
-      final normalizedTags = _tags
-          .map(AppHelpers.normalizeTag)
-          .where((t) => t.isNotEmpty)
-          .toList();
+      final normalizedTags = AppHelpers.normalizeTags(_tags);
 
       if (!_isEditing) {
         final now = DateTime.now();
@@ -959,10 +949,7 @@ class WorkbookEditorBodyState extends ConsumerState<WorkbookEditorBody> {
     if (confirmed != true || !mounted) return;
     _setSaving(true);
     try {
-      final tagsToDecrement = widget.card!.tags
-          .map(AppHelpers.normalizeTag)
-          .where((t) => t.isNotEmpty)
-          .toList();
+      final tagsToDecrement = AppHelpers.normalizeTags(widget.card!.tags);
       final tagRepo = ref.read(tagRepositoryProvider);
       await ref
           .read(workbookCardRepositoryProvider)

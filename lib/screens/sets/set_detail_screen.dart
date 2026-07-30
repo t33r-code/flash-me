@@ -1531,7 +1531,7 @@ class _CardLibraryState extends ConsumerState<_CardLibrary> {
                     const SizedBox(width: 8),
                     FilterChip(
                       label: Text(
-                        '${pair.$1.toUpperCase()} → ${pair.$2.toUpperCase()}',
+                        AppHelpers.formatLanguagePair(pair.$1, pair.$2),
                       ),
                       selected: effectiveLangFilter == pair,
                       onSelected: (_) => setState(() => _langFilter = pair),

@@ -298,60 +298,96 @@ class FirebaseCardSetRepository implements CardSetRepository {
             .toList());
   }
 
-  // Stream full card objects with a live subscription per card (#320). A
-  // one-time `.get()` per card — re-run only when the setCards join changes —
-  // went stale whenever a card's own fields (e.g. its image) were edited
-  // without touching the join doc: the cached list wouldn't refresh until the
-  // whole listener was torn down and recreated (e.g. by leaving the set
-  // entirely), which is what made a saved image "disappear" until you left
-  // and came back. Instead, keep one doc-level listener per card alive and
-  // recompute the combined list whenever any of them fires.
+  // Firestore's whereIn only accepts this many values per query.
+  static const _whereInChunkSize = 10;
+
+  // Stream full card objects with live re-querying per card ID batch (#320).
+  // A one-time `.get()` per card — re-run only when the setCards join
+  // changes — went stale whenever a card's own fields (e.g. its image) were
+  // edited without touching the join doc: the cached list wouldn't refresh
+  // until the whole listener was torn down and recreated (e.g. by leaving
+  // the set entirely), which is what made a saved image "disappear" until
+  // you left and came back.
+  //
+  // A per-document `.doc(id).snapshots()` listener would solve this too, but
+  // batching card IDs into `whereIn` queries keeps this on the same
+  // collection/query-level `.snapshots()` idiom already used everywhere else
+  // in this codebase, and bounds the listener count for large sets.
   @override
   Stream<List<FlashCard>> watchCardsInSet(String setId, String userId) {
     late final StreamController<List<FlashCard>> controller;
     StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? joinSub;
-    final cardSubs = <String, StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>>{};
-    final latestCards = <String, FlashCard>{};
+    var chunkSubs = <StreamSubscription<QuerySnapshot<Map<String, dynamic>>>>[];
     var order = <String>[];
+    var cardsByChunk = <Map<String, FlashCard>>[];
+    // Chunks whose query hasn't delivered its first snapshot yet — emit()
+    // withholds while this is non-empty so callers relying on the first
+    // emission being fully resolved (e.g. `.first`, matching the old
+    // Future.wait-based behaviour) never see a partial/empty list.
+    var pendingChunks = 0;
 
     void emit() {
-      if (controller.isClosed) return;
+      if (controller.isClosed || pendingChunks > 0) return;
+      final merged = <String, FlashCard>{};
+      for (final chunk in cardsByChunk) {
+        merged.addAll(chunk);
+      }
       controller.add([
         for (final id in order)
-          if (latestCards[id] != null) latestCards[id]!,
+          if (merged[id] != null) merged[id]!,
       ]);
     }
 
-    void setCardIds(List<String> cardIds) {
+    void subscribeToCards(List<String> cardIds) {
       order = cardIds;
-      final idSet = cardIds.toSet();
-      for (final id in cardSubs.keys.where((id) => !idSet.contains(id)).toList()) {
-        cardSubs.remove(id)?.cancel();
-        latestCards.remove(id);
+      for (final sub in chunkSubs) {
+        sub.cancel();
       }
-      for (final id in cardIds) {
-        if (cardSubs.containsKey(id)) continue;
-        cardSubs[id] = _firestore
+      chunkSubs = [];
+      cardsByChunk = [];
+      pendingChunks = 0;
+      if (cardIds.isEmpty) {
+        emit();
+        return;
+      }
+
+      final chunks = <List<String>>[
+        for (var i = 0; i < cardIds.length; i += _whereInChunkSize)
+          cardIds.sublist(
+              i, min(i + _whereInChunkSize, cardIds.length)),
+      ];
+      pendingChunks = chunks.length;
+      for (var i = 0; i < chunks.length; i++) {
+        final chunkIndex = i;
+        cardsByChunk.add({});
+        var firstEmission = true;
+        chunkSubs.add(_firestore
             .collection(AppConstants.cardsCollection)
-            .doc(id)
+            .where(FieldPath.documentId, whereIn: chunks[chunkIndex])
             .snapshots()
             .listen(
-          (snap) {
-            if (snap.exists) {
-              latestCards[id] = FlashCard.fromFirestore(snap);
-            } else {
-              latestCards.remove(id);
+          (snapshot) {
+            cardsByChunk[chunkIndex] = {
+              for (final doc in snapshot.docs)
+                doc.id: FlashCard.fromFirestore(doc),
+            };
+            if (firstEmission) {
+              firstEmission = false;
+              pendingChunks--;
             }
             emit();
           },
-          // One inaccessible/errored card is dropped, not fatal to the rest.
+          // One errored chunk is dropped, not fatal to the rest.
           onError: (_) {
-            latestCards.remove(id);
+            cardsByChunk[chunkIndex] = {};
+            if (firstEmission) {
+              firstEmission = false;
+              pendingChunks--;
+            }
             emit();
           },
-        );
+        ));
       }
-      emit();
     }
 
     controller = StreamController<List<FlashCard>>.broadcast(
@@ -363,7 +399,7 @@ class FirebaseCardSetRepository implements CardSetRepository {
             .orderBy('addedAt')
             .snapshots()
             .listen((snapshot) {
-          setCardIds(sortSetCardsByPosition(
+          subscribeToCards(sortSetCardsByPosition(
                   snapshot.docs.map(SetCard.fromFirestore).toList())
               .map((c) => c.cardId)
               .toList());
@@ -371,11 +407,11 @@ class FirebaseCardSetRepository implements CardSetRepository {
       },
       onCancel: () async {
         await joinSub?.cancel();
-        for (final sub in cardSubs.values) {
+        for (final sub in chunkSubs) {
           await sub.cancel();
         }
-        cardSubs.clear();
-        latestCards.clear();
+        chunkSubs = [];
+        cardsByChunk = [];
       },
     );
 

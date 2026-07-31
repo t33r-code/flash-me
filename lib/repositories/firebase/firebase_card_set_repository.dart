@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:logger/logger.dart';
@@ -297,46 +298,88 @@ class FirebaseCardSetRepository implements CardSetRepository {
             .toList());
   }
 
-  // Stream full card objects; re-fetches cards whenever the setCards list changes.
+  // Stream full card objects with a live subscription per card (#320). A
+  // one-time `.get()` per card — re-run only when the setCards join changes —
+  // went stale whenever a card's own fields (e.g. its image) were edited
+  // without touching the join doc: the cached list wouldn't refresh until the
+  // whole listener was torn down and recreated (e.g. by leaving the set
+  // entirely), which is what made a saved image "disappear" until you left
+  // and came back. Instead, keep one doc-level listener per card alive and
+  // recompute the combined list whenever any of them fires.
   @override
   Stream<List<FlashCard>> watchCardsInSet(String setId, String userId) {
-    return _firestore
-        .collection(AppConstants.setCardsCollection)
-        .where('setId', isEqualTo: setId)
-        .where('userId', isEqualTo: userId)
-        .orderBy('addedAt')
-        .snapshots()
-        .asyncMap((snapshot) async {
-      if (snapshot.docs.isEmpty) return <FlashCard>[];
-      final cardIds = sortSetCardsByPosition(
-              snapshot.docs.map(SetCard.fromFirestore).toList())
-          .map((c) => c.cardId)
-          .toList();
-      return _fetchCardsByIds(cardIds, userId);
-    });
-  }
+    late final StreamController<List<FlashCard>> controller;
+    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? joinSub;
+    final cardSubs = <String, StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>>{};
+    final latestCards = <String, FlashCard>{};
+    var order = <String>[];
 
-  // Fetches each card individually so Firestore evaluates rules per-document.
-  // Per-Future error handling ensures one inaccessible card doesn't abort
-  // the whole fetch (the card is silently skipped).
-  Future<List<FlashCard>> _fetchCardsByIds(
-      List<String> cardIds, String userId) async {
-    if (cardIds.isEmpty) return [];
-    final col = _firestore.collection(AppConstants.cardsCollection);
-    final snaps = await Future.wait(
-      cardIds.map((id) async {
-        try {
-          return await col.doc(id).get();
-        } catch (_) {
-          return null;
+    void emit() {
+      if (controller.isClosed) return;
+      controller.add([
+        for (final id in order)
+          if (latestCards[id] != null) latestCards[id]!,
+      ]);
+    }
+
+    void setCardIds(List<String> cardIds) {
+      order = cardIds;
+      final idSet = cardIds.toSet();
+      for (final id in cardSubs.keys.where((id) => !idSet.contains(id)).toList()) {
+        cardSubs.remove(id)?.cancel();
+        latestCards.remove(id);
+      }
+      for (final id in cardIds) {
+        if (cardSubs.containsKey(id)) continue;
+        cardSubs[id] = _firestore
+            .collection(AppConstants.cardsCollection)
+            .doc(id)
+            .snapshots()
+            .listen(
+          (snap) {
+            if (snap.exists) {
+              latestCards[id] = FlashCard.fromFirestore(snap);
+            } else {
+              latestCards.remove(id);
+            }
+            emit();
+          },
+          // One inaccessible/errored card is dropped, not fatal to the rest.
+          onError: (_) {
+            latestCards.remove(id);
+            emit();
+          },
+        );
+      }
+      emit();
+    }
+
+    controller = StreamController<List<FlashCard>>.broadcast(
+      onListen: () {
+        joinSub = _firestore
+            .collection(AppConstants.setCardsCollection)
+            .where('setId', isEqualTo: setId)
+            .where('userId', isEqualTo: userId)
+            .orderBy('addedAt')
+            .snapshots()
+            .listen((snapshot) {
+          setCardIds(sortSetCardsByPosition(
+                  snapshot.docs.map(SetCard.fromFirestore).toList())
+              .map((c) => c.cardId)
+              .toList());
+        });
+      },
+      onCancel: () async {
+        await joinSub?.cancel();
+        for (final sub in cardSubs.values) {
+          await sub.cancel();
         }
-      }),
+        cardSubs.clear();
+        latestCards.clear();
+      },
     );
-    return snaps
-        .whereType<DocumentSnapshot<Map<String, dynamic>>>()
-        .where((s) => s.exists)
-        .map(FlashCard.fromFirestore)
-        .toList();
+
+    return controller.stream;
   }
 
   @override

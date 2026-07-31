@@ -904,20 +904,9 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
             child: hasImage
                 ? (_pendingImageBytes != null
                       ? Image.memory(_pendingImageBytes!, fit: BoxFit.cover)
-                      : Image.network(
-                          existingUrl!,
+                      : _ExistingCardImage(
+                          url: existingUrl!,
                           fit: BoxFit.cover,
-                          // Logged so a future "image doesn't render in the
-                          // editor" report can be diagnosed from the actual
-                          // load error instead of guessing (#287-adjacent
-                          // follow-up — root cause not yet confirmed).
-                          errorBuilder: (_, error, _) {
-                            AppLogger.error(
-                              'Card editor: primary image failed to load '
-                              '($existingUrl): $error',
-                            );
-                            return const Icon(Icons.broken_image_outlined);
-                          },
                         ))
                 : const Icon(Icons.image_outlined, size: 36),
           ),
@@ -1208,6 +1197,77 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _ExistingCardImage — renders a card's saved primaryImageUrl with a bounded
+// retry (#320). A card image is replaced by deleting the old Storage object
+// and uploading a new one at the same deterministic path
+// (users/{uid}/cards/{cardId}/image.{ext}, see _resolveMediaUrls); the
+// freshly-created object's public download URL can have a brief window where
+// it isn't yet fetchable, and Flutter's global ImageCache remembers that
+// failure for the rest of the app session (a cold restart clears it, which is
+// why the saved image renders correctly after reopening the app but not when
+// reopening the editor again in the same session right after a save). Evict
+// the URL before each attempt so we never trust a stale cached failure, and
+// retry a few times with a short delay before giving up.
+// ---------------------------------------------------------------------------
+class _ExistingCardImage extends StatefulWidget {
+  final String url;
+  final BoxFit fit;
+  const _ExistingCardImage({required this.url, required this.fit});
+
+  @override
+  State<_ExistingCardImage> createState() => _ExistingCardImageState();
+}
+
+class _ExistingCardImageState extends State<_ExistingCardImage> {
+  static const _maxAttempts = 3;
+  static const _retryDelay = Duration(seconds: 2);
+  int _attempt = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    NetworkImage(widget.url).evict();
+  }
+
+  void _scheduleRetry() {
+    _attempt++;
+    Future.delayed(_retryDelay, () {
+      if (!mounted) return;
+      NetworkImage(widget.url).evict();
+      setState(() {});
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.network(
+      widget.url,
+      // Forces Image to build a fresh ImageStream per attempt rather than
+      // reusing one that already resolved to an error.
+      key: ValueKey('${widget.url}#$_attempt'),
+      fit: widget.fit,
+      errorBuilder: (_, error, _) {
+        AppLogger.error(
+          'Card editor: primary image failed to load '
+          '(attempt ${_attempt + 1}/$_maxAttempts) (${widget.url}): $error',
+        );
+        if (_attempt + 1 < _maxAttempts) {
+          _scheduleRetry();
+          return const Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          );
+        }
+        return const Icon(Icons.broken_image_outlined);
+      },
     );
   }
 }

@@ -9,6 +9,10 @@
 
 ### Bug fixes
 - Fixed an issue where another account's email address could be exposed through a set's author name in the Market (#297)
+- Card images and audio over 10MB now show a clear "too large" message instead of a generic save failure (#319)
+- Fixed a saved card image sometimes not showing up again in the editor after being changed (#320)
+- Fixed Esc not closing the inline card editor pane when editing a card from within a set on a wide window (#322)
+- Fixed sign out failing on Windows and Linux desktop (#323)
 
 ### Known issues
 - None identified

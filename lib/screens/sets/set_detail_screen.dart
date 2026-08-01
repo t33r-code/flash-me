@@ -883,7 +883,7 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
     // widget.onExit != null (see _startNewCardInPane / _editFlashCardInPane).
     final paneEdit = _paneEdit;
     if (paneEdit != null) {
-      body = switch (paneEdit) {
+      final paneBody = switch (paneEdit) {
         _FlashPaneEdit(:final card, :final cloneFrom, :final key) =>
           CardEditorBody(
             key: key,
@@ -909,6 +909,13 @@ class _SetDetailScreenState extends ConsumerState<SetDetailScreen> {
                 mounted ? setState(() => _isPaneSaving = v) : null,
           ),
       };
+      // Unlike CardFormScreen (a pushed route, whose own KeyboardActions
+      // wrapper handles Esc), the pane is embedded inline here with no
+      // equivalent wrapper of its own — Esc silently did nothing (#322).
+      body = KeyboardActions(
+        onCancel: _isPaneSaving ? null : _exitPaneEdit,
+        child: paneBody,
+      );
     }
 
     // Wide layout + library open: show the card list beside an inline library

@@ -412,6 +412,18 @@
   },
   "errorFailedSaveCard": "Failed to save card. Please try again.",
   "errorFailedDeleteCard": "Failed to delete card. Please try again.",
+  "errorImageTooLarge": "That image is too large — please choose one under {maxMb} MB.",
+  "@errorImageTooLarge": {
+    "placeholders": {
+      "maxMb": {"type": "int"}
+    }
+  },
+  "errorAudioTooLarge": "That audio file is too large — please choose one under {maxMb} MB.",
+  "@errorAudioTooLarge": {
+    "placeholders": {
+      "maxMb": {"type": "int"}
+    }
+  },
   "tooltipDeleteCard": "Delete card",
   "actionSaveAsTemplate": "Save as Template",
   "titlePrimaryField": "Primary Field",

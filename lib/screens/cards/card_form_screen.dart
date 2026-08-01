@@ -411,6 +411,24 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
     final file = result.files.first;
     final bytes = file.bytes;
     if (bytes == null) return;
+    // Reject oversized files before attempting the upload — Storage rules
+    // enforce the same cap (#285 R6) server-side, but surfacing that
+    // rejection only after a failed save left the user with an opaque
+    // "Failed to save card" and no indication why.
+    if (bytes.length > AppConstants.maxMediaUploadBytes) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              context.l10n.errorImageTooLarge(
+                AppConstants.maxMediaUploadBytes ~/ (1024 * 1024),
+              ),
+            ),
+          ),
+        );
+      }
+      return;
+    }
     final ext = (file.extension ?? 'jpg').toLowerCase();
     setState(() {
       _pendingImageBytes = bytes;
@@ -436,6 +454,21 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
     final file = result.files.first;
     final bytes = file.bytes;
     if (bytes == null) return;
+    // See the matching check in _pickImage — same 10MB Storage-rules cap.
+    if (bytes.length > AppConstants.maxMediaUploadBytes) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              context.l10n.errorAudioTooLarge(
+                AppConstants.maxMediaUploadBytes ~/ (1024 * 1024),
+              ),
+            ),
+          ),
+        );
+      }
+      return;
+    }
     final ext = (file.extension ?? 'mp3').toLowerCase();
     setState(() {
       _pendingAudioBytes = bytes;
@@ -874,8 +907,13 @@ class CardEditorBodyState extends ConsumerState<CardEditorBody> {
                       : Image.network(
                           existingUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) =>
-                              const Icon(Icons.broken_image_outlined),
+                          errorBuilder: (_, error, _) {
+                            AppLogger.error(
+                              'Card editor: primary image failed to load '
+                              '($existingUrl): $error',
+                            );
+                            return const Icon(Icons.broken_image_outlined);
+                          },
                         ))
                 : const Icon(Icons.image_outlined, size: 36),
           ),

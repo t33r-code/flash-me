@@ -1732,6 +1732,18 @@ abstract class AppLocalizations {
   /// **'Failed to delete card. Please try again.'**
   String get errorFailedDeleteCard;
 
+  /// No description provided for @errorImageTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'That image is too large — please choose one under {maxMb} MB.'**
+  String errorImageTooLarge(int maxMb);
+
+  /// No description provided for @errorAudioTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'That audio file is too large — please choose one under {maxMb} MB.'**
+  String errorAudioTooLarge(int maxMb);
+
   /// No description provided for @tooltipDeleteCard.
   ///
   /// In en, this message translates to:

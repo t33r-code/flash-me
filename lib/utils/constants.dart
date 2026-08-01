@@ -4,6 +4,12 @@ class AppConstants {
   static const String appName = 'Agora';
   static const String appVersion = '1.0.0';
 
+  // Max size for a single card image/audio upload — must match storage.rules'
+  // `request.resource.size < 10 * 1024 * 1024` cap (#285 R6) exactly, so the
+  // client can reject an oversized file before attempting the upload rather
+  // than surfacing a generic failure after Storage rejects the write.
+  static const int maxMediaUploadBytes = 10 * 1024 * 1024;
+
   // Firestore collection names
   static const String usersCollection = 'users';
   static const String cardsCollection = 'cards';

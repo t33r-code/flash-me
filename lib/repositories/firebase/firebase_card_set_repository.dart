@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:logger/logger.dart';
@@ -297,46 +298,124 @@ class FirebaseCardSetRepository implements CardSetRepository {
             .toList());
   }
 
-  // Stream full card objects; re-fetches cards whenever the setCards list changes.
+  // Firestore's whereIn only accepts this many values per query.
+  static const _whereInChunkSize = 10;
+
+  // Stream full card objects with live re-querying per card ID batch (#320).
+  // A one-time `.get()` per card — re-run only when the setCards join
+  // changes — went stale whenever a card's own fields (e.g. its image) were
+  // edited without touching the join doc: the cached list wouldn't refresh
+  // until the whole listener was torn down and recreated (e.g. by leaving
+  // the set entirely), which is what made a saved image "disappear" until
+  // you left and came back.
+  //
+  // A per-document `.doc(id).snapshots()` listener would solve this too, but
+  // batching card IDs into `whereIn` queries keeps this on the same
+  // collection/query-level `.snapshots()` idiom already used everywhere else
+  // in this codebase, and bounds the listener count for large sets.
   @override
   Stream<List<FlashCard>> watchCardsInSet(String setId, String userId) {
-    return _firestore
-        .collection(AppConstants.setCardsCollection)
-        .where('setId', isEqualTo: setId)
-        .where('userId', isEqualTo: userId)
-        .orderBy('addedAt')
-        .snapshots()
-        .asyncMap((snapshot) async {
-      if (snapshot.docs.isEmpty) return <FlashCard>[];
-      final cardIds = sortSetCardsByPosition(
-              snapshot.docs.map(SetCard.fromFirestore).toList())
-          .map((c) => c.cardId)
-          .toList();
-      return _fetchCardsByIds(cardIds, userId);
-    });
-  }
+    late final StreamController<List<FlashCard>> controller;
+    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? joinSub;
+    var chunkSubs = <StreamSubscription<QuerySnapshot<Map<String, dynamic>>>>[];
+    var order = <String>[];
+    var cardsByChunk = <Map<String, FlashCard>>[];
+    // Chunks whose query hasn't delivered its first snapshot yet — emit()
+    // withholds while this is non-empty so callers relying on the first
+    // emission being fully resolved (e.g. `.first`, matching the old
+    // Future.wait-based behaviour) never see a partial/empty list.
+    var pendingChunks = 0;
 
-  // Fetches each card individually so Firestore evaluates rules per-document.
-  // Per-Future error handling ensures one inaccessible card doesn't abort
-  // the whole fetch (the card is silently skipped).
-  Future<List<FlashCard>> _fetchCardsByIds(
-      List<String> cardIds, String userId) async {
-    if (cardIds.isEmpty) return [];
-    final col = _firestore.collection(AppConstants.cardsCollection);
-    final snaps = await Future.wait(
-      cardIds.map((id) async {
-        try {
-          return await col.doc(id).get();
-        } catch (_) {
-          return null;
+    void emit() {
+      if (controller.isClosed || pendingChunks > 0) return;
+      final merged = <String, FlashCard>{};
+      for (final chunk in cardsByChunk) {
+        merged.addAll(chunk);
+      }
+      controller.add([
+        for (final id in order)
+          if (merged[id] != null) merged[id]!,
+      ]);
+    }
+
+    void subscribeToCards(List<String> cardIds) {
+      order = cardIds;
+      for (final sub in chunkSubs) {
+        sub.cancel();
+      }
+      chunkSubs = [];
+      cardsByChunk = [];
+      pendingChunks = 0;
+      if (cardIds.isEmpty) {
+        emit();
+        return;
+      }
+
+      final chunks = <List<String>>[
+        for (var i = 0; i < cardIds.length; i += _whereInChunkSize)
+          cardIds.sublist(
+              i, min(i + _whereInChunkSize, cardIds.length)),
+      ];
+      pendingChunks = chunks.length;
+      for (var i = 0; i < chunks.length; i++) {
+        final chunkIndex = i;
+        cardsByChunk.add({});
+        var firstEmission = true;
+        chunkSubs.add(_firestore
+            .collection(AppConstants.cardsCollection)
+            .where(FieldPath.documentId, whereIn: chunks[chunkIndex])
+            .snapshots()
+            .listen(
+          (snapshot) {
+            cardsByChunk[chunkIndex] = {
+              for (final doc in snapshot.docs)
+                doc.id: FlashCard.fromFirestore(doc),
+            };
+            if (firstEmission) {
+              firstEmission = false;
+              pendingChunks--;
+            }
+            emit();
+          },
+          // One errored chunk is dropped, not fatal to the rest.
+          onError: (_) {
+            cardsByChunk[chunkIndex] = {};
+            if (firstEmission) {
+              firstEmission = false;
+              pendingChunks--;
+            }
+            emit();
+          },
+        ));
+      }
+    }
+
+    controller = StreamController<List<FlashCard>>.broadcast(
+      onListen: () {
+        joinSub = _firestore
+            .collection(AppConstants.setCardsCollection)
+            .where('setId', isEqualTo: setId)
+            .where('userId', isEqualTo: userId)
+            .orderBy('addedAt')
+            .snapshots()
+            .listen((snapshot) {
+          subscribeToCards(sortSetCardsByPosition(
+                  snapshot.docs.map(SetCard.fromFirestore).toList())
+              .map((c) => c.cardId)
+              .toList());
+        });
+      },
+      onCancel: () async {
+        await joinSub?.cancel();
+        for (final sub in chunkSubs) {
+          await sub.cancel();
         }
-      }),
+        chunkSubs = [];
+        cardsByChunk = [];
+      },
     );
-    return snaps
-        .whereType<DocumentSnapshot<Map<String, dynamic>>>()
-        .where((s) => s.exists)
-        .map(FlashCard.fromFirestore)
-        .toList();
+
+    return controller.stream;
   }
 
   @override

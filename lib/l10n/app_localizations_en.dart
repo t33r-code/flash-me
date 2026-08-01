@@ -976,6 +976,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Failed to delete card. Please try again.';
 
   @override
+  String errorImageTooLarge(int maxMb) {
+    return 'That image is too large — please choose one under $maxMb MB.';
+  }
+
+  @override
+  String errorAudioTooLarge(int maxMb) {
+    return 'That audio file is too large — please choose one under $maxMb MB.';
+  }
+
+  @override
   String get tooltipDeleteCard => 'Delete card';
 
   @override

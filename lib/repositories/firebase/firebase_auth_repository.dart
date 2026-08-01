@@ -178,15 +178,27 @@ class FirebaseAuthRepository implements AuthRepository {
     }
     // Best-effort: also clear the native Google session so a future
     // "Sign in with Google" prompts fresh instead of silently reusing this
-    // account. google_sign_in has no implementation at all on Windows/Linux
-    // desktop (throws UnimplementedError there) — that must never fail a
+    // account. Skipped outright on platforms google_sign_in doesn't
+    // implement at all (Windows/Linux desktop, where every call throws
+    // UnimplementedError) rather than attempting and catching every time —
+    // and even on supported platforms, failure here must never fail a
     // sign-out that already succeeded above.
-    try {
-      await GoogleSignIn.instance.signOut();
-    } catch (e) {
-      _logger.w('Google sign-out skipped (non-fatal): $e');
+    if (_supportsGoogleSignIn) {
+      try {
+        await GoogleSignIn.instance.signOut();
+      } catch (e) {
+        _logger.w('Google sign-out failed (non-fatal): $e');
+      }
     }
   }
+
+  // Platforms with a real google_sign_in implementation. Windows/Linux
+  // desktop have none — every method throws UnimplementedError there.
+  static bool get _supportsGoogleSignIn =>
+      kIsWeb ||
+      defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS ||
+      defaultTargetPlatform == TargetPlatform.macOS;
 
   @override
   Future<void> sendEmailVerification() async {

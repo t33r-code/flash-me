@@ -171,10 +171,20 @@ class FirebaseAuthRepository implements AuthRepository {
   Future<void> signOut() async {
     try {
       _logger.i('Signing out');
-      await Future.wait([_auth.signOut(), GoogleSignIn.instance.signOut()]);
+      await _auth.signOut();
     } catch (e) {
       _logger.e('Sign-out failed: $e');
       throw AppException('Sign-out failed', code: 'sign-out-failed');
+    }
+    // Best-effort: also clear the native Google session so a future
+    // "Sign in with Google" prompts fresh instead of silently reusing this
+    // account. google_sign_in has no implementation at all on Windows/Linux
+    // desktop (throws UnimplementedError there) — that must never fail a
+    // sign-out that already succeeded above.
+    try {
+      await GoogleSignIn.instance.signOut();
+    } catch (e) {
+      _logger.w('Google sign-out skipped (non-fatal): $e');
     }
   }
 

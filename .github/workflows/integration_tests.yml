@@ -15,6 +15,9 @@ on:
       - 'firebase.json'
       # Run when the workflow itself changes, so CI edits are verified on the PR.
       - '.github/workflows/integration_tests.yml'
+      # ...and when its helper scripts change (e.g. the retry emulator restart,
+      # #264), which affect this job's behaviour just as directly.
+      - '.github/scripts/**'
   # Allow manual runs (e.g. to confirm a fix or re-check a flake).
   workflow_dispatch:
 

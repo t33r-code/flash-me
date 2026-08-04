@@ -112,17 +112,4 @@ jobs:
           # only ever runs after a failed attempt, so a latent execution-policy
           # problem here would stay invisible until the one moment it matters.
           on_retry_command: pwsh -NoProfile -ExecutionPolicy Bypass -File ./.github/scripts/restart-emulators.ps1
-          # TEMPORARY PROBE (#264) — REVERT BEFORE MERGE.
-          # The retry/restart path only executes after a failed attempt, so it
-          # never runs on a green build and would otherwise ship unverified.
-          # Force attempt 1 to fail so CI exercises on_retry_command for real:
-          # expect attempt 1 to fail fast, the emulator restart to log, and
-          # attempt 2 to run the full suite green.
-          command: |
-            if (-not (Test-Path 264-retry-probe.txt)) {
-              Set-Content 264-retry-probe.txt 'probe'
-              Write-Host 'PROBE: forcing attempt 1 to fail'
-              exit 1
-            }
-            Write-Host 'PROBE: retry reached - running the real suite'
-            flutter test integration_test/all_tests.dart -d windows --reporter expanded
+          command: flutter test integration_test/all_tests.dart -d windows --reporter expanded

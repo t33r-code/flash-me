@@ -15,6 +15,9 @@ on:
       - 'firebase.json'
       # Run when the workflow itself changes, so CI edits are verified on the PR.
       - '.github/workflows/integration_tests.yml'
+      # ...and when its helper scripts change (e.g. the retry emulator restart,
+      # #264), which affect this job's behaviour just as directly.
+      - '.github/scripts/**'
   # Allow manual runs (e.g. to confirm a fix or re-check a flake).
   workflow_dispatch:
 
@@ -87,15 +90,26 @@ jobs:
 
       # The suite runs as one long-lived Windows process; the native
       # firebase_firestore plugin occasionally crashes near the tail under
-      # cumulative load (abrupt exit, no Dart error — see #228). Retry once so a
-      # single native flake doesn't fail CI. A genuine regression fails both
-      # attempts and the job stays red, so real breakage is not masked. Each
-      # attempt is a fresh `flutter test` process with unique per-test users, so
-      # re-running against the still-running emulator is state-safe.
+      # cumulative load (abrupt exit, no Dart error — see #228). Retry so a
+      # single native flake doesn't fail CI. A genuine regression fails every
+      # attempt and the job stays red, so real breakage is not masked.
+      #
+      # #264: retrying the test process alone could not absorb a *wedged
+      # emulator* — the emulator is started once per job, so every attempt
+      # reconnected to the same broken server and failed identically. Restart
+      # the emulators between attempts so each retry is genuinely independent,
+      # and allow a third attempt now that attempts are no longer correlated.
+      # timeout_minutes stays at 20: successful runs take 8-14 minutes, so a
+      # tighter ceiling would risk failing slow-but-healthy runners.
       - name: Run integration tests
         uses: nick-fields/retry@v3
         with:
           shell: pwsh
           timeout_minutes: 20
-          max_attempts: 2
+          max_attempts: 3
+          retry_wait_seconds: 15
+          # Explicit -File/-ExecutionPolicy rather than `./script.ps1`: this path
+          # only ever runs after a failed attempt, so a latent execution-policy
+          # problem here would stay invisible until the one moment it matters.
+          on_retry_command: pwsh -NoProfile -ExecutionPolicy Bypass -File ./.github/scripts/restart-emulators.ps1
           command: flutter test integration_test/all_tests.dart -d windows --reporter expanded

@@ -63,6 +63,8 @@ Manually created or edited ZIP files are also supported. Agora is lenient about 
 - **Trailing commas** before `]` or `}` are accepted.
 - Both `questions` and the legacy `fields` key are recognised.
 
+Import archives are limited to **50 MB**, measured both as the ZIP file itself and as its total contents once unpacked. Larger archives are rejected before anything is read. If you hit this limit, split the export into several smaller sets.
+
 If Agora can't parse the file, it shows an error and no changes are made.
 
 ### Templates in Import Files { #import-templates }

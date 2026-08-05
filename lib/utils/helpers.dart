@@ -82,6 +82,18 @@ class FeedbackPhrases {
 }
 
 class AppHelpers {
+  // Reduce an untrusted file extension to a bounded alphanumeric token (#300
+  // F4). Import takes the extension from a ZIP entry name and interpolates it
+  // into a Firebase Storage object path, so separators, dots or control
+  // characters there could otherwise reshape that path. Uploads stay under
+  // users/{uid}/ regardless, so this is defence in depth rather than a
+  // cross-user hole. Returns '' when nothing usable remains — callers should
+  // then write an extension-less name rather than one ending in a bare '.'.
+  static String sanitizeFileExtension(String raw) {
+    final lower = raw.toLowerCase();
+    return RegExp(r'^[a-z0-9]{1,10}$').hasMatch(lower) ? lower : '';
+  }
+
   // Normalise a raw tag string to its canonical Firestore document ID form:
   // trim whitespace, lowercase, collapse runs of whitespace to a single hyphen.
   // Returns an empty string if the result is empty (caller should discard it).

@@ -16,8 +16,7 @@ Future<ImportSetDiff> _diffSet({
   final setName = rawSet['name'] as String? ?? '';
   if (setName.isEmpty) throw AppException('A set in the import has no name.');
 
-  final rawCards = (rawSet['cards'] as List? ?? [])
-      .cast<Map<String, dynamic>>();
+  final rawCards = _asObjectList(rawSet['cards'], 'cards');
   final importCards =
       rawCards.map((c) => _parseCard(c, qtMap)).toList();
 

@@ -31,7 +31,9 @@ class FirebaseAuthRepository implements AuthRepository {
     required String password,
   }) async {
     try {
-      _logger.i('Registering user: $email');
+      // Never log the email itself (#300 F5). No uid to log yet either —
+      // _createUserDocument logs it once the account exists.
+      _logger.i('Registering user');
       final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
@@ -49,8 +51,11 @@ class FirebaseAuthRepository implements AuthRepository {
     required String password,
   }) async {
     try {
-      _logger.i('Signing in: $email');
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      // uid rather than email (#300 F5) — still traceable for support, no PII.
+      _logger.i('Signing in');
+      final credential = await _auth.signInWithEmailAndPassword(
+          email: email, password: password);
+      _logger.i('Signed in ${credential.user?.uid}');
     } on FirebaseAuthException catch (e) {
       _logger.e('Sign-in failed: ${e.code}');
       throw AppException(e.message ?? 'Sign-in failed', code: e.code);
@@ -215,7 +220,9 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Future<void> resetPassword(String email) async {
     try {
-      _logger.i('Sending password reset to $email');
+      // No email, and no uid either (#300 F5): whether an account exists for
+      // this address is itself information worth not recording.
+      _logger.i('Sending password reset');
       await _auth.sendPasswordResetEmail(email: email);
     } on FirebaseAuthException catch (e) {
       throw AppException(e.message ?? 'Password reset failed', code: e.code);

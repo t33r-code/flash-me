@@ -13,8 +13,11 @@ class CardSet {
   // null for sets that have never been public (or predate this field).
   final String? authorDisplayName;
   final String name; // e.g. "Spanish Verbs"
-  final String?
-  description; // markdown-formatted text; rendered with flutter_markdown_plus
+  // Plain text today — rendered as-is, no markdown parser (#300 F7 removed the
+  // unused flutter_markdown_plus dependency). If rich rendering is ever added,
+  // especially for public Market descriptions, disable raw HTML and restrict
+  // link schemes: this is attacker-controlled text shown to other users.
+  final String? description;
   final int cardCount; // denormalized: kept in sync by CardSetService
   final int
   acquisitionCount; // denormalized: incremented on each clone/subscription, never decremented

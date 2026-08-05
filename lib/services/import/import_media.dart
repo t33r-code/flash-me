@@ -16,8 +16,12 @@ Future<String?> _uploadMedia(
   if (file == null) return null;
 
   final bytes = Uint8List.fromList(file.content as List<int>);
-  final ext = path.contains('.') ? path.split('.').last : '';
-  final fileName = '${DateTime.now().millisecondsSinceEpoch}.$ext';
+  final ext = AppHelpers.sanitizeFileExtension(
+      path.contains('.') ? path.split('.').last : '');
+  final timestamp = DateTime.now().millisecondsSinceEpoch;
+  // Omit the separator entirely when nothing usable survived sanitizing,
+  // rather than writing an object ending in a bare '.'.
+  final fileName = ext.isEmpty ? '$timestamp' : '$timestamp.$ext';
   final ref = FirebaseStorage.instance
       .ref()
       .child('users/$userId/cards/$fileName');

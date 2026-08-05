@@ -243,6 +243,65 @@ void main() {
     });
   });
 
+  // ── Malformed-but-valid JSON (#300 F3) ────────────────────────────────────
+
+  group('malformed JSON shapes', () {
+    Future<void> expectFriendlyError(
+      Map<String, dynamic> root,
+      String expectedFragment,
+    ) =>
+        expectLater(
+          service.analyze(
+            zipBytes: makeZip(root),
+            userId: 'user-1',
+            cardSetRepo: mockSetRepo,
+            cardRepo: mockCardRepo,
+            questionTemplateRepo: mockQtRepo,
+            templateRepo: mockTemplateRepo,
+          ),
+          throwsA(
+            isA<AppException>().having(
+              (e) => e.message,
+              'message',
+              contains(expectedFragment),
+            ),
+          ),
+        );
+
+    test('"sets" that is not a list', () async {
+      await expectFriendlyError({'sets': 'x'}, 'must be a list');
+    });
+
+    test('"set" that is not an object', () async {
+      await expectFriendlyError({'set': 'x'}, 'must be an object');
+    });
+
+    test('"sets" containing a non-object entry', () async {
+      await expectFriendlyError({
+        'sets': ['x'],
+      }, 'not an object');
+    });
+
+    test('"cards" that is not a list', () async {
+      await expectFriendlyError({
+        'set': {'name': 'S', 'cards': 'x'},
+      }, 'must be a list');
+    });
+
+    // Exercises the TypeError safety net rather than an explicit check: `tags`
+    // is cast deep inside _parseCard, well past the structural validation.
+    test('a wrong-typed field deep inside a card', () async {
+      await expectFriendlyError({
+        'set': {
+          'name': 'S',
+          'cards': [
+            {'primaryWord': 'a', 'translation': 'b', 'tags': 'oops'},
+          ],
+        },
+      }, 'unexpected data types');
+    });
+  });
+
   // ── _buildChanges — diff detection ────────────────────────────────────────
 
   group('_buildChanges', () {

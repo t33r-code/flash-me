@@ -47,6 +47,35 @@ class ImportService {
     required QuestionTemplateRepository questionTemplateRepo,
     required TemplateRepository templateRepo,
   }) async {
+    try {
+      return await _analyze(
+        zipBytes: zipBytes,
+        userId: userId,
+        cardSetRepo: cardSetRepo,
+        cardRepo: cardRepo,
+        questionTemplateRepo: questionTemplateRepo,
+        templateRepo: templateRepo,
+      );
+    } on TypeError {
+      // Safety net for wrong-typed JSON (#300 F3). _asObjectList and the
+      // structural checks below give precise messages for the common shape
+      // mistakes; this catches the long tail of `as` / `.cast<T>()` on
+      // untrusted values across _diffSet and _parseCard, which would otherwise
+      // escape as an unhandled TypeError. Deliberately narrow — AppException
+      // and genuine I/O errors still propagate unchanged.
+      throw AppException(
+          'cards.json has unexpected data types. Please check the file format.');
+    }
+  }
+
+  Future<ImportAnalysis> _analyze({
+    required Uint8List zipBytes,
+    required String userId,
+    required CardSetRepository cardSetRepo,
+    required CardRepository cardRepo,
+    required QuestionTemplateRepository questionTemplateRepo,
+    required TemplateRepository templateRepo,
+  }) async {
     // 1. Decode ZIP.
     // Bound the raw input first: decodeBytes and every `.content` read below
     // inflate into memory. Deliberately outside the try/catch — an
@@ -91,10 +120,8 @@ class ImportService {
     }
 
     // 3. Parse templates from the JSON (optional — absent in older exports).
-    final rawCTs =
-        (root['cardTemplates'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-    final rawQTs =
-        (root['questionTemplates'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final rawCTs = _asObjectList(root['cardTemplates'], 'cardTemplates');
+    final rawQTs = _asObjectList(root['questionTemplates'], 'questionTemplates');
 
     // 4. Load existing user templates; determine which JSON templates are new.
     final existingQTs = await questionTemplateRepo.getUserTemplates(userId);
@@ -156,9 +183,13 @@ class ImportService {
     // 6. Normalise to a list of raw set maps (supports both formats).
     final List<Map<String, dynamic>> rawSets;
     if (root.containsKey('sets')) {
-      rawSets = (root['sets'] as List).cast<Map<String, dynamic>>();
+      rawSets = _asObjectList(root['sets'], 'sets');
     } else if (root.containsKey('set')) {
-      rawSets = [root['set'] as Map<String, dynamic>];
+      final rawSet = root['set'];
+      if (rawSet is! Map<String, dynamic>) {
+        throw AppException('Invalid format: "set" must be an object.');
+      }
+      rawSets = [rawSet];
     } else {
       throw AppException(
           'Invalid format: expected a "set" or "sets" key in cards.json.');

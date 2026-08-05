@@ -48,13 +48,31 @@ class ImportService {
     required TemplateRepository templateRepo,
   }) async {
     // 1. Decode ZIP.
+    // Bound the raw input first: decodeBytes and every `.content` read below
+    // inflate into memory. Deliberately outside the try/catch — an
+    // AppException thrown inside it would be swallowed and remapped to
+    // 'Not a valid ZIP file.', which is the wrong diagnosis.
+    if (zipBytes.length > AppConstants.maxImportArchiveBytes) {
+      throw AppException('Archive exceeds the 50 MB limit.');
+    }
+
     final Archive archive;
     try {
       archive = ZipDecoder().decodeBytes(zipBytes);
     } catch (e) {
       throw AppException('Not a valid ZIP file.');
     }
-    if (archive.length > 50 * 1024 * 1024) {
+
+    // A small archive can still declare gigabytes of uncompressed content, so
+    // check the inflated total before reading any entry. This previously read
+    // `archive.length`, which is the entry *count*, not a byte size — so it
+    // compared a handful of entries against ~52 million and could never fire
+    // (#298). Entries are read via `.content` here and in _uploadMedia during
+    // execute(), which only runs on the ImportAnalysis produced below — so
+    // this one check covers both paths.
+    final uncompressedBytes =
+        archive.files.fold<int>(0, (sum, f) => sum + f.size);
+    if (uncompressedBytes > AppConstants.maxImportArchiveBytes) {
       throw AppException('Archive exceeds the 50 MB limit.');
     }
 

@@ -191,6 +191,58 @@ void main() {
     });
   });
 
+  // ── Archive size guards (#298) ────────────────────────────────────────────
+
+  group('archive size guards', () {
+    Future<void> expectRejectedAsOversized(Uint8List bytes) => expectLater(
+          service.analyze(
+            zipBytes: bytes,
+            userId: 'user-1',
+            cardSetRepo: mockSetRepo,
+            cardRepo: mockCardRepo,
+            questionTemplateRepo: mockQtRepo,
+            templateRepo: mockTemplateRepo,
+          ),
+          // Asserting on the message, not just the type: the raw-size check
+          // sits next to a catch that reports 'Not a valid ZIP file.', and
+          // these inputs would satisfy isA<AppException>() either way.
+          throwsA(
+            isA<AppException>().having(
+              (e) => e.message,
+              'message',
+              contains('50 MB'),
+            ),
+          ),
+        );
+
+    test('rejects a raw archive larger than the limit', () async {
+      // Junk bytes rather than a real ZIP: proves the raw-size guard runs
+      // *before* decoding, since a decode attempt would fail differently.
+      await expectRejectedAsOversized(
+        Uint8List(AppConstants.maxImportArchiveBytes + 1),
+      );
+    });
+
+    test('rejects a zip bomb that inflates past the limit', () async {
+      // Zeros compress to almost nothing, so this lands well under the raw cap
+      // while declaring >50 MB uncompressed — exactly the case the old
+      // `archive.length` (entry count) check could never catch.
+      final payload =
+          Uint8List(AppConstants.maxImportArchiveBytes + 1024 * 1024);
+      final archive = Archive()
+        ..addFile(ArchiveFile('cards.json', payload.length, payload));
+      final zipBytes = Uint8List.fromList(ZipEncoder().encode(archive));
+
+      expect(
+        zipBytes.length,
+        lessThan(AppConstants.maxImportArchiveBytes),
+        reason: 'compressed size must stay under the raw cap, or this would '
+            'test the raw guard instead of the inflated-size guard',
+      );
+      await expectRejectedAsOversized(zipBytes);
+    });
+  });
+
   // ── _buildChanges — diff detection ────────────────────────────────────────
 
   group('_buildChanges', () {

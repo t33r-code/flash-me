@@ -5,6 +5,25 @@ part of '../import_service.dart';
 // Handles both standard question maps and ##templateId references.
 // ---------------------------------------------------------------------------
 
+// Coerce an optional untrusted JSON value into a list of objects (#300 F3).
+// A file can be valid JSON but the wrong shape (e.g. `"sets": "x"`), which a
+// bare `as List` would surface as an unhandled TypeError. Validates eagerly so
+// the returned `.cast()` can't fail later — `List.cast<T>()` is a lazy view in
+// Dart, so an unchecked bad element throws during iteration, far from here.
+List<Map<String, dynamic>> _asObjectList(dynamic value, String field) {
+  if (value == null) return [];
+  if (value is! List) {
+    throw AppException('Invalid format: "$field" must be a list.');
+  }
+  for (var i = 0; i < value.length; i++) {
+    if (value[i] is! Map<String, dynamic>) {
+      throw AppException(
+          'Invalid format: entry ${i + 1} of "$field" is not an object.');
+    }
+  }
+  return value.cast<Map<String, dynamic>>();
+}
+
 // Parse a single raw card map from cards.json into an ImportCardData.
 // Throws AppException for cards that are missing required fields.
 ImportCardData _parseCard(

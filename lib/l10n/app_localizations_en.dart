@@ -976,6 +976,31 @@ class AppLocalizationsEn extends AppLocalizations {
       'Failed to delete card. Please try again.';
 
   @override
+  String titleImportMediaSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count media files will be skipped',
+      one: '1 media file will be skipped',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get messageImportMediaSkipped =>
+      'These files can\'t be uploaded, so their cards will be imported without media. Everything else imports normally.';
+
+  @override
+  String labelImportMediaTooLarge(String path, int maxMb) {
+    return '$path — over $maxMb MB';
+  }
+
+  @override
+  String labelImportMediaUnsupported(String path) {
+    return '$path — unsupported file type';
+  }
+
+  @override
   String errorImageTooLarge(int maxMb) {
     return 'That image is too large — please choose one under $maxMb MB.';
   }

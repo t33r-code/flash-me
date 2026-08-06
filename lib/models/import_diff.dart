@@ -1,6 +1,7 @@
 import 'package:archive/archive.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/flash_card.dart';
+import 'package:flash_me/utils/import_media_validation.dart';
 
 // ---------------------------------------------------------------------------
 // Raw card data parsed from the import ZIP — no Firestore IDs assigned yet.
@@ -112,12 +113,17 @@ class ImportAnalysis {
   // Question Templates by templateId (Import ID) if set, else by name.
   final List<Map<String, dynamic>> newCardTemplates;
   final List<Map<String, dynamic>> newQuestionTemplates;
+  // Media entries that Storage will refuse (too large, or a content type the
+  // rules don't allow) — #330. Surfaced in the preview so the user sees them
+  // before committing; execute() skips these rather than aborting part-way.
+  final List<MediaIssue> mediaIssues;
 
   const ImportAnalysis({
     required this.setDiffs,
     required this.archive,
     this.newCardTemplates = const [],
     this.newQuestionTemplates = const [],
+    this.mediaIssues = const [],
   });
 
   int get totalNewCards =>

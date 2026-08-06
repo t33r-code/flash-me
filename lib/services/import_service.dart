@@ -17,6 +17,7 @@ import 'package:flash_me/repositories/template_repository.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/exceptions.dart';
 import 'package:flash_me/utils/helpers.dart';
+import 'package:flash_me/utils/import_media_validation.dart';
 
 part 'import/import_parse.dart';
 part 'import/import_diff.dart';
@@ -213,7 +214,41 @@ class ImportService {
       archive: archive,
       newCardTemplates: newCTs,
       newQuestionTemplates: newQTs,
+      mediaIssues: _collectMediaIssues(archive, diffs),
     );
+  }
+
+  // Pre-flight every media entry the import would upload, so a file Storage is
+  // certain to refuse is surfaced in the preview instead of aborting execute()
+  // after cards have already been written (#330).
+  //
+  // Only newCards and updatedCards are checked: libraryLinkCards match an
+  // existing card and are linked, not re-uploaded. Entries missing from the
+  // archive are skipped — _uploadMedia already tolerates those by returning
+  // null, so reporting them as a rules problem would be a wrong diagnosis.
+  List<MediaIssue> _collectMediaIssues(
+      Archive archive, List<ImportSetDiff> diffs) {
+    final issues = <String, MediaIssue>{}; // keyed by path, so shared media
+    // referenced by several cards is reported once.
+    void check(String? path) {
+      if (path == null || issues.containsKey(path)) return;
+      final file = archive.findFile(path);
+      if (file == null) return;
+      final issue = validateImportMedia(path: path, sizeBytes: file.size);
+      if (issue != null) issues[path] = issue;
+    }
+
+    for (final diff in diffs) {
+      for (final entry in diff.newCards) {
+        check(entry.data.mediaImagePath);
+        check(entry.data.mediaAudioPath);
+      }
+      for (final entry in diff.updatedCards) {
+        check(entry.incoming.mediaImagePath);
+        check(entry.incoming.mediaAudioPath);
+      }
+    }
+    return issues.values.toList();
   }
 
   // Execute the import based on the user's choices.

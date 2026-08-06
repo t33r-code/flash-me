@@ -1732,6 +1732,30 @@ abstract class AppLocalizations {
   /// **'Failed to delete card. Please try again.'**
   String get errorFailedDeleteCard;
 
+  /// No description provided for @titleImportMediaSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 media file will be skipped} other{{count} media files will be skipped}}'**
+  String titleImportMediaSkipped(int count);
+
+  /// No description provided for @messageImportMediaSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'These files can\'t be uploaded, so their cards will be imported without media. Everything else imports normally.'**
+  String get messageImportMediaSkipped;
+
+  /// No description provided for @labelImportMediaTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'{path} — over {maxMb} MB'**
+  String labelImportMediaTooLarge(String path, int maxMb);
+
+  /// No description provided for @labelImportMediaUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'{path} — unsupported file type'**
+  String labelImportMediaUnsupported(String path);
+
   /// No description provided for @errorImageTooLarge.
   ///
   /// In en, this message translates to:

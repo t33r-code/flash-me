@@ -49,10 +49,23 @@ app.*.map.json
 # Flutter DevTools local config (auto-generated, not project state)
 devtools_options.yaml
 
-# Claude Code local session state — ignore personal settings but track shared commands
+# Claude Code local session state — ignore personal settings (settings.local.json,
+# session locks) but track shared project automation: commands and skills.
+#
+# Skills are allowlisted individually rather than by wildcard: .claude/skills/
+# also holds junctions the Firebase CLI creates into .agents/skills/
+# (firebase-*, xcode-project-setup), which are vendor content and must stay
+# untracked. Add a new pair of lines per project-authored skill.
 .claude/*
 !.claude/commands/
 !.claude/commands/**
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/tdd/
+!.claude/skills/tdd/**
+
+# Agent skills installed by the Firebase CLI (junction target of .claude/skills/*)
+.agents/
 
 # Firebase CLI local deployment cache (machine-specific, auto-regenerated)
 .firebase/

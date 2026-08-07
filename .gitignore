@@ -52,10 +52,13 @@ devtools_options.yaml
 # Claude Code local session state — ignore personal settings (settings.local.json,
 # session locks) but track shared project automation: commands and skills.
 #
-# Skills are allowlisted individually rather than by wildcard: .claude/skills/
-# also holds junctions the Firebase CLI creates into .agents/skills/
-# (firebase-*, xcode-project-setup), which are vendor content and must stay
-# untracked. Add a new pair of lines per project-authored skill.
+# Skills are allowlisted individually rather than by wildcard. Some tool has
+# previously dropped directory junctions into .claude/skills/ pointing at
+# .agents/skills/ (firebase-*, xcode-project-setup, all created in one batch on
+# 2026-07-20). Origin was never confirmed — the installed firebase-tools has no
+# such feature — and they were dangling, so they have been removed. A wildcard
+# here would commit that kind of external content if it reappears, so add a new
+# pair of lines per project-authored skill instead.
 .claude/*
 !.claude/commands/
 !.claude/commands/**

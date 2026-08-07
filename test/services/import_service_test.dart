@@ -243,6 +243,49 @@ void main() {
       );
       await expectRejectedAsOversized(zipBytes);
     });
+
+    test('rejects a zip bomb that understates its declared size (#331)',
+        () async {
+      // The declared-sum guard trusts the header, which a bomb can fake:
+      // encode a valid archive, then patch the central directory's
+      // uncompressed-size field down to 1 byte. ZipDecoder prefers the
+      // central-directory sizes, so the declared sum becomes 1 while the
+      // deflate stream still inflates well past the cap. Only the measured
+      // inflated-size guard can catch this.
+      final payload =
+          Uint8List(AppConstants.maxImportArchiveBytes + 1024 * 1024);
+      final archive = Archive()
+        ..addFile(ArchiveFile('cards.json', payload.length, payload));
+      final zipBytes = Uint8List.fromList(ZipEncoder().encode(archive));
+
+      // Central directory file header: signature PK\x01\x02, with the
+      // uncompressed-size field at byte offset 24.
+      var patched = 0;
+      for (var i = 0; i + 28 <= zipBytes.length; i++) {
+        if (zipBytes[i] == 0x50 &&
+            zipBytes[i + 1] == 0x4b &&
+            zipBytes[i + 2] == 0x01 &&
+            zipBytes[i + 3] == 0x02) {
+          zipBytes[i + 24] = 1;
+          zipBytes[i + 25] = 0;
+          zipBytes[i + 26] = 0;
+          zipBytes[i + 27] = 0;
+          patched++;
+        }
+      }
+      expect(patched, 1,
+          reason: 'expected exactly 1 central-directory entry to patch');
+
+      final declared =
+          ZipDecoder().decodeBytes(zipBytes).files.fold<int>(0, (s, f) => s + f.size);
+      expect(
+        declared,
+        lessThan(AppConstants.maxImportArchiveBytes),
+        reason: 'declared sizes must pass the #298 sum guard, or this would '
+            'test that guard instead of the inflated-size guard',
+      );
+      await expectRejectedAsOversized(zipBytes);
+    });
   });
 
   // ── Malformed-but-valid JSON (#300 F3) ────────────────────────────────────

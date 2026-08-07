@@ -10,10 +10,11 @@ class AppConstants {
   // than surfacing a generic failure after Storage rejects the write.
   static const int maxMediaUploadBytes = 10 * 1024 * 1024;
 
-  // Max size for an imported ZIP archive (#298). Applied twice: to the raw
-  // file before decoding, and to the sum of the entries' declared uncompressed
-  // sizes before any entry is read — so a small archive that inflates to
-  // gigabytes ("zip bomb") is rejected rather than exhausting memory.
+  // Max size for an imported ZIP archive (#298, #331). Applied 3 ways: to the
+  // raw file before decoding, to the sum of the entries' declared uncompressed
+  // sizes, and to the measured inflated size of each entry - so a small
+  // archive that inflates to gigabytes ("zip bomb") is rejected rather than
+  // exhausting memory, even when its headers understate the real size.
   static const int maxImportArchiveBytes = 50 * 1024 * 1024;
 
   // Firestore collection names

@@ -5,6 +5,7 @@ import 'package:archive/archive.dart';
 import 'package:flash_me/models/card_question.dart';
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/flash_card.dart';
+import 'package:flash_me/models/import_diff.dart';
 import 'package:flash_me/repositories/card_repository.dart';
 import 'package:flash_me/repositories/card_set_repository.dart';
 import 'package:flash_me/repositories/question_template_repository.dart';
@@ -12,6 +13,7 @@ import 'package:flash_me/repositories/template_repository.dart';
 import 'package:flash_me/services/import_service.dart';
 import 'package:flash_me/utils/constants.dart';
 import 'package:flash_me/utils/exceptions.dart';
+import 'package:flash_me/utils/import_media_validation.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
@@ -299,6 +301,96 @@ void main() {
           ],
         },
       }, 'unexpected data types');
+    });
+  });
+
+  // ── Media validated during analyze (#330) ─────────────────────────────────
+
+  group('media issues reported by analyze', () {
+    // Build a ZIP containing cards.json plus one media entry of [mediaBytes].
+    Uint8List makeZipWithMedia(
+      Map<String, dynamic> root,
+      String mediaPath,
+      int mediaBytes,
+    ) {
+      final jsonBytes = utf8.encode(jsonEncode(root));
+      final media = Uint8List(mediaBytes);
+      final archive = Archive()
+        ..addFile(ArchiveFile('cards.json', jsonBytes.length, jsonBytes))
+        ..addFile(ArchiveFile(mediaPath, media.length, media));
+      return Uint8List.fromList(ZipEncoder().encode(archive));
+    }
+
+    Map<String, dynamic> cardWithImage(String path) => {
+          ...rawCard(),
+          'primaryImageUrl': path,
+        };
+
+    Future<ImportAnalysis> analyzeWith(Uint8List zipBytes) => service.analyze(
+          zipBytes: zipBytes,
+          userId: 'user-1',
+          cardSetRepo: mockSetRepo,
+          cardRepo: mockCardRepo,
+          questionTemplateRepo: mockQtRepo,
+          templateRepo: mockTemplateRepo,
+        );
+
+    setUp(() {
+      // New set, and no library card matches — so every card lands in
+      // newCards, which is the path that uploads media.
+      when(mockSetRepo.findSetByName(any, any)).thenAnswer((_) async => null);
+      when(mockCardRepo.findCardByWordAndTranslation(any, any, any))
+          .thenAnswer((_) async => null);
+    });
+
+    test('reports an oversized media entry', () async {
+      final zip = makeZipWithMedia(
+        singleSet('S', [cardWithImage('media/big.jpg')]),
+        'media/big.jpg',
+        AppConstants.maxMediaUploadBytes + 1,
+      );
+
+      final analysis = await analyzeWith(zip);
+
+      expect(analysis.mediaIssues, hasLength(1));
+      expect(analysis.mediaIssues.single.path, 'media/big.jpg');
+      expect(analysis.mediaIssues.single.kind, MediaIssueKind.tooLarge);
+    });
+
+    test('reports an unsupported media type', () async {
+      final zip = makeZipWithMedia(
+        singleSet('S', [cardWithImage('media/pic.bmp')]),
+        'media/pic.bmp',
+        1024,
+      );
+
+      final analysis = await analyzeWith(zip);
+
+      expect(analysis.mediaIssues, hasLength(1));
+      expect(
+          analysis.mediaIssues.single.kind, MediaIssueKind.unsupportedType);
+    });
+
+    test('reports nothing for valid media', () async {
+      final zip = makeZipWithMedia(
+        singleSet('S', [cardWithImage('media/ok.jpg')]),
+        'media/ok.jpg',
+        1024,
+      );
+
+      expect((await analyzeWith(zip)).mediaIssues, isEmpty);
+    });
+
+    test('does not report media that is absent from the archive', () async {
+      // A missing entry is already tolerated at upload time (returns null);
+      // surfacing it as a rules problem would be a misleading diagnosis.
+      final zip = makeZipWithMedia(
+        singleSet('S', [cardWithImage('media/missing.jpg')]),
+        'media/unrelated.jpg',
+        1024,
+      );
+
+      expect((await analyzeWith(zip)).mediaIssues, isEmpty);
     });
   });
 

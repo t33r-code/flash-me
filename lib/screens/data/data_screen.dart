@@ -7,6 +7,8 @@ import 'package:flash_me/widgets/progress_dialog.dart';
 
 import 'package:flash_me/models/card_set.dart';
 import 'package:flash_me/models/import_diff.dart';
+import 'package:flash_me/utils/constants.dart';
+import 'package:flash_me/utils/import_media_validation.dart';
 import 'package:flash_me/providers/auth_provider.dart';
 import 'package:flash_me/providers/card_provider.dart';
 import 'package:flash_me/providers/card_set_provider.dart';
@@ -429,6 +431,9 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
                 child: ListView(
                   shrinkWrap: true,
                   children: [
+                    if (widget.analysis.mediaIssues.isNotEmpty)
+                      _MediaIssueSection(
+                          issues: widget.analysis.mediaIssues),
                     if (widget.analysis.totalNewCardTemplates > 0 ||
                         widget.analysis.totalNewQuestionTemplates > 0)
                       _TemplateDiffSection(analysis: widget.analysis),
@@ -617,6 +622,67 @@ class _SetDiffTileState extends State<_SetDiffTile> {
 // ---------------------------------------------------------------------------
 // Templates section in the preview dialog — new Card and Question Templates.
 // ---------------------------------------------------------------------------
+// Warns about media the import will skip because Storage would refuse it
+// (#330). Shown before the template/set diffs so it's seen before committing.
+// Non-blocking by design: the affected cards still import, just without media,
+// so this is a warning rather than a reason to reject the whole file.
+class _MediaIssueSection extends StatelessWidget {
+  final List<MediaIssue> issues;
+  const _MediaIssueSection({required this.issues});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final warningColor = theme.colorScheme.error;
+    const maxMb = AppConstants.maxMediaUploadBytes ~/ (1024 * 1024);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.warning_amber_outlined, size: 18, color: warningColor),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  l10n.titleImportMediaSkipped(issues.length),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: warningColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.messageImportMediaSkipped,
+            style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(height: 6),
+          // Named individually so the user can find and fix the actual files.
+          ...issues.map(
+            (issue) => Padding(
+              padding: const EdgeInsets.only(left: 24, top: 2),
+              child: Text(
+                switch (issue.kind) {
+                  MediaIssueKind.tooLarge =>
+                    l10n.labelImportMediaTooLarge(issue.path, maxMb),
+                  MediaIssueKind.unsupportedType =>
+                    l10n.labelImportMediaUnsupported(issue.path),
+                },
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _TemplateDiffSection extends StatefulWidget {
   final ImportAnalysis analysis;
   const _TemplateDiffSection({required this.analysis});

@@ -65,6 +65,8 @@ Manually created or edited ZIP files are also supported. Agora is lenient about 
 
 Import archives are limited to **50 MB**, measured both as the ZIP file itself and as its total contents once unpacked. Larger archives are rejected before anything is read. If you hit this limit, split the export into several smaller sets.
 
+Individual media files must be **under 10 MB** and in a supported format — JPG, PNG or WebP for images, MP3, AAC or M4A for audio. If a file is too large or in another format, the import preview lists it and that card is imported **without its media**. The rest of the import is unaffected, so you can fix the file and re-import to attach it.
+
 If Agora can't parse the file, it shows an error and no changes are made.
 
 ### Templates in Import Files { #import-templates }

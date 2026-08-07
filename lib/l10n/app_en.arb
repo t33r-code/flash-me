@@ -412,6 +412,26 @@
   },
   "errorFailedSaveCard": "Failed to save card. Please try again.",
   "errorFailedDeleteCard": "Failed to delete card. Please try again.",
+  "titleImportMediaSkipped": "{count, plural, =1{1 media file will be skipped} other{{count} media files will be skipped}}",
+  "@titleImportMediaSkipped": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "messageImportMediaSkipped": "These files can't be uploaded, so their cards will be imported without media. Everything else imports normally.",
+  "labelImportMediaTooLarge": "{path} — over {maxMb} MB",
+  "@labelImportMediaTooLarge": {
+    "placeholders": {
+      "path": {"type": "String"},
+      "maxMb": {"type": "int"}
+    }
+  },
+  "labelImportMediaUnsupported": "{path} — unsupported file type",
+  "@labelImportMediaUnsupported": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
   "errorImageTooLarge": "That image is too large — please choose one under {maxMb} MB.",
   "@errorImageTooLarge": {
     "placeholders": {

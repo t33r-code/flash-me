@@ -106,6 +106,15 @@ class ImportService {
       throw AppException('Archive exceeds the 50 MB limit.');
     }
 
+    // The check above trusts `ArchiveFile.size`, which is copied straight from
+    // the attacker-controlled ZIP header - and the archive package does not
+    // clamp inflation to it (the output buffer grows on demand), so an entry
+    // can declare 1 byte and still inflate to gigabytes when `.content` is
+    // read (#331). Measure the real inflated size of every entry before
+    // anything reads `.content`, aborting mid-inflation once the running
+    // total crosses the cap.
+    _rejectIfInflatesPastCap(archive);
+
     // 2. Locate and parse cards.json.
     final jsonFile = archive.findFile('cards.json');
     if (jsonFile == null) throw AppException('cards.json not found in archive.');
@@ -364,4 +373,110 @@ class ImportService {
       }
     }
   }
+}
+
+// Throw the friendly oversize AppException if the entries' REAL decompressed
+// sizes sum past the import cap (#331).
+//
+// A header-only heuristic (e.g. rejecting an implausible declared
+// uncompressed:compressed ratio) cannot close this gap: both numbers in that
+// ratio come from the attacker, so a bomb can declare uncompressed ==
+// compressed and look like stored media. The only sound bound is to run the
+// inflater itself with a sink that stops it. The pure-Dart Inflate streams
+// its output as it decodes, so a bomb costs at most ~50 MB of transient,
+// discarded work here - unlike ZLibDecoder.decodeStream, whose io
+// implementation buffers the whole result in its conversion sink first.
+//
+// Genuine imports pay one extra decode of at most 50 MB, only at analyze
+// time. Stored entries are summed by raw length instead - those bytes are
+// physically present in the (already size-checked) archive, so they can't
+// lie.
+void _rejectIfInflatesPastCap(Archive archive) {
+  var total = 0;
+  for (final f in archive.files) {
+    final raw = f.rawContent;
+    if (!f.isFile || raw == null) continue;
+    final compression = f.compression ?? CompressionType.none;
+    if (compression == CompressionType.none) {
+      total += raw.length;
+    } else {
+      final sink = _InflationCapSink(
+          budget: AppConstants.maxImportArchiveBytes - total);
+      final stream = raw.getStream(decompress: false);
+      // ZipFile.getStream returns its backing stream, not a copy, so restore
+      // the position afterwards or the later `.content` reads see EOS.
+      final savePos = stream.position;
+      try {
+        if (compression == CompressionType.deflate) {
+          Inflate.stream(stream, output: sink);
+        } else {
+          BZip2Decoder().decodeStream(stream, sink);
+        }
+      } on AppException {
+        rethrow;
+      } catch (_) {
+        // An entry that cannot be decoded would otherwise surface later as an
+        // obscure error from `.content`; report it like the decode failure
+        // above instead.
+        throw AppException('Not a valid ZIP file.');
+      } finally {
+        stream.setPosition(savePos);
+      }
+      total += sink.written;
+    }
+    if (total > AppConstants.maxImportArchiveBytes) {
+      throw AppException('Archive exceeds the 50 MB limit.');
+    }
+  }
+}
+
+// OutputStream that counts what is written to it - throwing the friendly
+// oversize AppException the moment the count crosses [budget] - without
+// storing any of the data. Inflate reads LZ77 back-references through
+// `subset`, so that returns zero-filled bytes of the right length: the
+// decoded bytes become garbage, but the deflate stream's structure (and
+// therefore the byte count, which is all this guard needs) never depends on
+// the decoded values.
+class _InflationCapSink extends OutputStream {
+  _InflationCapSink({required this.budget})
+      : super(byteOrder: ByteOrder.littleEndian);
+
+  final int budget;
+  int written = 0;
+
+  void _count(int bytes) {
+    written += bytes;
+    if (written > budget) {
+      throw AppException('Archive exceeds the 50 MB limit.');
+    }
+  }
+
+  @override
+  int get length => written;
+
+  @override
+  void writeByte(int value) => _count(1);
+
+  @override
+  void writeBytes(List<int> bytes, {int? length}) =>
+      _count(length ?? bytes.length);
+
+  @override
+  void writeStream(InputStream stream) => _count(stream.length);
+
+  // Python-style slice bounds, matching OutputMemoryStream.subset.
+  @override
+  Uint8List subset(int start, [int? end]) {
+    final s = start < 0 ? written + start : start;
+    final e = end == null ? written : (end < 0 ? written + end : end);
+    return Uint8List(e > s ? e - s : 0);
+  }
+
+  @override
+  void flush() {}
+
+  // Never called on this path; deliberately keeps the count, so a caller
+  // cannot reset the budget mid-stream.
+  @override
+  void clear() {}
 }
